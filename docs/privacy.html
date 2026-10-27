@@ -1,0 +1,776 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mira — Privacy Policy</title>
+    <meta
+      name="description"
+      content="Mira is a quieter browser. No account, no analytics, no advertising. Your history, trails, and shortcuts stay on your device."
+    />
+    <meta name="theme-color" content="#F5F1E8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14120F" media="(prefers-color-scheme: dark)" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --paper: #f5f1e8;
+        --paper-top: #faf7f0;
+        --ink: #191610;
+        --ink-soft: #3c3830;
+        --muted: #6c6457;
+        --faint: #9a9182;
+        --line: rgba(25, 22, 16, 0.12);
+        --accent: #ff5a2b;
+        --card: #fffcf6;
+        --chip: #f1ece2;
+        --inverse: #1b1813;
+        --inverse-ink: #f7f2e8;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #14120f;
+          --paper-top: #191612;
+          --ink: #f4efe5;
+          --ink-soft: #ded6c8;
+          --muted: #a39a8b;
+          --faint: #7d7568;
+          --line: rgba(244, 239, 229, 0.12);
+          --accent: #ff6b3d;
+          --card: #1c1914;
+          --chip: #242019;
+          --inverse: #f4efe5;
+          --inverse-ink: #16130e;
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1100px 600px at 85% -10%, rgba(255, 90, 43, 0.09), transparent 60%),
+          linear-gradient(180deg, var(--paper-top), var(--paper) 40%);
+        color: var(--ink);
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        font-size: 16.5px;
+        line-height: 1.62;
+        letter-spacing: -0.006em;
+      }
+
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 56px 26px 96px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 26px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .wordmark {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 23px;
+        letter-spacing: 0.02em;
+      }
+
+      .wordmark span {
+        color: var(--accent);
+      }
+
+      .kicker {
+        font-size: 10.5px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      header.hero {
+        padding: 62px 0 34px;
+      }
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 10.5px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 26px;
+        height: 1px;
+        background: currentColor;
+      }
+
+      h1 {
+        margin: 20px 0 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 400;
+        font-size: clamp(42px, 9vw, 68px);
+        line-height: 0.98;
+        letter-spacing: -0.028em;
+        max-width: 12ch;
+      }
+
+      .standfirst {
+        margin: 24px 0 0;
+        max-width: 56ch;
+        font-size: 18.5px;
+        line-height: 1.55;
+        color: var(--ink-soft);
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 10px;
+        margin-top: 28px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .meta span {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 5px 11px;
+        background: var(--chip);
+      }
+
+      .summary {
+        background: var(--inverse);
+        color: var(--inverse-ink);
+        border-radius: 24px;
+        padding: 30px 30px 26px;
+        margin: 14px 0 12px;
+      }
+
+      .summary h2 {
+        margin: 0 0 16px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 400;
+        font-size: 27px;
+        letter-spacing: -0.01em;
+      }
+
+      .summary ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 12px;
+      }
+
+      .summary li {
+        position: relative;
+        padding-left: 22px;
+        font-size: 15.5px;
+        line-height: 1.5;
+        color: var(--inverse-ink);
+        opacity: 0.84;
+      }
+
+      .summary li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.62em;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      section {
+        padding: 40px 0 6px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      section:last-of-type {
+        border-bottom: 0;
+      }
+
+      h2 {
+        margin: 0 0 6px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 400;
+        font-size: clamp(27px, 4.4vw, 34px);
+        line-height: 1.12;
+        letter-spacing: -0.02em;
+      }
+
+      h2 .num {
+        display: inline-block;
+        min-width: 1.6em;
+        margin-right: 8px;
+        font-family: ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.16em;
+        color: var(--accent);
+        vertical-align: 0.65em;
+      }
+
+      h3 {
+        margin: 28px 0 8px;
+        font-size: 12px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      p {
+        margin: 14px 0 0;
+        max-width: 66ch;
+      }
+
+      a {
+        color: var(--accent);
+        text-underline-offset: 3px;
+        text-decoration-thickness: 1px;
+      }
+
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+        border-radius: 3px;
+      }
+
+      strong {
+        font-weight: 600;
+      }
+
+      ul.plain {
+        margin: 14px 0 0;
+        padding-left: 20px;
+        max-width: 66ch;
+      }
+
+      ul.plain li {
+        margin-top: 7px;
+      }
+
+      .table-wrap {
+        margin-top: 20px;
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--card);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        min-width: 560px;
+      }
+
+      thead th {
+        text-align: left;
+        font-size: 10px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 600;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        background: var(--chip);
+      }
+
+      tbody td {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+        color: var(--ink-soft);
+      }
+
+      tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      tbody td:first-child {
+        color: var(--ink);
+        font-weight: 500;
+        width: 34%;
+      }
+
+      .note {
+        margin-top: 18px;
+        padding: 16px 18px;
+        border-left: 2px solid var(--accent);
+        background: var(--chip);
+        border-radius: 0 12px 12px 0;
+        font-size: 14.5px;
+        color: var(--ink-soft);
+      }
+
+      .note p {
+        margin: 0;
+      }
+
+      .contact {
+        margin-top: 8px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: 26px 28px;
+      }
+
+      .contact .mail {
+        display: inline-block;
+        margin-top: 12px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(19px, 4.6vw, 26px);
+        letter-spacing: -0.01em;
+        color: var(--ink);
+        text-decoration: none;
+        border-bottom: 1px solid var(--accent);
+        padding-bottom: 3px;
+        word-break: break-all;
+      }
+
+      footer {
+        margin-top: 56px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px 24px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      footer .mark {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 16px;
+        color: var(--ink);
+      }
+
+      @media (max-width: 640px) {
+        .table-wrap {
+          border: 0;
+          background: transparent;
+          overflow: visible;
+        }
+
+        table {
+          min-width: 0;
+          display: block;
+        }
+
+        thead {
+          display: none;
+        }
+
+        tbody {
+          display: grid;
+          gap: 10px;
+        }
+
+        tbody tr {
+          display: block;
+          background: var(--card);
+          border: 1px solid var(--line);
+          border-radius: 16px;
+          overflow: hidden;
+        }
+
+        tbody td {
+          display: block;
+          width: auto;
+          border-bottom: 0;
+          padding: 10px 16px;
+        }
+
+        tbody td:first-child {
+          width: auto;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 18px;
+          font-weight: 400;
+          padding-top: 14px;
+          padding-bottom: 4px;
+        }
+
+        tbody td:nth-child(2)::before,
+        tbody td:nth-child(3)::before {
+          display: block;
+          margin-bottom: 2px;
+          font-size: 9px;
+          font-weight: 600;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: var(--muted);
+        }
+
+        tbody td:nth-child(2)::before {
+          content: "Purpose";
+        }
+
+        tbody td:nth-child(3)::before {
+          content: "Retention";
+        }
+
+        tbody td:nth-child(3) {
+          padding-top: 2px;
+          padding-bottom: 14px;
+          border-top: 1px solid var(--line);
+        }
+      }
+
+      @media (max-width: 520px) {
+        .wrap {
+          padding: 36px 20px 72px;
+        }
+
+        header.hero {
+          padding: 44px 0 24px;
+        }
+
+        .summary {
+          border-radius: 20px;
+          padding: 24px 22px 22px;
+        }
+
+        section {
+          padding: 32px 0 4px;
+        }
+
+        .contact {
+          padding: 22px 20px;
+        }
+      }
+
+      @media print {
+        body {
+          background: #fff;
+          color: #000;
+        }
+
+        .summary {
+          border: 1px solid #bbb;
+        }
+
+        section {
+          break-inside: avoid;
+        }
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        html {
+          scroll-behavior: smooth;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="brand">
+        <div class="wordmark">Mira<span>.</span></div>
+        <div class="kicker">A quieter browser</div>
+      </div>
+
+      <header class="hero">
+        <div class="eyebrow">Privacy policy</div>
+        <h1>What Mira keeps, and what it never sees.</h1>
+        <p class="standfirst">
+          Mira is built to browse the web without building a profile of the person
+          browsing. This page explains, in plain language, what the app stores, what
+          it sends over the network, and what it deliberately does not do.
+        </p>
+        <div class="meta">
+          <span>Effective 27 October 2026</span>
+          <span>Android · com.mira.browser</span>
+          <span>Version 1.0</span>
+        </div>
+      </header>
+
+      <div class="summary">
+        <h2>The short version</h2>
+        <ul>
+          <li>Mira has no account, no analytics, no advertising, and no crash-reporting SDK.</li>
+          <li>Your history, shortcuts, trails, and appearance choice are stored only on your device.</li>
+          <li>Mira does not operate a server that receives your browsing activity.</li>
+          <li>When you open a website, your device talks directly to that website, exactly as a browser does.</li>
+          <li>When discussion lookup is on (the default), Mira sends the address of the page you are reading to Hacker News and Lobsters to find public threads. You can turn this off in the Discussions sheet.</li>
+          <li>Nothing is backed up to a cloud by Mira. Android backup is disabled for the app.</li>
+        </ul>
+      </div>
+
+      <section id="stored">
+        <h2><span class="num">01</span>What Mira stores on your device</h2>
+        <p>
+          Mira uses Android's app-private storage. Other apps cannot read it. The data
+          is not sent to the developer or to any third party.
+        </p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Data</th>
+                <th scope="col">Purpose</th>
+                <th scope="col">Retention</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Browsing history (page title, address, time)</td>
+                <td>The Recent list and the History sheet</td>
+                <td>Last 100 pages, until you clear it</td>
+              </tr>
+              <tr>
+                <td>Trails (groups of pages visited within about 25 minutes)</td>
+                <td>The Trails shelf and the home-screen trail card</td>
+                <td>Up to 30 trails, 40 pages each, until you delete them or clear history</td>
+              </tr>
+              <tr>
+                <td>Shortcuts (title, address)</td>
+                <td>The home screen grid and the Android widget</td>
+                <td>Up to 12, until you remove them</td>
+              </tr>
+              <tr>
+                <td>Appearance preference (light/dark)</td>
+                <td>Keeps your chosen theme</td>
+                <td>Until you change it or uninstall</td>
+              </tr>
+              <tr>
+                <td>Discussion lookup preference (on/off)</td>
+                <td>Remembers whether Mira asks Hacker News and Lobsters about the current page</td>
+                <td>Until you change it or uninstall</td>
+              </tr>
+              <tr>
+                <td>Open tabs</td>
+                <td>In-memory only while the app is running</td>
+                <td>Cleared when Mira is closed</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>There is no database in the cloud and no account to delete.</p>
+
+        <h3>How to delete it</h3>
+        <ul class="plain">
+          <li>
+            <strong>History and trails:</strong> open the page menu → History → Clear
+            history. This clears both the history list and every trail.
+          </li>
+          <li>
+            <strong>A single trail:</strong> open Trails → delete. You can rename or
+            remove trails individually.
+          </li>
+          <li>
+            <strong>Shortcuts:</strong> press and hold a shortcut on the home screen to
+            remove it, or use Reset in the shortcuts section.
+          </li>
+          <li>
+            <strong>Everything:</strong> Android Settings → Apps → Mira → Storage →
+            Clear storage, or uninstall the app. Because Android backup is disabled, no
+            copy remains in a Google backup.
+          </li>
+        </ul>
+      </section>
+
+      <section id="not-collected">
+        <h2><span class="num">02</span>What Mira does not collect</h2>
+        <p>Mira does not collect, transmit, sell, or share:</p>
+        <ul class="plain">
+          <li>your name, email address, phone number, or contacts;</li>
+          <li>your precise or approximate location;</li>
+          <li>your advertising ID or any other persistent device identifier;</li>
+          <li>your browsing history, search terms, or a log of the pages you open (the optional, per-page discussion lookup is described under Network requests);</li>
+          <li>crash logs, diagnostics, or usage analytics;</li>
+          <li>photos, files, camera, microphone, or SMS content.</li>
+        </ul>
+        <p>
+          The app declares only the <strong>INTERNET</strong> permission (plus
+          <strong>VIBRATE</strong> for haptic feedback). Camera, microphone, location,
+          contacts, storage, notifications, and “display over other apps” permissions are
+          explicitly removed from the Android manifest.
+        </p>
+      </section>
+
+      <section id="network">
+        <h2><span class="num">03</span>Network requests Mira makes</h2>
+        <p>Mira is a browser, so it makes network requests when you ask it to.</p>
+        <ul class="plain">
+          <li>
+            <strong>Websites you open.</strong> The page is requested directly by your
+            device from the site's server. That server receives the same information any
+            browser would send: your IP address, the requested address, your user agent
+            (which includes the app name and version), and cookies set by that site. The
+            developer of Mira does not receive a copy.
+          </li>
+          <li>
+            <strong>Search.</strong> If you type words instead of an address, Mira opens a
+            DuckDuckGo search results page (<a href="https://duckduckgo.com/">duckduckgo.com</a>).
+            Your query is sent to DuckDuckGo under its own privacy policy. Search-result
+            pages are not written to Mira's history.
+          </li>
+          <li>
+            <strong>Favicons.</strong> To show a site's own icon, Mira requests the icon
+            directly from that site (for example <code>https://example.com/favicon.ico</code>).
+            It does not use a third-party icon service, so the list of sites you visit is
+            not sent to an icon provider.
+          </li>
+          <li>
+            <strong>Today's page.</strong> The daily reading list is bundled inside the
+            app. Mira does not contact a server to choose it, and does not fetch the page
+            until you tap it.
+          </li>
+          <li>
+            <strong>Safe Browsing.</strong> Android's WebView checks addresses against
+            Google's Safe Browsing service so it can warn you about malware and phishing.
+            That check is performed by the Android system and may send the address to
+            Google; Mira does not receive, store, or transmit the result.
+          </li>
+          <li>
+            <strong>Public discussions.</strong> When “Look up discussions” is on (the
+            default) and you open a page in the browser, Mira sends that page's address to
+            two independent public services: Hacker News through the Algolia HN Search API
+            (<a href="https://hn.algolia.com/">hn.algolia.com</a>) and Lobsters
+            (<a href="https://lobste.rs/">lobste.rs</a>). They return public story scores,
+            comment counts, and comments for that address. Mira sends no account, device
+            identifier, search terms, or history of other pages. The answer is kept in
+            memory for 15 minutes and is never written to history or trails. Turn the setting off in
+            the Discussions sheet to stop these requests; the rest of the browser continues
+            to work.
+          </li>
+        </ul>
+        <p>Mira contains no advertising SDK, no analytics SDK, and no social login.</p>
+      </section>
+
+      <section id="cookies">
+        <h2><span class="num">04</span>Cookies and site storage</h2>
+        <p>
+          Websites may set cookies and use local storage inside Mira's WebView, just as
+          they do in any browser. Those records belong to the website, are stored by
+          Android's WebView, and are not readable by the developer.
+        </p>
+        <ul class="plain">
+          <li>
+            Third-party cookies are disabled. A page cannot use embedded content to follow
+            you across unrelated sites.
+          </li>
+          <li>
+            First-party cookies remain enabled so that sign-ins and preferences work.
+          </li>
+          <li>
+            Clearing history inside Mira clears Mira's lists. It does not clear website
+            cookies. To remove those, use Android Settings → Apps → Mira → Storage → Clear
+            storage.
+          </li>
+        </ul>
+      </section>
+
+      <section id="sharing">
+        <h2><span class="num">05</span>Sharing into Mira</h2>
+        <p>
+          Mira can receive a link or plain text from another app's share sheet. The shared
+          content is read on the device, validated, and opened or placed in the address
+          field. It is not uploaded anywhere. If the shared item is not a web link or text,
+          it is ignored. The share extension requests no access to photos, videos, or
+          files.
+        </p>
+      </section>
+
+      <section id="widget">
+        <h2><span class="num">06</span>Android home-screen widget</h2>
+        <p>
+          The widget shows Today's page and up to three of your shortcuts. It reads them
+          from Mira's local storage on the device. Tapping a widget item opens Mira through
+          a private <code>mira://</code> link. The widget does not contain an analytics SDK
+          and does not send data anywhere.
+        </p>
+      </section>
+
+      <section id="security">
+        <h2><span class="num">07</span>Security measures</h2>
+        <ul class="plain">
+          <li>
+            Only <code>https://</code> pages may become the top-level document. Public
+            <code>http://</code> links are upgraded to HTTPS; cleartext traffic is disabled
+            at the Android network layer.
+          </li>
+          <li>
+            The WebView cannot read local files (<code>file://</code>), and file access,
+            file-URL access, and form-data saving are disabled.
+          </li>
+          <li>Mixed content is never allowed.</li>
+          <li>Geolocation and camera/microphone capture are denied.</li>
+          <li>
+            External app schemes are limited to <code>mailto:</code>, <code>tel:</code>,
+            <code>sms:</code>, and <code>geo:</code>. A web page cannot launch an arbitrary
+            Android activity.
+          </li>
+          <li>Android Safe Browsing stays enabled for malware and phishing warnings.</li>
+          <li>Discussion lookup is limited to the address of the page being read and can be turned off at any time.</li>
+          <li>WebView metrics reporting to Google is opted out.</li>
+          <li>
+            Android backup is disabled, so local browsing data is not copied to Google
+            Drive.
+          </li>
+          <li>
+            Release builds are minified and shrunk, and WebView debugging is enabled only
+            in development builds.
+          </li>
+        </ul>
+      </section>
+
+      <section id="children">
+        <h2><span class="num">08</span>Children</h2>
+        <p>
+          Mira is a general-purpose browser and is not directed to children under 13. It
+          does not knowingly collect personal information from anyone, including children.
+          Because Mira can open ordinary websites, parents and guardians should supervise
+          use in the same way they would with any browser.
+        </p>
+      </section>
+
+      <section id="changes">
+        <h2><span class="num">09</span>Changes to this policy</h2>
+        <p>
+          If this policy changes, the new version will be published at the same address
+          with a new effective date. Material changes will be noted in the app's release
+          notes.
+        </p>
+      </section>
+
+      <section id="contact">
+        <h2><span class="num">10</span>Contact</h2>
+        <p>Questions about this policy or about data in Mira:</p>
+        <div class="contact">
+          <div class="kicker">Privacy contact</div>
+          <a class="mail" href="mailto:REPLACE_WITH_YOUR_EMAIL@example.com"
+            >REPLACE_WITH_YOUR_EMAIL@example.com</a
+          >
+          <p class="note">
+            This address must be replaced with a monitored contact before publishing to
+            Google Play.
+          </p>
+        </div>
+      </section>
+
+      <footer>
+        <div class="mark">Mira<span style="color: var(--accent)">.</span></div>
+        <div>Private by construction · No account · No analytics</div>
+        <div>© 2026 Mira</div>
+      </footer>
+    </div>
+  </body>
+</html>

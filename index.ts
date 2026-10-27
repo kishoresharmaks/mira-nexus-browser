@@ -1,8 +1,17 @@
-import { registerRootComponent } from 'expo';
+/**
+ * Custom entry point. Expo Router normally boots from `expo-router/entry`;
+ * Mira needs one extra registration so the Android launcher can ask the app
+ * to draw its home-screen widget.
+ *
+ * The widget task runs headless (no React tree), and the native module is not
+ * part of Expo Go, so registration is skipped there.
+ */
+import 'expo-router/entry';
+import { isRunningInExpoGo } from 'expo';
+import { Platform } from 'react-native';
+import { registerWidgetTaskHandler } from 'react-native-android-widget';
+import { widgetTaskHandler } from './src/widgets/widget-task-handler';
 
-import App from './App';
-
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
-registerRootComponent(App);
+if (Platform.OS === 'android' && !isRunningInExpoGo()) {
+  registerWidgetTaskHandler(widgetTaskHandler);
+}

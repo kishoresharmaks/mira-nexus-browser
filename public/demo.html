@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#f7f2e8" />
+    <title>Field Notes — A slower kind of internet</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #f7f2e8;
+        --paper-deep: #efe8da;
+        --ink: #1a1610;
+        --ink-soft: #413b31;
+        --muted: #776d5d;
+        --line: rgba(26, 22, 16, 0.12);
+        --accent: #ff5a2b;
+        --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+        --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        --mono: "SFMono-Regular", "Cascadia Mono", Consolas, monospace;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(120% 70% at 92% -8%, rgba(255, 90, 43, 0.1), transparent 62%),
+          var(--paper);
+        color: var(--ink);
+        font-family: var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      ::selection { background: rgba(255, 90, 43, 0.2); }
+
+      .progress {
+        position: fixed;
+        inset: 0 0 auto 0;
+        height: 2px;
+        background: transparent;
+        z-index: 10;
+      }
+      .progress > span {
+        display: block;
+        height: 100%;
+        width: 0%;
+        background: var(--accent);
+        transition: width 80ms linear;
+      }
+
+      .wrap {
+        width: 100%;
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 0 26px 90px;
+      }
+
+      header.masthead {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 86px;
+        border-bottom: 1px solid var(--line);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--serif);
+        font-size: 25px;
+        letter-spacing: -0.01em;
+      }
+      .brand .dot {
+        width: 13px;
+        height: 13px;
+        border: 1.5px solid var(--ink);
+        border-radius: 50%;
+        position: relative;
+        display: inline-block;
+      }
+      .brand .dot::after {
+        content: "";
+        position: absolute;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        top: -2px;
+        right: -3px;
+      }
+      nav {
+        display: flex;
+        gap: 20px;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      nav a { color: inherit; text-decoration: none; }
+      nav a:hover { color: var(--ink); }
+
+      .issue {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 46px;
+        font-size: 10px;
+        letter-spacing: 0.19em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .issue::before {
+        content: "";
+        width: 26px;
+        height: 1.5px;
+        background: var(--accent);
+      }
+
+      h1 {
+        margin: 18px 0 0;
+        font-family: var(--serif);
+        font-weight: 400;
+        font-size: clamp(46px, 11vw, 82px);
+        line-height: 0.94;
+        letter-spacing: -0.035em;
+        max-width: 640px;
+      }
+      h1 em { font-style: italic; letter-spacing: -0.02em; }
+      h1 .stop { color: var(--accent); }
+
+      .lede {
+        margin: 24px 0 0;
+        max-width: 490px;
+        font-size: 16px;
+        line-height: 1.65;
+        color: var(--ink-soft);
+      }
+
+      .byline {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        margin-top: 26px;
+        padding-bottom: 30px;
+        border-bottom: 1px solid var(--line);
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+      .byline .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 34% 30%, #ffd9c9 0 18%, transparent 19%),
+          linear-gradient(145deg, #ff7a4e, #d8421c);
+      }
+      .byline strong { color: var(--ink-soft); font-weight: 600; }
+      .byline .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--muted); opacity: 0.6; }
+
+      .hero {
+        position: relative;
+        margin: 34px 0 46px;
+        height: 340px;
+        border-radius: 26px;
+        overflow: hidden;
+        border: 1px solid rgba(26, 22, 16, 0.08);
+        background:
+          radial-gradient(70% 100% at 18% 8%, #ffd3c2 0, transparent 58%),
+          radial-gradient(80% 100% at 92% 92%, #ff7040 0, transparent 55%),
+          linear-gradient(155deg, #f0c9b3, #d6572c 58%, #5e2a1a);
+        box-shadow: 0 22px 50px -28px rgba(94, 42, 26, 0.6);
+      }
+      .hero .grain {
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(rgba(255, 255, 255, 0.3) 0.6px, transparent 0.6px);
+        background-size: 5px 5px;
+        opacity: 0.3;
+        mix-blend-mode: soft-light;
+      }
+      .hero .sun {
+        position: absolute;
+        width: 210px;
+        height: 210px;
+        border-radius: 50%;
+        left: 50%;
+        top: 48%;
+        transform: translate(-50%, -50%);
+        background: radial-gradient(circle at 38% 34%, #fff3e9, #ffc3a6 54%, #ff8c5d);
+        box-shadow: 0 0 90px rgba(255, 222, 201, 0.55);
+      }
+      .hero .ring {
+        position: absolute;
+        width: 300px;
+        height: 300px;
+        border-radius: 50%;
+        left: 50%;
+        top: 48%;
+        transform: translate(-50%, -50%);
+        border: 1px solid rgba(255, 249, 243, 0.42);
+      }
+      .hero .ring.two { width: 392px; height: 392px; opacity: 0.45; }
+      .hero .caption {
+        position: absolute;
+        left: 22px;
+        bottom: 20px;
+        color: rgba(255, 249, 243, 0.92);
+        font-size: 10.5px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+      .hero .stamp {
+        position: absolute;
+        right: 20px;
+        top: 20px;
+        width: 58px;
+        height: 58px;
+        border: 1px solid rgba(255, 249, 243, 0.55);
+        border-radius: 50%;
+        color: #fff9f3;
+        display: grid;
+        place-content: center;
+        text-align: center;
+        font-family: var(--mono);
+        font-size: 7px;
+        letter-spacing: 0.12em;
+        line-height: 1.4;
+        transform: rotate(8deg);
+      }
+
+      article p {
+        font-family: var(--serif);
+        font-size: 18.5px;
+        line-height: 1.72;
+        color: var(--ink-soft);
+        margin: 0 0 24px;
+      }
+      article p:first-of-type::first-letter {
+        float: left;
+        font-family: var(--serif);
+        font-size: 76px;
+        line-height: 0.72;
+        padding: 10px 12px 0 0;
+        color: var(--ink);
+      }
+      article a {
+        color: var(--ink);
+        text-decoration-color: rgba(255, 90, 43, 0.55);
+        text-decoration-thickness: 1.5px;
+        text-underline-offset: 3px;
+      }
+      article a:hover { color: var(--accent); }
+
+      .pullquote {
+        margin: 40px 0;
+        padding: 4px 0 4px 24px;
+        border-left: 2px solid var(--accent);
+        font-family: var(--serif);
+        font-style: italic;
+        font-size: 28px;
+        line-height: 1.25;
+        letter-spacing: -0.02em;
+        color: var(--ink);
+      }
+
+      .section-label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 48px 0 16px;
+        font-size: 10.5px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .section-label::after {
+        content: "";
+        height: 1px;
+        flex: 1;
+        background: var(--line);
+      }
+
+      .notes {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        overflow: hidden;
+        background: rgba(255, 252, 246, 0.65);
+        backdrop-filter: blur(6px);
+      }
+      .note {
+        display: flex;
+        gap: 15px;
+        align-items: flex-start;
+        padding: 18px 18px;
+        text-decoration: none;
+        color: inherit;
+      }
+      .note + .note { border-top: 1px solid var(--line); }
+      .note .index {
+        font-family: var(--mono);
+        font-size: 10px;
+        color: var(--accent);
+        padding-top: 4px;
+      }
+      .note .copy { flex: 1; }
+      .note h3 {
+        margin: 0;
+        font-family: var(--serif);
+        font-weight: 400;
+        font-size: 21px;
+        letter-spacing: -0.015em;
+      }
+      .note p {
+        margin: 5px 0 0;
+        font-family: var(--sans);
+        font-size: 12.5px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      .note .arrow {
+        font-size: 14px;
+        color: var(--muted);
+        padding-top: 3px;
+        transition: transform 160ms ease, color 160ms ease;
+      }
+      .note:hover .arrow { transform: translate(2px, -2px); color: var(--accent); }
+
+      .colophon {
+        margin-top: 58px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        font-size: 11px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+      .colophon .mark {
+        font-family: var(--serif);
+        font-size: 22px;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+      }
+
+      @media (max-width: 560px) {
+        .wrap { padding: 0 20px 70px; }
+        header.masthead { height: 70px; }
+        nav { gap: 14px; }
+        nav a:first-child { display: none; }
+        .issue { margin-top: 32px; }
+        .hero { height: 260px; margin: 28px 0 36px; border-radius: 22px; }
+        .hero .ring { width: 220px; height: 220px; }
+        .hero .ring.two { width: 300px; height: 300px; }
+        .hero .sun { width: 160px; height: 160px; }
+        article p { font-size: 17.5px; }
+        .pullquote { font-size: 24px; }
+        .colophon { flex-direction: column; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+
+    <div class="wrap">
+      <header class="masthead">
+        <div class="brand"><span class="dot"></span> Field Notes</div>
+        <nav>
+          <a href="#reading">Reading</a>
+          <a href="#notes">Notebook</a>
+          <a href="#colophon">About</a>
+        </nav>
+      </header>
+
+      <div class="issue">Issue No. 04 · The Quiet Web</div>
+
+      <h1>
+        A <em>slower</em> kind<br />
+        of internet<span class="stop">.</span>
+      </h1>
+
+      <p class="lede">
+        Somewhere between the infinite feed and the empty tab, there is a
+        quieter way to be online. It starts with choosing less, and paying
+        closer attention to what remains.
+      </p>
+
+      <div class="byline">
+        <div class="avatar" aria-hidden="true"></div>
+        <span><strong>Mira Field</strong> · Essays</span>
+        <span class="sep"></span>
+        <span>6 min read</span>
+        <span class="sep"></span>
+        <span>October 2026</span>
+      </div>
+
+      <div class="hero" role="img" aria-label="An abstract warm sun over a field of orange light">
+        <div class="grain"></div>
+        <div class="ring two"></div>
+        <div class="ring"></div>
+        <div class="sun"></div>
+        <div class="stamp">OPEN<br />SLOWLY<br />№ 04</div>
+        <div class="caption">Late afternoon, somewhere offline</div>
+      </div>
+
+      <article id="reading">
+        <p>
+          The first browsers were quiet places. You went to a page because
+          someone told you about it, or because you found it in a book, and
+          when you arrived there was only the page itself. No recommendations,
+          no autoplay, no small red numbers asking to be cleared. The web felt
+          like a library with the lights left on.
+        </p>
+        <p>
+          Then the library grew a feed. It learned to guess what we wanted
+          before we knew we wanted it, and the guessing became very good. Now
+          the average visit is a negotiation: the page wants our attention,
+          the network wants our data, and somewhere underneath it all we want
+          to read one <a href="#notes">good paragraph</a> in peace.
+        </p>
+
+        <blockquote class="pullquote">
+          “Attention is not a resource to be spent. It is a place to live.”
+        </blockquote>
+
+        <p>
+          The quiet web is not a product. It is a set of small decisions: a
+          home screen with no badges, a search that returns results instead of
+          a personality, a reading list that ends. It is a browser that opens
+          to a blank page and waits, without judgment, for you to decide where
+          to go.
+        </p>
+        <p>
+          There is a particular pleasure in a page that simply ends. You reach
+          the bottom and there is nothing else to do but close it and carry
+          what you read back into the day. That is the whole trick, really.
+          The internet is not a place to stay. It is a place to visit.
+        </p>
+      </article>
+
+      <div class="section-label" id="notes">Three things worth keeping</div>
+
+      <div class="notes">
+        <a class="note" href="#reading">
+          <span class="index">01</span>
+          <span class="copy">
+            <h3>The case for one tab</h3>
+            <p>Why a single page is often more than enough.</p>
+          </span>
+          <span class="arrow">↗</span>
+        </a>
+        <a class="note" href="#reading">
+          <span class="index">02</span>
+          <span class="copy">
+            <h3>A room with no notifications</h3>
+            <p>Designing interfaces that leave you alone.</p>
+          </span>
+          <span class="arrow">↗</span>
+        </a>
+        <a class="note" href="#reading">
+          <span class="index">03</span>
+          <span class="copy">
+            <h3>Read it twice, then close it</h3>
+            <p>A small ritual for finishing what you start.</p>
+          </span>
+          <span class="arrow">↗</span>
+        </a>
+      </div>
+
+      <footer class="colophon" id="colophon">
+        <div>
+          <div class="mark">Field Notes</div>
+          <div>An occasional paper about attention, tools, and the web.</div>
+        </div>
+        <div>
+          Set in Iowan Old Style &amp; the system sans.<br />
+          Made for the Mira browser demo.
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      const bar = document.getElementById('progress');
+      const update = () => {
+        const height = document.documentElement.scrollHeight - window.innerHeight;
+        const value = height > 0 ? Math.min(1, window.scrollY / height) : 0;
+        bar.style.width = (value * 100).toFixed(2) + '%';
+      };
+      document.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update);
+      update();
+    </script>
+  </body>
+</html>
