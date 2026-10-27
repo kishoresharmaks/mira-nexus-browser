@@ -18,6 +18,7 @@ export type IconName =
   | 'clock'
   | 'trash'
   | 'shield'
+  | 'mask'
   | 'moon'
   | 'sun'
   | 'copy'
@@ -140,6 +141,14 @@ function content(name: IconName, color: string): ReactNode {
         <>
           <Path d="M12 3.2 4.8 6v5.4c0 4.3 3 7.7 7.2 9.2 4.2-1.5 7.2-4.9 7.2-9.2V6L12 3.2Z" />
           <Path d="m9 12 2 2 4-4" />
+        </>
+      );
+    case 'mask':
+      return (
+        <>
+          <Path d="M3.6 9.8a2.5 2.5 0 0 1 2.5-2.5h11.8a2.5 2.5 0 0 1 2.5 2.5v.3a4.3 4.3 0 0 1-3.2 4.2l-2.2.6a2.8 2.8 0 0 1-1.4-.1l-1.2-.4a1.6 1.6 0 0 0-1 0l-1.2.4a2.8 2.8 0 0 1-1.4.1l-2.2-.6a4.3 4.3 0 0 1-3.2-4.2v-.3Z" />
+          <Circle cx="8.9" cy="10.6" r="0.95" fill={color} stroke="none" />
+          <Circle cx="15.1" cy="10.6" r="0.95" fill={color} stroke="none" />
         </>
       );
     case 'moon':

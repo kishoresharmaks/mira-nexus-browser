@@ -19,6 +19,9 @@ import { CommunitySheet } from '@/components/CommunitySheet';
 import { HistorySheet } from '@/components/HistorySheet';
 import { HomeScreen } from '@/components/HomeScreen';
 import { MenuSheet } from '@/components/MenuSheet';
+import { PrivateSheet } from '@/components/PrivateSheet';
+import { PrivateStart } from '@/components/PrivateStart';
+import { PrivateVeil } from '@/components/PrivateVeil';
 import { TabsSheet } from '@/components/TabsSheet';
 import { TodaySheet } from '@/components/TodaySheet';
 import { TrailsSheet } from '@/components/TrailsSheet';
@@ -63,8 +66,13 @@ import {
 import { useAnimatedValue } from '@/lib/useAnimatedValue';
 import { useLatest } from '@/lib/useLatest';
 import { usePersistentState } from '@/lib/usePersistentState';
+import {
+  engagePrivateShield,
+  releasePrivateShield,
+} from '@/lib/privateShield';
 import { refreshMiraWidget } from '@/widgets/update-widget';
-import { useTheme } from '@/theme/ThemeProvider';
+import { privateTheme } from '@/theme';
+import { ThemeScope, useTheme } from '@/theme/ThemeProvider';
 import type {
   BrowserHandle,
   BrowserTab,
@@ -83,7 +91,11 @@ const EMPTY_PAGE: PageSnapshot = {
   loading: false,
 };
 
-function createTab(url: string, title?: string): BrowserTab {
+function createTab(
+  url: string,
+  title?: string,
+  privateTab = false,
+): BrowserTab {
   const now = Date.now();
   return {
     id: `tab-${createId()}`,
@@ -93,12 +105,13 @@ function createTab(url: string, title?: string): BrowserTab {
     // The WebView mounts the first time the tab is shown. No hidden pages are
     // preloaded, and closing the tab releases the native view.
     mounted: true,
+    private: privateTab,
     snapshot: {
       url,
-      title: title ? cleanTitle(title, url) : hostOf(url),
+      title: url ? (title ? cleanTitle(title, url) : hostOf(url)) : '',
       canGoBack: false,
       canGoForward: false,
-      loading: true,
+      loading: Boolean(url),
     },
   };
 }
@@ -144,6 +157,9 @@ export default function Mira() {
     useState<CommunityLookup | null>(null);
   const [communityLoading, setCommunityLoading] = useState(false);
   const [communityNonce, setCommunityNonce] = useState(0);
+  const [privateInfoOpen, setPrivateInfoOpen] = useState(false);
+  const [addressPrivate, setAddressPrivate] = useState(false);
+  const [appState, setAppState] = useState(AppState.currentState);
 
   const shift = useAnimatedValue(0);
   const browserRefs = useRef(new Map<string, BrowserHandle>());
@@ -158,6 +174,15 @@ export default function Mira() {
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
   const snapshot = activeTab?.snapshot ?? EMPTY_PAGE;
+  const privateActive = activeTab?.private ?? false;
+  const privateChrome = privateActive && browserActive;
+  const privateTabCount = tabs.reduce(
+    (count, tab) => (tab.private ? count + 1 : count),
+    0,
+  );
+  const hasPrivateTabs = privateTabCount > 0;
+  const normalTabs = tabs.filter((tab) => !tab.private);
+  const privateChromeRef = useLatest(privateChrome);
   const pinned = shortcuts.some((item) => item.url === snapshot.url);
   const addressValue = searchQueryFromUrl(snapshot.url) ?? snapshot.url;
   const communityCanonical = canonicalizeArticleUrl(snapshot.url);
@@ -187,6 +212,7 @@ export default function Mira() {
     setTrailsOpen(false);
     setTodayOpen(false);
     setCommunityOpen(false);
+    setPrivateInfoOpen(false);
     Animated.timing(shift, {
       toValue: 1,
       duration: 340,
@@ -204,6 +230,7 @@ export default function Mira() {
     setTrailsOpen(false);
     setTodayOpen(false);
     setCommunityOpen(false);
+    setPrivateInfoOpen(false);
     Animated.timing(shift, {
       toValue: 0,
       duration: 280,
@@ -228,20 +255,9 @@ export default function Mira() {
     [revealBrowser, tabsRef],
   );
 
-  const openInNewTab = useCallback(
-    (rawUrl: string, title?: string) => {
-      const url = toSecureHttps(rawUrl) ?? (isWebUrl(rawUrl) ? rawUrl : null);
-      if (!url) return;
-
+  const insertTab = useCallback(
+    (tab: BrowserTab) => {
       const current = tabsRef.current;
-      const existing = current.find(
-        (tab) => tab.snapshot.url === url || tab.initialUrl === url,
-      );
-      if (existing) {
-        activateTab(existing.id);
-        return;
-      }
-
       let survivors = current;
       let evicted: BrowserTab | undefined;
       if (current.length >= MAX_TABS) {
@@ -256,27 +272,68 @@ export default function Mira() {
         survivors = current.filter((tab) => tab.id !== evicted?.id);
       }
 
-      const tab = createTab(url, title);
       setTabs([...survivors, tab]);
       setActiveTabId(tab.id);
       revealBrowser();
 
       if (evicted) {
-        toast.show(
-          `Closed ${hostOf(evicted.snapshot.url || evicted.initialUrl)} to make room`,
-        );
+        const label =
+          hostOf(evicted.snapshot.url || evicted.initialUrl) ||
+          (evicted.private ? 'private tab' : 'a tab');
+        toast.show(`Closed ${label} to make room`);
       }
     },
-    [activateTab, activeTabRef, revealBrowser, tabsRef, toast],
+    [activeTabRef, revealBrowser, tabsRef, toast],
   );
+
+  const openInNewTab = useCallback(
+    (rawUrl: string, title?: string, options?: { private?: boolean }) => {
+      const privateTab = options?.private ?? false;
+      const url = toSecureHttps(rawUrl) ?? (isWebUrl(rawUrl) ? rawUrl : null);
+      if (!url) return;
+
+      const current = tabsRef.current;
+      // Never let a page opened from a private tab fall back into the normal
+      // shelf (and vice versa). Each room reuses only its own pages.
+      const existing = current.find(
+        (tab) =>
+          tab.private === privateTab &&
+          (tab.snapshot.url === url || tab.initialUrl === url),
+      );
+      if (existing) {
+        activateTab(existing.id);
+        return;
+      }
+
+      insertTab(createTab(url, title, privateTab));
+    },
+    [activateTab, insertTab, tabsRef],
+  );
+
+  /**
+   * A private tab starts empty. No WebView, no network request, and no page
+   * state exists until the reader chooses a page.
+   */
+  const openPrivateTab = useCallback(() => {
+    haptic.tap();
+    const blank = tabsRef.current.find(
+      (tab) => tab.private && !tab.snapshot.url,
+    );
+    if (blank) {
+      activateTab(blank.id);
+      return;
+    }
+    insertTab(createTab('', undefined, true));
+  }, [activateTab, insertTab, tabsRef]);
 
   const navigateTab = useCallback(
     (id: string, url: string) => {
       const tab = tabsRef.current.find((item) => item.id === id);
       if (!tab) return;
 
-      if (tab.mounted) {
-        browserRefs.current.get(id)?.load(url);
+      const handle = browserRefs.current.get(id);
+      if (tab.mounted && handle) {
+        handle.load(url);
       } else {
         setTabs((previous) =>
           previous.map((item) =>
@@ -284,6 +341,7 @@ export default function Mira() {
               ? {
                   ...item,
                   initialUrl: url,
+                  mounted: true,
                   lastActiveAt: Date.now(),
                   snapshot: {
                     url,
@@ -304,15 +362,25 @@ export default function Mira() {
     [revealBrowser, tabsRef],
   );
 
-  const openAddress = useCallback((seed = '', newTab = false) => {
-    haptic.tap();
-    addressNewTabRef.current = newTab;
-    setAddressSeed(seed);
-    setAddressOpen(true);
-  }, []);
+  const openAddress = useCallback(
+    (seed = '', newTab = false) => {
+      haptic.tap();
+      const active = tabsRef.current.find(
+        (tab) => tab.id === activeTabRef.current,
+      );
+      const inPrivateRoom =
+        !newTab && browserActiveRef.current && Boolean(active?.private);
+      addressNewTabRef.current = newTab;
+      setAddressPrivate(inPrivateRoom);
+      setAddressSeed(seed);
+      setAddressOpen(true);
+    },
+    [activeTabRef, browserActiveRef, tabsRef],
+  );
 
   const closeAddress = useCallback(() => {
     addressNewTabRef.current = false;
+    setAddressPrivate(false);
     setAddressSeed('');
     setAddressOpen(false);
   }, []);
@@ -368,6 +436,76 @@ export default function Mira() {
     sheetTimer.current = setTimeout(action, 280);
   }, []);
 
+  const openPrivateInfo = useCallback(() => {
+    haptic.tap();
+    setPrivateInfoOpen(true);
+  }, []);
+
+  const openPrivateInfoAfterMenu = useCallback(() => {
+    setMenuOpen(false);
+    afterMenu(() => setPrivateInfoOpen(true));
+  }, [afterMenu]);
+
+  const openPrivateInfoFromTabs = useCallback(() => {
+    setTabsOpen(false);
+    afterMenu(() => setPrivateInfoOpen(true));
+  }, [afterMenu]);
+
+  const openPrivateTabAfterMenu = useCallback(() => {
+    setMenuOpen(false);
+    afterMenu(() => openPrivateTab());
+  }, [afterMenu, openPrivateTab]);
+
+  const newPrivateTabFromSheet = useCallback(() => {
+    setTabsOpen(false);
+    afterMenu(() => openPrivateTab());
+  }, [afterMenu, openPrivateTab]);
+
+  /**
+   * Closing the whole private group destroys every private WebView in one
+   * pass. There is no undo shelf because there is no record to undo.
+   */
+  const closePrivateTabs = useCallback(() => {
+    const current = tabsRef.current;
+    const privates = current.filter((tab) => tab.private);
+    if (privates.length === 0) return;
+
+    haptic.warn();
+    privates.forEach((tab) => browserRefs.current.delete(tab.id));
+
+    const remaining = current.filter((tab) => !tab.private);
+    const activeWasPrivate = privates.some(
+      (tab) => tab.id === activeTabRef.current,
+    );
+    const next = activeWasPrivate
+      ? [...remaining].sort((a, b) => b.lastActiveAt - a.lastActiveAt)[0]
+      : undefined;
+
+    setPrivateInfoOpen(false);
+    setTabsOpen(false);
+
+    if (remaining.length === 0) {
+      setTabs([]);
+      setActiveTabId(null);
+      goHome();
+    } else {
+      setTabs(
+        next
+          ? remaining.map((tab) =>
+              tab.id === next.id
+                ? { ...tab, lastActiveAt: Date.now() }
+                : tab,
+            )
+          : remaining,
+      );
+      if (next) setActiveTabId(next.id);
+    }
+
+    toast.show(
+      privates.length === 1 ? 'Private tab closed' : 'Private tabs closed',
+    );
+  }, [activeTabRef, goHome, tabsRef, toast]);
+
   const openHistoryAfterMenu = useCallback(() => {
     setMenuOpen(false);
     afterMenu(() => setHistoryOpen(true));
@@ -408,8 +546,14 @@ export default function Mira() {
 
   const newTabFromSheet = useCallback(() => {
     setTabsOpen(false);
-    afterMenu(() => openAddress('', true));
-  }, [afterMenu, openAddress]);
+    // In the private room, "new tab" means another private tab. Leaving the
+    // room is an explicit act, never the side effect of a plus button.
+    const inPrivateRoom = privateChromeRef.current;
+    afterMenu(() => {
+      if (inPrivateRoom) openPrivateTab();
+      else openAddress('', true);
+    });
+  }, [afterMenu, openAddress, openPrivateTab, privateChromeRef]);
 
   const handleSnapshot = useCallback((id: string, next: PageSnapshot) => {
     setTabs((previous) =>
@@ -625,8 +769,8 @@ export default function Mira() {
   );
 
   const handleOpenWindow = useCallback(
-    (url: string, title?: string) => {
-      openInNewTab(url, title);
+    (url: string, title?: string, options?: { private?: boolean }) => {
+      openInNewTab(url, title, options);
     },
     [openInNewTab],
   );
@@ -758,14 +902,43 @@ export default function Mira() {
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') return;
-      setToday(getDailyPage());
-      if (shortcutsReadyRef.current) {
-        refreshMiraWidget(shortcutsRef.current);
+      setAppState(state);
+
+      if (state === 'active') {
+        setToday(getDailyPage());
+        if (shortcutsReadyRef.current) {
+          refreshMiraWidget(shortcutsRef.current);
+        }
+        return;
+      }
+
+      // Nothing private should sit in the app-switcher snapshot. The native
+      // shield covers the capture itself; closing modals and drawing the veil
+      // cover previews and development builds that lack the native module.
+      if (privateChromeRef.current) {
+        addressNewTabRef.current = false;
+        setAddressOpen(false);
+        setMenuOpen(false);
+        setHistoryOpen(false);
+        setTabsOpen(false);
+        setTrailsOpen(false);
+        setTodayOpen(false);
+        setCommunityOpen(false);
+        setPrivateInfoOpen(false);
       }
     });
     return () => subscription.remove();
-  }, [shortcutsReadyRef, shortcutsRef]);
+  }, [privateChromeRef, shortcutsReadyRef, shortcutsRef]);
+
+  // The shield follows private tabs, not just the visible private page. A
+  // hidden private WebView is still a private page in memory.
+  useEffect(() => {
+    if (!hasPrivateTabs) return;
+    void engagePrivateShield();
+    return () => {
+      void releasePrivateShield();
+    };
+  }, [hasPrivateTabs]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -783,6 +956,7 @@ export default function Mira() {
       !communityEnabled ||
       !communityReady ||
       !browserActive ||
+      privateActive ||
       snapshot.loading ||
       !shouldLookupCommunity(snapshot.url)
     ) {
@@ -819,6 +993,7 @@ export default function Mira() {
     communityEnabled,
     communityNonce,
     communityReady,
+    privateActive,
     snapshot.loading,
     snapshot.url,
   ]);
@@ -851,11 +1026,14 @@ export default function Mira() {
           shortcuts={shortcuts}
           history={history}
           trails={trails}
-          tabs={tabs}
-          activeTabId={activeTabId}
+          tabs={normalTabs}
+          activeTabId={privateActive ? null : activeTabId}
+          privateTabCount={privateTabCount}
           today={today}
           todayLabel={curatedShortDate()}
           onOpenSearch={() => openAddress('', true)}
+          onOpenPrivateTab={openPrivateTab}
+          onOpenPrivateTabs={openTabs}
           onOpenHistory={openHistory}
           onOpenUrl={(url) => openInNewTab(url)}
           onOpenToday={openToday}
@@ -872,7 +1050,13 @@ export default function Mira() {
       </Animated.View>
 
       <Animated.View
-        style={[styles.layer, { opacity: browserOpacity }]}
+        style={[
+          styles.layer,
+          {
+            opacity: browserOpacity,
+            backgroundColor: privateChrome ? privateTheme.bg : undefined,
+          },
+        ]}
         pointerEvents={browserActive ? 'auto' : 'none'}
         accessibilityElementsHidden={!browserActive}
         importantForAccessibility={
@@ -895,81 +1079,111 @@ export default function Mira() {
                 tab.id === activeTabId ? 'auto' : 'no-hide-descendants'
               }
             >
-              <BrowserPane
-                ref={(handle) => {
-                  if (handle) browserRefs.current.set(tab.id, handle);
-                  else browserRefs.current.delete(tab.id);
-                }}
-                initialUrl={tab.initialUrl}
-                active={browserActive && tab.id === activeTabId}
-                onSnapshot={(next) => handleSnapshot(tab.id, next)}
-                onVisit={handleVisit}
-                onGoHome={goHome}
-                onOpenWindow={handleOpenWindow}
-              />
+              <ThemeScope theme={tab.private ? privateTheme : theme}>
+                {tab.private && !tab.snapshot.url ? (
+                  <PrivateStart
+                    onSearch={() => {
+                      if (tab.id !== activeTabId) activateTab(tab.id);
+                      openAddress('');
+                    }}
+                    onOpenInfo={openPrivateInfo}
+                  />
+                ) : (
+                  <BrowserPane
+                    ref={(handle) => {
+                      if (handle) browserRefs.current.set(tab.id, handle);
+                      else browserRefs.current.delete(tab.id);
+                    }}
+                    initialUrl={tab.initialUrl}
+                    active={browserActive && tab.id === activeTabId}
+                    privateTab={tab.private}
+                    onSnapshot={(next) => handleSnapshot(tab.id, next)}
+                    onVisit={(url, title) => {
+                      if (!tab.private) handleVisit(url, title);
+                    }}
+                    onGoHome={goHome}
+                    onOpenWindow={(url, title) =>
+                      handleOpenWindow(url, title, { private: tab.private })
+                    }
+                  />
+                )}
+              </ThemeScope>
             </View>
           ) : null,
         )}
 
         {tabs.length > 0 ? (
-          <BrowserToolbar
-            snapshot={snapshot}
-            tabCount={tabs.length}
-            communityThreads={communityThreads}
-            onOpenCommunity={openCommunity}
-            onBack={() => {
-              if (activeTabId) browserRefs.current.get(activeTabId)?.goBack();
-            }}
-            onForward={() => {
-              if (activeTabId)
-                browserRefs.current.get(activeTabId)?.goForward();
-            }}
-            onOpenAddress={() => openAddress(addressValue)}
-            onOpenTabs={openTabs}
-            onOpenMenu={() => {
-              haptic.tap();
-              setMenuOpen(true);
-            }}
-            onCopy={copyLink}
-          />
+          <ThemeScope theme={privateChrome ? privateTheme : theme}>
+            <BrowserToolbar
+              snapshot={snapshot}
+              tabCount={tabs.length}
+              privateTab={privateChrome}
+              communityThreads={privateChrome ? [] : communityThreads}
+              onOpenCommunity={openCommunity}
+              onOpenPrivateInfo={openPrivateInfo}
+              onBack={() => {
+                if (activeTabId)
+                  browserRefs.current.get(activeTabId)?.goBack();
+              }}
+              onForward={() => {
+                if (activeTabId)
+                  browserRefs.current.get(activeTabId)?.goForward();
+              }}
+              onOpenAddress={() => openAddress(addressValue)}
+              onOpenTabs={openTabs}
+              onOpenMenu={() => {
+                haptic.tap();
+                setMenuOpen(true);
+              }}
+              onCopy={copyLink}
+            />
+          </ThemeScope>
         ) : null}
       </Animated.View>
 
-      <AddressOverlay
-        visible={addressOpen}
-        initialValue={addressSeed}
-        history={history}
-        shortcuts={shortcuts}
-        onClose={closeAddress}
-        onSubmit={submitAddress}
-      />
+      <ThemeScope theme={addressPrivate ? privateTheme : theme}>
+        <AddressOverlay
+          visible={addressOpen}
+          initialValue={addressSeed}
+          history={history}
+          shortcuts={shortcuts}
+          privateTab={addressPrivate}
+          onClose={closeAddress}
+          onSubmit={submitAddress}
+        />
+      </ThemeScope>
 
-      <MenuSheet
-        visible={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        title={snapshot.title}
-        url={snapshot.url}
-        pinned={pinned}
-        onCopy={copyLink}
-        onShare={shareLink}
-        onTogglePin={togglePin}
-        onOpenExternal={openExternal}
-        onReload={() => {
-          if (activeTabId) browserRefs.current.get(activeTabId)?.reload();
-        }}
-        onGoHome={goHome}
-        onOpenHistory={openHistoryAfterMenu}
-        onOpenTabs={openTabsAfterMenu}
-        onOpenTrails={openTrailsAfterMenu}
-        onOpenCommunity={openCommunityAfterMenu}
-        onCloseTab={() => {
-          if (activeTabId) closeTab(activeTabId);
-        }}
-        tabCount={tabs.length}
-        trailCount={trails.length}
-        communityEnabled={communityEnabled}
-        communityThreadCount={communityThreads.length}
-      />
+      <ThemeScope theme={privateChrome ? privateTheme : theme}>
+        <MenuSheet
+          visible={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          title={snapshot.title}
+          url={snapshot.url}
+          pinned={pinned}
+          onCopy={copyLink}
+          onShare={shareLink}
+          onTogglePin={togglePin}
+          onOpenExternal={openExternal}
+          onReload={() => {
+            if (activeTabId) browserRefs.current.get(activeTabId)?.reload();
+          }}
+          onGoHome={goHome}
+          onOpenHistory={openHistoryAfterMenu}
+          onOpenTabs={openTabsAfterMenu}
+          onOpenTrails={openTrailsAfterMenu}
+          onOpenCommunity={openCommunityAfterMenu}
+          onCloseTab={() => {
+            if (activeTabId) closeTab(activeTabId);
+          }}
+          tabCount={tabs.length}
+          trailCount={trails.length}
+          communityEnabled={communityEnabled}
+          communityThreadCount={communityThreads.length}
+          privateTab={privateChrome}
+          onOpenPrivateInfo={openPrivateInfoAfterMenu}
+          onNewPrivateTab={openPrivateTabAfterMenu}
+        />
+      </ThemeScope>
 
       <CommunitySheet
         visible={communityOpen}
@@ -993,15 +1207,21 @@ export default function Mira() {
         onClear={clearHistory}
       />
 
-      <TabsSheet
-        visible={tabsOpen}
-        onClose={() => setTabsOpen(false)}
-        tabs={tabs}
-        activeTabId={activeTabId}
-        onSelectTab={activateTab}
-        onCloseTab={closeTab}
-        onNewTab={newTabFromSheet}
-      />
+      <ThemeScope theme={privateChrome ? privateTheme : theme}>
+        <TabsSheet
+          visible={tabsOpen}
+          onClose={() => setTabsOpen(false)}
+          tabs={tabs}
+          activeTabId={activeTabId}
+          privateMode={privateChrome}
+          onSelectTab={activateTab}
+          onCloseTab={closeTab}
+          onNewTab={newTabFromSheet}
+          onNewPrivateTab={newPrivateTabFromSheet}
+          onOpenPrivateInfo={openPrivateInfoFromTabs}
+          onClosePrivateTabs={closePrivateTabs}
+        />
+      </ThemeScope>
 
       <TrailsSheet
         visible={trailsOpen}
@@ -1018,6 +1238,17 @@ export default function Mira() {
         onClose={() => setTodayOpen(false)}
         onOpen={(url) => openInNewTab(url)}
       />
+
+      <ThemeScope theme={privateTheme}>
+        <PrivateSheet
+          visible={privateInfoOpen}
+          onClose={() => setPrivateInfoOpen(false)}
+          privateCount={privateTabCount}
+          onCloseAll={closePrivateTabs}
+        />
+      </ThemeScope>
+
+      {privateChrome && appState !== 'active' ? <PrivateVeil /> : null}
     </View>
   );
 }

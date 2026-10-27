@@ -14,7 +14,7 @@ import { haptic } from '@/lib/haptics';
 import { relativeTime } from '@/lib/time';
 import { getDisplayUrl } from '@/lib/url';
 import { useAnimatedValue } from '@/lib/useAnimatedValue';
-import { fonts, layout, softShadow } from '@/theme';
+import { fonts, layout, privateTheme, softShadow } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
 import type {
   BrowserTab,
@@ -38,9 +38,12 @@ type Props = {
   trails: Trail[];
   tabs: BrowserTab[];
   activeTabId: string | null;
+  privateTabCount: number;
   today: CuratedPage;
   todayLabel: string;
   onOpenSearch: () => void;
+  onOpenPrivateTab: () => void;
+  onOpenPrivateTabs: () => void;
   onOpenHistory: () => void;
   onOpenUrl: (url: string) => void;
   onOpenToday: () => void;
@@ -61,9 +64,12 @@ export function HomeScreen({
   trails,
   tabs,
   activeTabId,
+  privateTabCount,
   today,
   todayLabel,
   onOpenSearch,
+  onOpenPrivateTab,
+  onOpenPrivateTabs,
   onOpenHistory,
   onOpenUrl,
   onOpenToday,
@@ -112,6 +118,14 @@ export function HomeScreen({
                 <Text style={[styles.wordmark, { color: theme.ink }]}>Mira</Text>
               </View>
               <View style={styles.headerActions}>
+                <IconButton
+                  icon="mask"
+                  label="Open a private tab"
+                  variant="surface"
+                  size={38}
+                  color={theme.accent}
+                  onPress={onOpenPrivateTab}
+                />
                 <IconButton
                   icon="clock"
                   label="Open history"
@@ -196,6 +210,52 @@ export function HomeScreen({
                 />
               </View>
             </PressableScale>
+
+            {privateTabCount > 0 ? (
+              <PressableScale
+                onPress={() => {
+                  haptic.tap();
+                  onOpenPrivateTabs();
+                }}
+                scaleTo={0.985}
+                accessibilityLabel={`Private tabs, ${privateTabCount} open. Opens the tab shelf.`}
+                style={[
+                  styles.privateStrip,
+                  {
+                    backgroundColor: theme.surface,
+                    borderColor: theme.line,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.privateStripIcon,
+                    { backgroundColor: privateTheme.accentSoft },
+                  ]}
+                >
+                  <Icon
+                    name="mask"
+                    size={17}
+                    color={privateTheme.accent}
+                    strokeWidth={1.7}
+                  />
+                </View>
+                <View style={styles.privateStripCopy}>
+                  <Text style={[styles.privateStripTitle, { color: theme.ink }]}>
+                    Private tabs
+                  </Text>
+                  <Text style={[styles.privateStripHint, { color: theme.muted }]}>
+                    {privateTabCount} open · no history
+                  </Text>
+                </View>
+                <Icon
+                  name="chevronRight"
+                  size={15}
+                  color={theme.faint}
+                  strokeWidth={2}
+                />
+              </PressableScale>
+            ) : null}
           </Reveal>
 
           <Reveal delay={200}>
@@ -814,6 +874,36 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  privateStrip: {
+    marginTop: 10,
+    minHeight: 56,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 11,
+  },
+  privateStripIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  privateStripCopy: {
+    flex: 1,
+    gap: 1,
+  },
+  privateStripTitle: {
+    fontFamily: fonts.medium,
+    fontSize: 13.5,
+  },
+  privateStripHint: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
   },
   section: {
     marginTop: 34,

@@ -29,7 +29,10 @@ Mira is a general-purpose browser. It does not require a login, does not contain
 ads, and does not send browsing data to the developer. The optional discussion
 lookup does send the current page address to two public discussion services, so
 the Data safety form declares that share while the developer collects nothing.
-The privacy policy must be publicly reachable before the first review.
+Private tabs write no history, bypass the page cache, block screen capture, and
+never trigger that lookup. On Android, cookies and site storage are shared with
+normal tabs, so a site may still recognize you. The privacy policy must be
+publicly reachable before the first review.
 
 ---
 
@@ -44,7 +47,7 @@ Mira — A Quieter Browser
 ### Short description (max 80 characters)
 
 ```
-A quieter browser: trails, five tabs, and one hand-picked page a day.
+A quieter browser: trails, five tabs, private rooms, and one page a day.
 ```
 
 ### Full description (max 4,000 characters)
@@ -59,6 +62,9 @@ Mira groups the pages you visit into trails. Read for a while, wander through a 
 
 FIVE TABS, KEPT ALIVE
 Open up to five pages and move between them without losing your place. Tap the tab count in the toolbar to see every open page as a grid. Close one to release it. Tabs live in memory while Mira is open and clear when the app closes, so nothing is left behind.
+
+PRIVATE TABS
+Open a private tab from the home screen, tab sheet, or page menu. It starts on a quiet local page, so no request is made until you choose an address. Private tabs never write history or trails, hide stored history in the address field, load pages with the cache bypassed, and skip discussion lookup. Android's WebView shares cookies and site storage with normal tabs, so a site may remember you; closing the tab does not clear those cookies. While one is open, Android blocks screenshots and recordings and blanks the app-switcher preview. Close the tab, or the whole private group, and its pages are gone.
 
 TODAY'S PAGE
 One hand-picked, independent page each day. An essay, a garden, a small corner of the web worth an unhurried minute. It rotates with your local calendar and is bundled in the app, so choosing it never contacts a server. The last ten days are kept in an archive.
@@ -100,6 +106,7 @@ First release.
 
 • Trails: browsing grouped into sessions you can resume
 • Five tabs with a grid switcher
+• Private tabs: no history, cache bypassed, screen-capture shield
 • Today's page, hand-picked daily, with a ten-day archive
 • Hacker News and Lobsters discussions, in a native overlay
 • Share links and text into Mira
@@ -133,7 +140,8 @@ to 780 × 1480 so the frame ends on a clean edge.
 4. `04-trails.png` — the Trails sheet with three named trails.
 5. `06-browser.png` — a real page in the browser, with the address and tab count.
 6. `07-tabs.png` — four open tabs in the two-column grid.
-7. `09-address.png` — the address overlay with a draft query and suggestions.
+7. `09-private.png` — a private tab's start page in the night palette, with its
+   privacy assurances. This replaces the older address-overlay capture.
 8. `08-discussions.png` — the native discussion sheet in dark mode, showing a
    live Hacker News thread over *The Slow Web*.
 
@@ -169,7 +177,7 @@ shared without being collected by the developer.
 | --- | --- |
 | Does your app collect or share any of the required user data types? | **Yes** — the optional discussion lookup shares the current page address with Hacker News and Lobsters. The developer collects nothing. |
 | Is all of the user data collected by your app encrypted in transit? | **Yes** — HTTPS only; cleartext traffic is disabled |
-| Do you provide a way for users to request that their data be deleted? | **Yes** — in-app History → Clear history; the discussion lookup stores nothing on a server; Android Settings → Apps → Mira → Storage → Clear storage |
+| Do you provide a way for users to request that their data be deleted? | **Yes** — in-app History → Clear history removes Mira's lists; Android Settings → Apps → Mira → Storage → Clear storage removes cookies and site storage, including private-tab cookies; the discussion lookup stores nothing on a server |
 
 Data-type row:
 
@@ -179,20 +187,27 @@ Data-type row:
 
 Do **not** declare the sites the user visits in the browser itself: those are
 user-initiated requests to the sites, not collection by Mira. Do **not** declare
-history, trails, shortcuts, or the theme as collected; they never leave the
-device. If a future release adds sync, crash reporting, or analytics, this form
-must change before that release ships.
+history, trails, shortcuts, private-tab history, or the theme as collected; Mira
+never sends them to the developer. Private tabs also skip the discussion lookup,
+so their addresses are never sent to Hacker News or Lobsters. Cookies and site
+storage are set by the sites the user visits and stay in Android's WebView; Mira
+does not collect them. If a future release adds sync, crash reporting, or
+analytics, this form must change before that release ships.
 
 If the form requires a note, use:
 
 ```
 Mira has no account, no analytics SDK, and no developer-operated server. History,
 trails, shortcuts, and the theme are stored in Android app-private storage and
-never leave the device. As a browser, Mira requests the sites the user opens
-directly, as any browser does. The optional discussion lookup sends only the
-current page address to the public Hacker News (Algolia) and Lobsters APIs; it
-sends no account, device identifier, search terms, or browsing history and holds
-the response in memory for 15 minutes. Android backup is disabled.
+never leave the device. Private tabs write no history or trails, bypass the page
+cache, block screen capture, and never run the discussion lookup. Android's
+WebView shares cookies and site storage with normal tabs, so a site may recognize
+the reader; closing private tabs does not clear those cookies. As a browser, Mira
+requests the sites the user opens directly, as any browser does. The optional
+discussion lookup sends only the current page address to the public Hacker News
+(Algolia) and Lobsters APIs; it sends no account, device identifier, search
+terms, or browsing history, holds the response in memory for 15 minutes, and
+never runs in a private tab. Android backup is disabled.
 ```
 
 ### Section: Ads
@@ -309,7 +324,7 @@ npx eas-cli@latest init          # links this directory to an EAS project
 
 `eas init` writes `extra.eas.projectId` into `app.json`. Commit that change.
 
-### Development build (share extension + widget testing)
+### Development build (share extension, widget, and capture shield)
 
 Expo Go cannot load `expo-share-intent` or `react-native-android-widget`, and the
 widget task handler is skipped there. Use a development build:
@@ -326,6 +341,10 @@ Install the APK on a physical Android device. Then verify:
 - Resize the widget taller → shortcuts appear.
 - Tap the widget's Today title → Mira opens the page.
 - Switch system theme → widget redraws in dark mode.
+- Open a private tab, try a screenshot and a screen recording → both are blocked,
+  and the app-switcher preview is blank.
+- Close all private tabs → screenshots work again and no private entry remains in
+  history or trails.
 
 ### Production build
 
@@ -366,6 +385,11 @@ version) deliberately when the listing should show a new number.
 - [x] Camera, microphone, location, storage, contacts, SMS, notifications, and
       overlay permissions are blocked.
 - [x] Android Safe Browsing enabled; WebView metrics opted out.
+- [x] Private tabs bypass the page cache, write no history or trails, skip the
+      discussion lookup, and block screen capture. Android shares cookies and site
+      storage with normal tabs, and the UI says so.
+- [x] `expo-screen-capture` installed; the shield degrades safely in builds and
+      previews that lack the native module.
 - [x] Share intent accepts `text/*` only.
 - [x] Widget has a preview image and bundled fonts.
 - [x] No analytics, ads, or crash-reporting SDK in `package.json`.
@@ -381,7 +405,8 @@ version) deliberately when the listing should show a new number.
 - [ ] Upload the eight captures in `docs/play/screenshots/` in the listed order.
 - [ ] Fill in the short and full descriptions.
 - [ ] Complete Data safety: "shares Web browsing history" for the optional
-      discussion lookup; developer collects nothing.
+      discussion lookup; developer collects nothing. Private-tab history is never
+      written; private cookies are shared with normal tabs on Android.
 - [ ] Complete the content rating questionnaire (unrestricted web access: yes).
 - [ ] Set target audience to 13+ and "designed for families" to No.
 - [ ] Declare no ads.
@@ -403,6 +428,16 @@ version) deliberately when the listing should show a new number.
 - [ ] Check that a third-party embed cannot set a cross-site cookie.
 - [ ] Open five tabs; the sixth triggers eviction of the least-recent tab.
 - [ ] Close the app and reopen; tabs are cleared, history and trails remain.
+- [ ] Open a private tab; it starts empty and makes no request until an address is
+      chosen.
+- [ ] Browse in a private tab, then return home; no private page appears in
+      Recent, Trails, or the tab titles.
+- [ ] Sign in normally, open the same site in a private tab; the site recognizes
+      you, confirming that Android's cookie store is shared. The private start
+      page states this before an address is opened.
+- [ ] Try a screenshot, a screen recording, and the app switcher while a private
+      tab is open; all three are covered.
+- [ ] Close all private tabs; the shield releases and normal screenshots work.
 - [ ] Rename a trail, delete a trail, clear history.
 - [ ] Share a link and plain text into Mira.
 - [ ] Add, resize, tap, and theme-test the widget.
@@ -425,6 +460,15 @@ and press Go. Use the toolbar for back, forward, reload, and the page menu.
 
 To test tabs: open a page, tap the tab count in the toolbar, then "New tab".
 Mira keeps up to five pages in memory.
+
+To test private tabs: tap the mask icon on the home screen. The tab starts
+empty. Type "example.com" and press Go. Private pages never enter history or
+trails, and the page menu hides history, trails, and discussions. Android's
+WebView shares cookies and site storage with normal tabs, and the private start
+page states this before an address is opened. The tab sheet groups private pages
+separately and offers "Close all private tabs". On a physical device,
+screenshots and screen recordings are blocked while a private tab is open; the
+app-switcher preview is blank.
 
 To test trails: open two or three different sites, return home, and open the
 latest trail card. Trails group pages visited within about 25 minutes.
@@ -463,8 +507,13 @@ child-safe browser; it is not.
 - **Android only.** The iOS widget is not implemented; the iOS share extension is
   configured but has not been verified on a Mac.
 - **Five tabs.** This is a deliberate memory bound, not a bug.
-- **No private/incognito mode.** History can be cleared, but pages are not
-  isolated into a separate ephemeral profile.
+- **Private tabs hide Mira's traces, not network identity.** A private tab writes
+  no history, bypasses the cache, and blocks capture, but Android shares cookies
+  with normal tabs and the site still receives your IP address. Mira does not
+  proxy or anonymise traffic.
+- **The capture shield needs a native build.** Expo Go and the web preview show
+  the app-switcher veil only; the OS-level block is active once
+  `expo-screen-capture` is in the development or production binary.
 - **No tab restoration across launches.** Tabs are in-memory; history and trails
   persist.
 - **No built-in ad blocker.** Third-party cookies are off, but requests are not

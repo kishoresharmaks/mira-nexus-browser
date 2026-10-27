@@ -41,6 +41,15 @@ type Props = {
   initialUrl: string;
   /** The tab is on screen. Inactive WebViews are kept warm but must be quiet. */
   active?: boolean;
+  /**
+   * A private tab writes no history or trails, bypasses WebView's page cache,
+   * and is never reported to the community lookup. On iOS it also gets a
+   * non-persistent WKWebsiteDataStore. Android has one app-wide cookie and
+   * DOM-storage store, so private tabs share it with normal tabs. The
+   * `incognito` prop must not be used there: it clears every cookie in the app
+   * and would sign normal tabs out.
+   */
+  privateTab?: boolean;
   onSnapshot: (snapshot: PageSnapshot) => void;
   onVisit: (url: string, title: string) => void;
   onGoHome: () => void;
@@ -89,7 +98,15 @@ const PAUSE_MEDIA = `
 `;
 
 export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane(
-  { initialUrl, active = true, onSnapshot, onVisit, onGoHome, onOpenWindow },
+  {
+    initialUrl,
+    active = true,
+    privateTab = false,
+    onSnapshot,
+    onVisit,
+    onGoHome,
+    onOpenWindow,
+  },
   ref,
 ) {
   const { theme, mode } = useTheme();
@@ -158,12 +175,15 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
     if (!active) pauseMedia();
   }, [active, pauseMedia]);
 
-  const recordVisit = useCallback((url: string, title: string) => {
-    if (recordedRef.current || errorRef.current) return;
-    if (!isWebUrl(url)) return;
-    recordedRef.current = true;
-    visitListener.current(url, cleanTitle(title, url));
-  }, []);
+  const recordVisit = useCallback(
+    (url: string, title: string) => {
+      if (privateTab || recordedRef.current || errorRef.current) return;
+      if (!isWebUrl(url)) return;
+      recordedRef.current = true;
+      visitListener.current(url, cleanTitle(title, url));
+    },
+    [privateTab],
+  );
 
   const navigate = useCallback((url: string) => {
     if (!isWebUrl(url)) return;
@@ -375,12 +395,16 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
           ]}
           javaScriptEnabled
           domStorageEnabled
-          sharedCookiesEnabled
+          // iOS incognito uses a non-persistent store. Android's incognito
+          // implementation calls CookieManager.removeAllCookies globally, so
+          // using it there would wipe every normal-tab session.
+          incognito={Platform.OS === 'ios' ? privateTab : undefined}
+          sharedCookiesEnabled={!privateTab}
           // Cross-site cookies are the plumbing of third-party tracking. Sites
           // keep working with first-party cookies; a page cannot follow the
           // reader from one host to another.
           thirdPartyCookiesEnabled={false}
-          cacheEnabled
+          cacheEnabled={!privateTab}
           // The WebView is a browser, not an app runtime: it has no business
           // reading local files, saving form data, or reaching a file:// page.
           allowFileAccess={false}

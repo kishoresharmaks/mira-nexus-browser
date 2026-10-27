@@ -48,6 +48,8 @@ type Props = {
   initialValue: string;
   history: HistoryEntry[];
   shortcuts: Shortcut[];
+  /** Private mode hides stored history and speaks in the private palette. */
+  privateTab?: boolean;
   onClose: () => void;
   onSubmit: (value: string) => void;
 };
@@ -57,6 +59,7 @@ export function AddressOverlay({
   initialValue,
   history,
   shortcuts,
+  privateTab = false,
   onClose,
   onSubmit,
 }: Props) {
@@ -116,8 +119,13 @@ export function AddressOverlay({
         }))
     : [];
 
-  const historyMatches: Suggestion[] = (trimmed ? history : history.slice(0, 5))
-    .filter((entry) => !trimmed || matches(search, entry.title, entry.host, entry.url))
+  const historyMatches: Suggestion[] = (
+    privateTab ? [] : trimmed ? history : history.slice(0, 5)
+  )
+    .filter(
+      (entry) =>
+        !trimmed || matches(search, entry.title, entry.host, entry.url),
+    )
     .map((entry) => ({
       id: `history-${entry.id}`,
       title: entry.title,
@@ -184,13 +192,22 @@ export function AddressOverlay({
               softShadow(theme.mode, 'dock'),
             ]}
           >
-            <Icon name="search" size={18} color={theme.muted} strokeWidth={1.9} />
+            <Icon
+              name={privateTab ? 'mask' : 'search'}
+              size={18}
+              color={privateTab ? theme.accent : theme.muted}
+              strokeWidth={1.9}
+            />
             <TextInput
               ref={inputRef}
               value={query}
               onChangeText={setQuery}
               onSubmitEditing={() => submit(query)}
-              placeholder="Search or enter a website"
+              placeholder={
+                privateTab
+                  ? 'Search or enter a link'
+                  : 'Search or enter a website'
+              }
               placeholderTextColor={theme.faint}
               style={[styles.input, focusRingReset, { color: theme.ink }]}
               autoCapitalize="none"
@@ -200,7 +217,11 @@ export function AddressOverlay({
               returnKeyType="go"
               keyboardAppearance={mode}
               selectionColor={theme.accent}
-              accessibilityLabel="Address and search field"
+              accessibilityLabel={
+                privateTab
+                  ? 'Private address and search field'
+                  : 'Address and search field'
+              }
             />
             {query.length > 0 ? (
               <Pressable
@@ -267,13 +288,28 @@ export function AddressOverlay({
               <View
                 style={[
                   styles.primaryIcon,
-                  { backgroundColor: direct.kind === 'url' ? theme.accentSoft : theme.chip },
+                  {
+                    backgroundColor:
+                      privateTab || direct.kind === 'url'
+                        ? theme.accentSoft
+                        : theme.chip,
+                  },
                 ]}
               >
                 <Icon
-                  name={direct.kind === 'url' ? 'globe' : 'search'}
+                  name={
+                    privateTab
+                      ? 'mask'
+                      : direct.kind === 'url'
+                        ? 'globe'
+                        : 'search'
+                  }
                   size={19}
-                  color={direct.kind === 'url' ? theme.accent : theme.inkSoft}
+                  color={
+                    privateTab || direct.kind === 'url'
+                      ? theme.accent
+                      : theme.inkSoft
+                  }
                 />
               </View>
               <View style={styles.primaryCopy}>
@@ -318,22 +354,35 @@ export function AddressOverlay({
           {!trimmed && !hasMatches ? (
             <View style={styles.empty}>
               <View style={[styles.emptyOrb, { backgroundColor: theme.accentSoft }]}>
-                <Icon name="globe" size={24} color={theme.accent} />
+                <Icon
+                  name={privateTab ? 'mask' : 'globe'}
+                  size={24}
+                  color={theme.accent}
+                />
               </View>
               <Text style={[styles.emptyTitle, { color: theme.ink }]}>
-                Where to?
+                {privateTab ? 'A private start' : 'Where to?'}
               </Text>
               <Text style={[styles.emptyBody, { color: theme.muted }]}>
-                Type a link, a domain, or a question. Mira takes you straight there.
+                {privateTab
+                  ? 'Type a link, a domain, or a question. Nothing here enters history.'
+                  : 'Type a link, a domain, or a question. Mira takes you straight there.'}
               </Text>
             </View>
           ) : null}
 
           {!trimmed ? (
             <View style={styles.tipRow}>
-              <Icon name="shield" size={13} color={theme.faint} strokeWidth={1.7} />
+              <Icon
+                name={privateTab ? 'mask' : 'shield'}
+                size={13}
+                color={theme.faint}
+                strokeWidth={1.7}
+              />
               <Text style={[styles.tip, { color: theme.faint }]}>
-                Searches go to DuckDuckGo. History stays on this device.
+                {privateTab
+                  ? 'Private tab. History and trails stay untouched.'
+                  : 'Searches go to DuckDuckGo. History stays on this device.'}
               </Text>
             </View>
           ) : null}

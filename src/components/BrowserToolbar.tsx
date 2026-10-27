@@ -13,8 +13,10 @@ import { PressableScale } from './PressableScale';
 type Props = {
   snapshot: PageSnapshot;
   tabCount: number;
+  privateTab?: boolean;
   communityThreads?: CommunityThread[];
   onOpenCommunity?: () => void;
+  onOpenPrivateInfo?: () => void;
   onBack: () => void;
   onForward: () => void;
   onOpenAddress: () => void;
@@ -26,8 +28,10 @@ type Props = {
 export function BrowserToolbar({
   snapshot,
   tabCount,
+  privateTab = false,
   communityThreads = [],
   onOpenCommunity,
+  onOpenPrivateInfo,
   onBack,
   onForward,
   onOpenAddress,
@@ -38,13 +42,38 @@ export function BrowserToolbar({
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const display = getDisplayUrl(snapshot.url);
+  const empty = !snapshot.url;
 
   return (
     <View
       pointerEvents="box-none"
       style={[styles.host, { bottom: insets.bottom + 10 }]}
     >
-      {communityThreads.length > 0 && onOpenCommunity ? (
+      {privateTab ? (
+        <View pointerEvents="box-none" style={styles.privateRow}>
+          <PressableScale
+            onPress={onOpenPrivateInfo}
+            scaleTo={0.96}
+            style={[
+              styles.privatePill,
+              {
+                backgroundColor: theme.surface,
+                borderColor: 'rgba(143, 168, 255, 0.22)',
+              },
+            ]}
+            accessibilityLabel="Private tab, no history. Opens details"
+          >
+            <Icon name="mask" size={11} color={theme.accent} strokeWidth={1.8} />
+            <Text style={[styles.privateLabel, { color: theme.accent }]}>
+              PRIVATE
+            </Text>
+            <View style={[styles.privateDot, { backgroundColor: theme.faint }]} />
+            <Text style={[styles.privateNote, { color: theme.muted }]}>
+              no history
+            </Text>
+          </PressableScale>
+        </View>
+      ) : communityThreads.length > 0 && onOpenCommunity ? (
         <View pointerEvents="box-none" style={styles.communityRow}>
           <CommunityChip
             threads={communityThreads}
@@ -101,21 +130,25 @@ export function BrowserToolbar({
             { backgroundColor: theme.chip, borderColor: theme.line },
           ]}
           accessibilityRole="button"
-          accessibilityLabel={`Address, ${display.host}${display.path ? `, ${display.path}` : ''}`}
+          accessibilityLabel={
+            empty
+              ? 'Private tab, no page yet'
+              : `Address, ${display.host}${display.path ? `, ${display.path}` : ''}`
+          }
           accessibilityHint="Opens the address bar. Long press copies the link."
         >
           <Icon
-            name={display.secure ? 'lock' : 'unlock'}
+            name={privateTab ? 'mask' : display.secure ? 'lock' : 'unlock'}
             size={11}
-            color={theme.faint}
+            color={privateTab ? theme.accent : theme.faint}
             strokeWidth={2}
           />
           <Text
             numberOfLines={1}
             style={[styles.addressText, { color: theme.inkSoft }]}
           >
-            {display.host}
-            {display.path ? (
+            {empty ? 'Private tab' : display.host}
+            {!empty && display.path ? (
               <Text style={[styles.addressPath, { color: theme.muted }]}>
                 {display.path}
               </Text>
@@ -175,6 +208,36 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingRight: 6,
     marginBottom: 8,
+  },
+  privateRow: {
+    width: '100%',
+    maxWidth: 560,
+    alignItems: 'flex-start',
+    paddingLeft: 6,
+    marginBottom: 8,
+  },
+  privatePill: {
+    height: 29,
+    borderRadius: 14.5,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  privateLabel: {
+    fontFamily: fonts.semibold,
+    fontSize: 8.5,
+    letterSpacing: 1.15,
+  },
+  privateDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+  },
+  privateNote: {
+    fontFamily: fonts.sans,
+    fontSize: 10.5,
   },
   bar: {
     width: '100%',

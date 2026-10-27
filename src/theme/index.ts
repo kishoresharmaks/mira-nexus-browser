@@ -73,6 +73,35 @@ export const themes: Record<ThemeMode, Theme> = {
   },
 };
 
+/**
+ * Private tabs use a separate night palette no matter which theme the rest of
+ * Mira is wearing. The room should feel unmistakably different from the shelf:
+ * cooler, quieter, and clearly temporary.
+ */
+export const privateTheme: Theme = {
+  mode: 'dark',
+  bg: '#080A0F',
+  bgTop: '#101420',
+  bgBottom: '#06070B',
+  surface: '#121722',
+  surfaceAlt: '#171D2B',
+  chip: '#1A2131',
+  ink: '#EDF1FA',
+  inkSoft: '#C7D0E2',
+  muted: '#8B97AE',
+  faint: '#5E6A80',
+  line: 'rgba(237, 241, 250, 0.09)',
+  accent: '#8FA8FF',
+  accentInk: '#0A0D15',
+  accentSoft: '#1C2742',
+  danger: '#FF8A7A',
+  scrim: 'rgba(2, 4, 8, 0.66)',
+  inverse: '#EDF1FA',
+  inverseInk: '#0A0D15',
+  shadow: '#000000',
+  gradient: ['#0C0F17', '#07090E'],
+};
+
 export const fonts = {
   serif: 'InstrumentSerif',
   serifItalic: 'InstrumentSerifItalic',

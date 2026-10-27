@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { shouldLookupCommunity } from '@/lib/community';
 import { haptic } from '@/lib/haptics';
+import { privateCookieMenuMeta } from '@/lib/privateCopy';
 import { fonts } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
 import { BottomSheet } from './BottomSheet';
@@ -37,6 +38,9 @@ type Props = {
   trailCount: number;
   communityEnabled: boolean;
   communityThreadCount: number;
+  privateTab: boolean;
+  onOpenPrivateInfo: () => void;
+  onNewPrivateTab: () => void;
 };
 
 export function MenuSheet({
@@ -60,12 +64,16 @@ export function MenuSheet({
   trailCount,
   communityEnabled,
   communityThreadCount,
+  privateTab = false,
+  onOpenPrivateInfo,
+  onNewPrivateTab,
 }: Props) {
   const { theme, mode, setMode } = useTheme();
   const { height } = useWindowDimensions();
   const display = getDisplayUrl(url);
   const host = display.host;
-  const showDiscussions = shouldLookupCommunity(url);
+  const hasPage = Boolean(url);
+  const showDiscussions = !privateTab && shouldLookupCommunity(url);
   const discussionMeta = !communityEnabled
     ? 'Off'
     : communityThreadCount > 0
@@ -86,20 +94,39 @@ export function MenuSheet({
         contentContainerStyle={styles.scroll}
       >
         <View style={styles.pageHeader}>
-          <Favicon host={host} title={title} size={46} />
+          {privateTab ? (
+            <View
+              style={[
+                styles.privateHeaderTile,
+                {
+                  backgroundColor: theme.accentSoft,
+                  borderColor: theme.line,
+                },
+              ]}
+            >
+              <Icon
+                name="mask"
+                size={22}
+                color={theme.accent}
+                strokeWidth={1.6}
+              />
+            </View>
+          ) : (
+            <Favicon host={host} title={title} size={46} />
+          )}
           <View style={styles.pageCopy}>
             <Text numberOfLines={2} style={[styles.pageTitle, { color: theme.ink }]}>
-              {title || host}
+              {hasPage ? title || host : privateTab ? 'Private tab' : title || host}
             </Text>
             <View style={styles.pageMetaRow}>
               <Icon
-                name={display.secure ? 'lock' : 'unlock'}
+                name={privateTab ? 'mask' : display.secure ? 'lock' : 'unlock'}
                 size={11}
-                color={theme.faint}
+                color={privateTab ? theme.accent : theme.faint}
                 strokeWidth={1.9}
               />
               <Text numberOfLines={1} style={[styles.pageMeta, { color: theme.muted }]}>
-                {host}
+                {privateTab ? privateCookieMenuMeta : host}
               </Text>
             </View>
           </View>
@@ -114,32 +141,50 @@ export function MenuSheet({
         </View>
 
         <View style={styles.actions}>
-          <SheetAction
-            icon="copy"
-            label="Copy link"
-            onPress={() => run(onCopy)}
-          />
-          <SheetAction
-            icon="share"
-            label="Share"
-            onPress={() => run(onShare)}
-          />
-          <SheetAction
-            icon={pinned ? 'pinFilled' : 'pin'}
-            label={pinned ? 'Unpin page' : 'Pin page'}
-            active={pinned}
-            onPress={() => run(onTogglePin)}
-          />
-          <SheetAction
-            icon="external"
-            label="Open in browser"
-            onPress={() => run(onOpenExternal)}
-          />
-          <SheetAction
-            icon="refresh"
-            label="Reload"
-            onPress={() => run(onReload)}
-          />
+          {privateTab ? (
+            <SheetAction
+              icon="mask"
+              label="Private"
+              active
+              onPress={() => run(onOpenPrivateInfo)}
+            />
+          ) : null}
+          {hasPage ? (
+            <>
+              <SheetAction
+                icon="copy"
+                label="Copy link"
+                onPress={() => run(onCopy)}
+              />
+              <SheetAction
+                icon="share"
+                label="Share"
+                onPress={() => run(onShare)}
+              />
+            </>
+          ) : null}
+          {!privateTab && hasPage ? (
+            <SheetAction
+              icon={pinned ? 'pinFilled' : 'pin'}
+              label={pinned ? 'Unpin page' : 'Pin page'}
+              active={pinned}
+              onPress={() => run(onTogglePin)}
+            />
+          ) : null}
+          {hasPage ? (
+            <>
+              <SheetAction
+                icon="external"
+                label="Open in browser"
+                onPress={() => run(onOpenExternal)}
+              />
+              <SheetAction
+                icon="refresh"
+                label="Reload"
+                onPress={() => run(onReload)}
+              />
+            </>
+          ) : null}
           <SheetAction
             icon="home"
             label="Home"
@@ -169,89 +214,128 @@ export function MenuSheet({
           />
         </PressableScale>
 
-        <PressableScale
-          onPress={() => run(onOpenTrails)}
-          style={styles.listRow}
-          accessibilityLabel={`Open trails, ${trailCount} saved`}
-        >
-          <View style={[styles.rowIcon, { backgroundColor: theme.surfaceAlt }]}>
-            <Icon name="trail" size={18} color={theme.inkSoft} />
-          </View>
-          <Text style={[styles.rowLabel, { color: theme.ink }]}>Trails</Text>
-          <Text style={[styles.rowMeta, { color: theme.faint }]}>
-            {trailCount}
-          </Text>
-          <Icon
-            name="chevronRight"
-            size={16}
-            color={theme.faint}
-            strokeWidth={1.9}
-          />
-        </PressableScale>
+        {!privateTab ? (
+          <>
+            <PressableScale
+              onPress={() => run(onOpenTrails)}
+              style={styles.listRow}
+              accessibilityLabel={`Open trails, ${trailCount} saved`}
+            >
+              <View style={[styles.rowIcon, { backgroundColor: theme.surfaceAlt }]}>
+                <Icon name="trail" size={18} color={theme.inkSoft} />
+              </View>
+              <Text style={[styles.rowLabel, { color: theme.ink }]}>Trails</Text>
+              <Text style={[styles.rowMeta, { color: theme.faint }]}>
+                {trailCount}
+              </Text>
+              <Icon
+                name="chevronRight"
+                size={16}
+                color={theme.faint}
+                strokeWidth={1.9}
+              />
+            </PressableScale>
 
-        {showDiscussions ? (
-          <PressableScale
-            onPress={() => run(onOpenCommunity)}
-            style={styles.listRow}
-            accessibilityLabel={`Discussions, ${discussionMeta.toLowerCase()}`}
-          >
-            <View style={[styles.rowIcon, { backgroundColor: theme.surfaceAlt }]}>
-              <Icon name="message" size={18} color={theme.inkSoft} />
+            {showDiscussions ? (
+              <PressableScale
+                onPress={() => run(onOpenCommunity)}
+                style={styles.listRow}
+                accessibilityLabel={`Discussions, ${discussionMeta.toLowerCase()}`}
+              >
+                <View
+                  style={[styles.rowIcon, { backgroundColor: theme.surfaceAlt }]}
+                >
+                  <Icon name="message" size={18} color={theme.inkSoft} />
+                </View>
+                <Text style={[styles.rowLabel, { color: theme.ink }]}>
+                  Discussions
+                </Text>
+                <Text style={[styles.rowMeta, { color: theme.faint }]}>
+                  {discussionMeta}
+                </Text>
+                <Icon
+                  name="chevronRight"
+                  size={16}
+                  color={theme.faint}
+                  strokeWidth={1.9}
+                />
+              </PressableScale>
+            ) : null}
+
+            <PressableScale
+              onPress={() => run(onOpenHistory)}
+              style={styles.listRow}
+              accessibilityLabel="Open history"
+            >
+              <View style={[styles.rowIcon, { backgroundColor: theme.surfaceAlt }]}>
+                <Icon name="clock" size={18} color={theme.inkSoft} />
+              </View>
+              <Text style={[styles.rowLabel, { color: theme.ink }]}>History</Text>
+              <Icon
+                name="chevronRight"
+                size={16}
+                color={theme.faint}
+                strokeWidth={1.9}
+              />
+            </PressableScale>
+
+            <View style={styles.listRow}>
+              <View style={[styles.rowIcon, { backgroundColor: theme.surfaceAlt }]}>
+                <Icon
+                  name={mode === 'dark' ? 'moon' : 'sun'}
+                  size={18}
+                  color={theme.inkSoft}
+                />
+              </View>
+              <Text style={[styles.rowLabel, { color: theme.ink }]}>
+                Appearance
+              </Text>
+              <View style={[styles.segment, { backgroundColor: theme.chip }]}>
+                <ModeOption
+                  label="Light"
+                  active={mode === 'light'}
+                  onPress={() => setMode('light')}
+                />
+                <ModeOption
+                  label="Dark"
+                  active={mode === 'dark'}
+                  onPress={() => setMode('dark')}
+                />
+              </View>
             </View>
-            <Text style={[styles.rowLabel, { color: theme.ink }]}>
-              Discussions
-            </Text>
-            <Text style={[styles.rowMeta, { color: theme.faint }]}>
-              {discussionMeta}
-            </Text>
-            <Icon
-              name="chevronRight"
-              size={16}
-              color={theme.faint}
-              strokeWidth={1.9}
-            />
-          </PressableScale>
+
+            <View style={[styles.divider, { backgroundColor: theme.line }]} />
+
+            <PressableScale
+              onPress={() => run(onNewPrivateTab)}
+              style={styles.listRow}
+              accessibilityLabel="Open a private tab"
+            >
+              <View style={[styles.rowIcon, { backgroundColor: theme.accentSoft }]}>
+                <Icon
+                  name="mask"
+                  size={18}
+                  color={theme.accent}
+                  strokeWidth={1.7}
+                />
+              </View>
+              <View style={styles.privateRowCopy}>
+                <Text style={[styles.privateRowTitle, { color: theme.ink }]}>
+                  New private tab
+                </Text>
+                <Text style={[styles.rowHint, { color: theme.muted }]}>
+                  No history, no cache, no capture
+                </Text>
+              </View>
+              <Icon
+                name="chevronRight"
+                size={16}
+                color={theme.faint}
+                strokeWidth={1.9}
+              />
+            </PressableScale>
+          </>
         ) : null}
-
-        <PressableScale
-          onPress={() => run(onOpenHistory)}
-          style={styles.listRow}
-          accessibilityLabel="Open history"
-        >
-          <View style={[styles.rowIcon, { backgroundColor: theme.surfaceAlt }]}>
-            <Icon name="clock" size={18} color={theme.inkSoft} />
-          </View>
-          <Text style={[styles.rowLabel, { color: theme.ink }]}>History</Text>
-          <Icon
-            name="chevronRight"
-            size={16}
-            color={theme.faint}
-            strokeWidth={1.9}
-          />
-        </PressableScale>
-
-        <View style={styles.listRow}>
-          <View style={[styles.rowIcon, { backgroundColor: theme.surfaceAlt }]}>
-            <Icon
-              name={mode === 'dark' ? 'moon' : 'sun'}
-              size={18}
-              color={theme.inkSoft}
-            />
-          </View>
-          <Text style={[styles.rowLabel, { color: theme.ink }]}>Appearance</Text>
-          <View style={[styles.segment, { backgroundColor: theme.chip }]}>
-            <ModeOption
-              label="Light"
-              active={mode === 'light'}
-              onPress={() => setMode('light')}
-            />
-            <ModeOption
-              label="Dark"
-              active={mode === 'dark'}
-              onPress={() => setMode('dark')}
-            />
-          </View>
-        </View>
 
         <View style={[styles.divider, { backgroundColor: theme.line }]} />
 
@@ -269,7 +353,7 @@ export function MenuSheet({
         </PressableScale>
 
         <Text style={[styles.footer, { color: theme.faint }]}>
-          Mira 1.0 · A quieter web
+          {privateTab ? 'Mira 1.0 · Private tab' : 'Mira 1.0 · A quieter web'}
         </Text>
       </ScrollView>
     </BottomSheet>
@@ -371,6 +455,14 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 3,
   },
+  privateHeaderTile: {
+    width: 46,
+    height: 46,
+    borderRadius: 15,
+    borderWidth: StyleSheet.hairlineWidth,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   pageTitle: {
     fontFamily: fonts.medium,
     fontSize: 16,
@@ -435,6 +527,18 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: 11,
     marginRight: 2,
+  },
+  privateRowCopy: {
+    flex: 1,
+    gap: 1,
+  },
+  privateRowTitle: {
+    fontFamily: fonts.medium,
+    fontSize: 14.5,
+  },
+  rowHint: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
   },
   segment: {
     flexDirection: 'row',

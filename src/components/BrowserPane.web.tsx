@@ -26,6 +26,8 @@ import { ScreenBackdrop } from './ScreenBackdrop';
 type Props = {
   initialUrl: string;
   active?: boolean;
+  /** Web previews cannot isolate cookies; they only mark the private room. */
+  privateTab?: boolean;
   onSnapshot: (snapshot: PageSnapshot) => void;
   onVisit: (url: string, title: string) => void;
   onGoHome: () => void;
@@ -38,7 +40,7 @@ type Props = {
  * demo page is the best target for visual QA.
  */
 export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane(
-  { initialUrl, active = true, onSnapshot, onVisit },
+  { initialUrl, active = true, privateTab = false, onSnapshot, onVisit },
   ref,
 ) {
   const { theme } = useTheme();
@@ -153,7 +155,7 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
       loading: false,
     });
     hideCurtain();
-    visitListener.current(finalUrl, clean);
+    if (!privateTab) visitListener.current(finalUrl, clean);
   };
 
   const display = getDisplayUrl(snapshot.url);
@@ -211,7 +213,7 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
                 {display.host}
               </Text>
               <Text style={[styles.curtainLabel, { color: theme.muted }]}>
-                Opening quietly
+                {privateTab ? 'Private · opening quietly' : 'Opening quietly'}
               </Text>
             </View>
           </Animated.View>

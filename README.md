@@ -5,9 +5,10 @@ A quieter browser for the web.
 Mira opens ordinary websites in a full-screen WebView with a small, considered
 set of controls. It groups browsing into **Trails**, keeps up to **five tabs**
 alive while the app is open, offers **Today's page** — one hand-picked,
-independent page a day — and shows the public **Hacker News and Lobsters**
-conversation around a page in a native overlay. No account, no feed, no
-analytics, no advertising.
+independent page a day — and **Private tabs** that leave no history, bypass the
+page cache, and block screen capture. It also shows the public **Hacker News and
+Lobsters** conversation around a page in a native overlay. No account, no feed,
+no analytics, no advertising.
 
 The visual language is warm and editorial: paper, ink, a single orange accent,
 Instrument Serif for display type and Instrument Sans for everything else. Light
@@ -52,6 +53,29 @@ Built with Expo SDK 58, React Native 0.88, React 19, TypeScript, and Expo Router
   persist.
 - Inactive tabs pause media and background work.
 
+### Private tabs
+
+- Open a private tab from the home header, the tab sheet, or any page menu. It
+  begins on a local start page: no WebView, no network request, and no page
+  state exists until you choose an address.
+- Private tabs write no history or trails and load pages with WebView's cache
+  bypassed. The omnibox hides your stored history while you are in the room.
+- **Android's WebView has one cookie and site-storage store for the whole app.**
+  Private tabs share it with normal tabs: a site you are signed in to can
+  recognize you, and cookies set in a private tab can outlive it. The private
+  start page says this before you open an address. iOS uses a non-persistent
+  store, but Android is the publishing target.
+- Discussion lookup is off in private tabs, so the page address is never sent to
+  Hacker News or Lobsters.
+- Screenshots and screen recordings are blocked on native builds through
+  `expo-screen-capture`, and the app switcher receives a quiet screen instead of
+  the page.
+- Private chrome uses a dedicated night palette, separate from your chosen
+  appearance. The tab sheet keeps private pages in their own group with a
+  one-tap close-all.
+- Private tabs are still WebViews: a site sees your IP address and knows someone
+  visited. Mira hides your trail in Mira, not your identity on the web.
+
 ### Public discussions
 
 - When an article has been posted to Hacker News or Lobsters, a small chip appears
@@ -60,8 +84,8 @@ Built with Expo SDK 58, React Native 0.88, React 19, TypeScript, and Expo Router
   exist, points, comments, nested replies, and a one-tap "Open thread" action.
 - Lookup is by canonical address: `http`/`https`, `www.`, trailing slashes,
   fragments, and common tracking parameters are normalised before matching.
-- Search-result pages, the discussion sites themselves, and private hosts are
-  skipped. Nothing is looked up while the page is still loading.
+- Search-result pages, the discussion sites themselves, private hosts, and every
+  private tab are skipped. Nothing is looked up while the page is still loading.
 - Only the current page address is sent, directly to the Algolia HN Search API
   and Lobsters. There is no developer server, no account, no stored lookup
   history, and no analytics.
@@ -118,8 +142,10 @@ Built with Expo SDK 58, React Native 0.88, React 19, TypeScript, and Expo Router
 - A physical Android device for share-sheet and widget testing
 
 Expo Go can preview the core browser on Android because `react-native-webview`
-is bundled. **Share intake and the widget require a development build** — their
-native modules are not in Expo Go.
+is bundled. **Share intake, the widget, and the private-tab screen-capture
+shield require a development build** — their native modules are not in Expo Go.
+Private tabs still work without the shield, with the app-switcher veil as a
+fallback.
 
 ---
 
@@ -145,7 +171,10 @@ provides an iframe fallback for design QA. Many sites refuse to be framed; for a
 faithful look at the browser chrome, open `http://localhost:8081/demo.html` from
 the address bar. `public/demo.html` is a self-contained editorial demo.
 
-The web build is a QA surface, not a shipped target.
+The web build is a QA surface, not a shipped target. Its private tabs reproduce
+the chrome, the empty start page, and the history suppression, but an iframe
+cannot isolate cookies (the Android build shares them too) or block screen
+capture.
 
 ### Quality gates
 
@@ -171,6 +200,8 @@ shell." The defaults are deliberately strict.
 | Mixed content | Never allowed. |
 | Local files | File access, file-URL access, and form-data saving are disabled. `file://` cannot become the top-level document. |
 | Cookies | First-party on; third-party off. Sign-ins work without cross-site tracking. |
+| Private tabs | No history or trails, cache bypassed, no discussion lookup, and screen capture blocked. Android shares cookies and site storage with normal tabs; see below. |
+| Screen capture | Blocked while a private tab is open on native builds. A quiet veil covers the app switcher, and sheets close when Mira backgrounds. |
 | JavaScript windows | `window.open` cannot spawn native windows. |
 | Geolocation | Denied. Location permission is not requested. |
 | Camera / microphone | Capture denied; permissions removed from the manifest. |
@@ -183,6 +214,13 @@ shell." The defaults are deliberately strict.
 | Release build | Minified and resource-shrunk; no analytics, ads, or crash SDK. |
 | Share intake | Length-capped, control characters stripped, http(s) only, credentials rejected, plain text never auto-navigated. |
 | Widget | RemoteViews only; reads validated local storage; no network or remote code. |
+
+Android's WebView exposes one cookie and DOM-storage store per app, so private
+tabs cannot be cookie-isolated without a native WebView profile. Mira does not
+use `react-native-webview`'s `incognito` prop on Android because it calls
+`CookieManager.removeAllCookies` globally and would sign normal tabs out. The
+private start page and the private sheet state the shared store plainly. On
+iOS, `incognito` is safe: it uses a non-persistent `WKWebsiteDataStore`.
 
 `plugins/with-webview-hardening.js` writes the Safe Browsing and metrics
 metadata into the Android manifest. Security-relevant flags live in `app.json`,
@@ -210,7 +248,10 @@ src/
     TabsSheet.tsx           two-column open-tabs grid
     TrailsSheet.tsx         resume / rename / delete trails
     TodaySheet.tsx          ten-day archive
-    AddressOverlay.tsx      omnibox with suggestions
+    PrivateStart.tsx        private-tab start page, search dock, assurances
+    PrivateSheet.tsx        plain-language privacy contract and close-all
+    PrivateVeil.tsx         app-switcher cover for private pages
+    AddressOverlay.tsx      omnibox with suggestions and private mode
     BrowserPane.tsx         native WebView, progress, security policy, crash recovery
     BrowserPane.web.tsx     iframe stand-in for web QA
     BrowserToolbar.tsx      floating chrome, discussion chip, tab count, menu
@@ -225,6 +266,7 @@ src/
     trails.ts               trail grouping, caps, normalization
     curation.ts             bundled Today list and daily rotation
     history.ts              history entries and normalization
+    privateShield.ts        optional expo-screen-capture bridge
     community.ts            HN/Lobsters lookup, canonical URLs, comments, cache
     shortcuts.ts            default shortcuts and normalization
     storage-keys.ts         storage keys, tab cap, trail gap
@@ -273,6 +315,8 @@ Before publishing:
 2. Host `docs/privacy.html` at a public HTTPS URL.
 3. Follow [PLAY_STORE.md](PLAY_STORE.md) for listing copy, screenshots, Data
    safety, content rating, and the review checklist.
+4. On a physical Android device, open a private tab and confirm that
+   screenshots are blocked and the app-switcher thumbnail is blank.
 
 Play Console requirements change; the guide calls out what to verify at
 submission.
@@ -287,8 +331,13 @@ submission.
   least-recently-active one.
 - **Tabs do not survive a cold launch.** Only history, trails, shortcuts, and
   theme persist.
-- **No incognito mode.** History can be cleared, but there is no isolated
-  ephemeral profile.
+- **Private tabs hide Mira's traces, not network identity.** A private tab writes
+  no history, bypasses the cache, and blocks capture, but Android shares cookies
+  with normal tabs and the site still receives your IP address. Mira does not
+  proxy or anonymise traffic.
+- **The capture shield needs a native build.** Expo Go and the web preview show
+  the app-switcher veil only; the OS-level block is active once
+  `expo-screen-capture` is in the development or production binary.
 - **No ad blocker.** Third-party cookies are off, but network requests are not
   filtered.
 - **No sync.** There is no account and no cloud.

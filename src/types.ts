@@ -58,6 +58,13 @@ export type BrowserTab = {
   lastActiveAt: number;
   /** A tab stays cold until its page is shown for the first time. */
   mounted: boolean;
+  /**
+   * Private tabs never write history or trails and never send a page address to
+   * a discussion service. On iOS they also get a non-persistent cookie store;
+   * Android's WebView shares one cookie store across all tabs. `initialUrl` is
+   * empty until the reader chooses the first page.
+   */
+  private: boolean;
   snapshot: PageSnapshot;
 };
 

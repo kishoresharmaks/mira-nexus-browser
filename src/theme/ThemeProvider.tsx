@@ -66,3 +66,25 @@ export function useTheme(): ThemeContextValue {
   if (!value) throw new Error('useTheme must be used inside ThemeProvider');
   return value;
 }
+
+/**
+ * Paint a subtree with a different palette without changing the person's saved
+ * appearance. Used by private tabs: the room is always night, but the rest of
+ * Mira keeps the light or dark theme they chose.
+ */
+export function ThemeScope({
+  theme,
+  children,
+}: {
+  theme: Theme;
+  children: ReactNode;
+}) {
+  const parent = useTheme();
+  const { setMode, toggleMode } = parent;
+  const value = useMemo<ThemeContextValue>(
+    () => ({ theme, mode: theme.mode, setMode, toggleMode }),
+    [theme, setMode, toggleMode],
+  );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}

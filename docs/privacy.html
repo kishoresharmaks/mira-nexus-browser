@@ -6,7 +6,7 @@
     <title>Mira — Privacy Policy</title>
     <meta
       name="description"
-      content="Mira is a quieter browser. No account, no analytics, no advertising. Your history, trails, and shortcuts stay on your device."
+      content="Mira is a quieter browser. No account, no analytics, no advertising. Your history, trails, and shortcuts stay on your device, and private tabs leave no history behind."
     />
     <meta name="theme-color" content="#F5F1E8" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#14120F" media="(prefers-color-scheme: dark)" />
@@ -508,7 +508,8 @@
           <li>Your history, shortcuts, trails, and appearance choice are stored only on your device.</li>
           <li>Mira does not operate a server that receives your browsing activity.</li>
           <li>When you open a website, your device talks directly to that website, exactly as a browser does.</li>
-          <li>When discussion lookup is on (the default), Mira sends the address of the page you are reading to Hacker News and Lobsters to find public threads. You can turn this off in the Discussions sheet.</li>
+          <li>When discussion lookup is on (the default), Mira sends the address of the page you are reading to Hacker News and Lobsters to find public threads. You can turn this off in the Discussions sheet. Private tabs never trigger this lookup.</li>
+          <li>Private tabs leave no history or trails, bypass WebView's page cache, and block screen capture. Android's WebView shares cookies and site storage with normal tabs, so a site may still recognize you.</li>
           <li>Nothing is backed up to a cloud by Mira. Android backup is disabled for the app.</li>
         </ul>
       </div>
@@ -559,10 +560,19 @@
                 <td>In-memory only while the app is running</td>
                 <td>Cleared when Mira is closed</td>
               </tr>
+              <tr>
+                <td>Private tab cookies and site storage</td>
+                <td>Keeps sites working while you browse; Android's WebView shares one store across all tabs</td>
+                <td>Until the site expires them or you clear app storage</td>
+              </tr>
             </tbody>
           </table>
         </div>
-        <p>There is no database in the cloud and no account to delete.</p>
+        <p>
+          There is no database in the cloud and no account to delete. Private tabs
+          write no history, trails, or page state; their cookies and site storage are
+          not isolated from normal tabs.
+        </p>
 
         <h3>How to delete it</h3>
         <ul class="plain">
@@ -577,6 +587,13 @@
           <li>
             <strong>Shortcuts:</strong> press and hold a shortcut on the home screen to
             remove it, or use Reset in the shortcuts section.
+          </li>
+          <li>
+            <strong>Private tabs:</strong> close each tab, or use Close all private tabs in
+            the tab sheet. This closes the pages and drops their in-memory state. Cookies
+            set by sites remain in Android's shared WebView store until they expire; to
+            remove them, use Clear storage below. All private tabs also disappear when
+            Mira closes.
           </li>
           <li>
             <strong>Everything:</strong> Android Settings → Apps → Mira → Storage →
@@ -641,15 +658,15 @@
           </li>
           <li>
             <strong>Public discussions.</strong> When “Look up discussions” is on (the
-            default) and you open a page in the browser, Mira sends that page's address to
+            default) and you open a page in a normal tab, Mira sends that page's address to
             two independent public services: Hacker News through the Algolia HN Search API
             (<a href="https://hn.algolia.com/">hn.algolia.com</a>) and Lobsters
             (<a href="https://lobste.rs/">lobste.rs</a>). They return public story scores,
             comment counts, and comments for that address. Mira sends no account, device
             identifier, search terms, or history of other pages. The answer is kept in
-            memory for 15 minutes and is never written to history or trails. Turn the setting off in
-            the Discussions sheet to stop these requests; the rest of the browser continues
-            to work.
+            memory for 15 minutes and is never written to history or trails. Private tabs
+            never make this request. Turn the setting off in the Discussions sheet to stop
+            these requests; the rest of the browser continues to work.
           </li>
         </ul>
         <p>Mira contains no advertising SDK, no analytics SDK, and no social login.</p>
@@ -671,15 +688,73 @@
             First-party cookies remain enabled so that sign-ins and preferences work.
           </li>
           <li>
-            Clearing history inside Mira clears Mira's lists. It does not clear website
-            cookies. To remove those, use Android Settings → Apps → Mira → Storage → Clear
-            storage.
+            Android's WebView has one cookie and site-storage store for the whole app. A
+            private tab uses that same store: cookies set in a private tab can be seen by
+            normal tabs, and a site you are signed in to in a normal tab may already
+            recognize you in a private tab. Closing a private tab does not clear those
+            cookies.
+          </li>
+          <li>
+            Private tabs still write no history or trails, bypass the page cache, and skip
+            discussion lookup.
+          </li>
+          <li>
+            Clearing history inside Mira clears Mira's lists. It does not clear normal-tab
+            website cookies. To remove those, use Android Settings → Apps → Mira → Storage
+            → Clear storage.
+          </li>
+        </ul>
+      </section>
+
+      <section id="private">
+        <h2><span class="num">05</span>Private tabs</h2>
+        <p>
+          A private tab is a temporary browsing room. It leaves no record in Mira, but
+          on Android it is not a separate cookie jar.
+        </p>
+        <ul class="plain">
+          <li>
+            <strong>No history or trails.</strong> Pages opened in a private tab are never
+            written to Mira's history, Recent list, or Trails. The address field hides your
+            stored history while you are in a private tab.
+          </li>
+          <li>
+            <strong>No page cache.</strong> Private requests are made with WebView's page
+            cache bypassed, so Mira does not reuse saved copies of pages.
+          </li>
+          <li>
+            <strong>Cookies are shared on Android.</strong> Android's WebView keeps one
+            cookie and site-storage store for every tab. A private tab does not isolate
+            that store: a site can recognize you from a normal tab, signing in here can
+            sign you in there, and closing the tab does not clear those cookies. Use
+            Android Settings → Apps → Mira → Storage → Clear storage to remove them.
+          </li>
+          <li>
+            <strong>No discussion lookup.</strong> Mira does not send a private tab's
+            address to Hacker News or Lobsters.
+          </li>
+          <li>
+            <strong>No screen capture.</strong> While a private tab is open, Mira asks
+            Android to block screenshots and screen recordings and to blank the
+            app-switcher preview. On devices or builds where the native shield is
+            unavailable, Mira covers the app with a quiet screen instead.
+          </li>
+          <li>
+            <strong>Still a browser.</strong> A website you open still receives your IP
+            address, the requested address, and your user agent, and can set cookies in
+            the shared store. Private tabs do not encrypt, proxy, or anonymise traffic,
+            and they are not a VPN or Tor.
+          </li>
+          <li>
+            <strong>Closing all private tabs closes their pages.</strong> Private tabs
+            are held in memory only and do not survive closing Mira. Closing them does not
+            clear cookies or site storage, because Android shares those with normal tabs.
           </li>
         </ul>
       </section>
 
       <section id="sharing">
-        <h2><span class="num">05</span>Sharing into Mira</h2>
+        <h2><span class="num">06</span>Sharing into Mira</h2>
         <p>
           Mira can receive a link or plain text from another app's share sheet. The shared
           content is read on the device, validated, and opened or placed in the address
@@ -690,7 +765,7 @@
       </section>
 
       <section id="widget">
-        <h2><span class="num">06</span>Android home-screen widget</h2>
+        <h2><span class="num">07</span>Android home-screen widget</h2>
         <p>
           The widget shows Today's page and up to three of your shortcuts. It reads them
           from Mira's local storage on the device. Tapping a widget item opens Mira through
@@ -700,7 +775,7 @@
       </section>
 
       <section id="security">
-        <h2><span class="num">07</span>Security measures</h2>
+        <h2><span class="num">08</span>Security measures</h2>
         <ul class="plain">
           <li>
             Only <code>https://</code> pages may become the top-level document. Public
@@ -719,7 +794,9 @@
             Android activity.
           </li>
           <li>Android Safe Browsing stays enabled for malware and phishing warnings.</li>
-          <li>Discussion lookup is limited to the address of the page being read and can be turned off at any time.</li>
+          <li>Discussion lookup is limited to the address of the page being read, can be turned off at any time, and never runs in a private tab.</li>
+          <li>Private tabs write no history or trails, bypass the page cache, and never run discussion lookup. Android's WebView shares cookies and site storage with normal tabs; see <a href="#cookies">Cookies and site storage</a>.</li>
+          <li>While a private tab is open, the Android window uses <code>FLAG_SECURE</code> to block screenshots and screen recordings and to blank the app-switcher preview.</li>
           <li>WebView metrics reporting to Google is opted out.</li>
           <li>
             Android backup is disabled, so local browsing data is not copied to Google
@@ -733,7 +810,7 @@
       </section>
 
       <section id="children">
-        <h2><span class="num">08</span>Children</h2>
+        <h2><span class="num">09</span>Children</h2>
         <p>
           Mira is a general-purpose browser and is not directed to children under 13. It
           does not knowingly collect personal information from anyone, including children.
@@ -743,7 +820,7 @@
       </section>
 
       <section id="changes">
-        <h2><span class="num">09</span>Changes to this policy</h2>
+        <h2><span class="num">10</span>Changes to this policy</h2>
         <p>
           If this policy changes, the new version will be published at the same address
           with a new effective date. Material changes will be noted in the app's release
@@ -752,7 +829,7 @@
       </section>
 
       <section id="contact">
-        <h2><span class="num">10</span>Contact</h2>
+        <h2><span class="num">11</span>Contact</h2>
         <p>Questions about this policy or about data in Mira:</p>
         <div class="contact">
           <div class="kicker">Privacy contact</div>

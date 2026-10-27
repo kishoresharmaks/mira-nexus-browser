@@ -18,7 +18,11 @@ sends over the network, and what it deliberately does not do.
   as a browser does.
 - When discussion lookup is on (the default), Mira sends the address of the
   page you are reading to Hacker News and Lobsters to find public threads. You
-  can turn this off in the Discussions sheet.
+  can turn this off in the Discussions sheet. Private tabs never trigger this
+  lookup.
+- Private tabs leave no history or trails, bypass WebView's page cache, and
+  block screen capture. Android's WebView shares cookies and site storage with
+  normal tabs, so a site may still recognize you.
 - Nothing is backed up to a cloud by Mira. Android backup is disabled for the
   app.
 
@@ -35,8 +39,11 @@ not sent to the developer or to any third party.
 | Appearance preference (light/dark) | Keeps your chosen theme | Until you change it or uninstall |
 | Discussion lookup preference (on/off) | Remembers whether Mira asks Hacker News and Lobsters about the current page | Until you change it or uninstall |
 | Open tabs | In-memory only while the app is running | Cleared when Mira is closed |
+| Private tab cookies and site storage | Keeps sites working while you browse; Android's WebView shares one store across all tabs | Until the site expires them or you clear app storage |
 
-There is no database in the cloud and no account to delete.
+There is no database in the cloud and no account to delete. Private tabs write
+no history, trails, or page state; their cookies and site storage are not
+isolated from normal tabs.
 
 ### How to delete it
 
@@ -46,6 +53,11 @@ There is no database in the cloud and no account to delete.
   individually.
 - **Shortcuts:** press and hold a shortcut on the home screen to remove it, or
   use Reset in the shortcuts section.
+- **Private tabs:** close each tab, or use Close all private tabs in the tab
+  sheet. This closes the pages and drops their in-memory state. Cookies set by
+  sites remain in Android's shared WebView store until they expire; to remove
+  them, use Clear storage below. All private tabs also disappear when Mira
+  closes.
 - **Everything:** Android Settings → Apps → Mira → Storage → Clear storage, or
   uninstall the app. Because Android backup is disabled, no copy remains in a
   Google backup.
@@ -92,14 +104,15 @@ Mira is a browser, so it makes network requests when you ask it to.
    performed by the Android system and may send the address to Google; Mira does
    not receive, store, or transmit the result.
 6. **Public discussions.** When "Look up discussions" is on (the default) and
-   you open a page in the browser, Mira sends that page's address to two
+   you open a page in a normal tab, Mira sends that page's address to two
    independent public services: Hacker News through the Algolia HN Search API
    (`https://hn.algolia.com/`) and Lobsters (`https://lobste.rs/`). They return
    public story scores, comment counts, and comments for that address. Mira
    sends no account, device identifier, search terms, or history of other
    pages. The answer is kept in memory for 15 minutes and is never written to
-   history or trails. Turn the setting off in the Discussions sheet to stop these requests;
-   the rest of the browser continues to work.
+   history or trails. Private tabs never make this request. Turn the setting off
+   in the Discussions sheet to stop these requests; the rest of the browser
+   continues to work.
 
 Mira contains no advertising SDK, no analytics SDK, and no social login.
 
@@ -112,9 +125,45 @@ Android's WebView, and are not readable by the developer.
 - Third-party cookies are disabled. A page cannot use embedded content to follow
   you across unrelated sites.
 - First-party cookies remain enabled so that sign-ins and preferences work.
-- Clearing history inside Mira clears Mira's lists. It does not clear website
-  cookies. To remove those, use Android Settings → Apps → Mira → Storage →
-  Clear storage.
+- Android's WebView has one cookie and site-storage store for the whole app. A
+  private tab uses that same store: cookies set in a private tab can be seen by
+  normal tabs, and a site you are signed in to in a normal tab may already
+  recognize you in a private tab. Closing a private tab does not clear those
+  cookies.
+- Private tabs still write no history or trails, bypass the page cache, and skip
+  discussion lookup.
+- Clearing history inside Mira clears Mira's lists. It does not clear
+  normal-tab website cookies. To remove those, use Android Settings → Apps →
+  Mira → Storage → Clear storage.
+
+## Private tabs
+
+A private tab is a temporary browsing room. It leaves no record in Mira, but on
+Android it is not a separate cookie jar.
+
+- **No history or trails.** Pages opened in a private tab are never written to
+  Mira's history, Recent list, or Trails. The omnibox hides stored history while
+  you are in a private tab.
+- **No page cache.** Private requests are made with WebView's page cache
+  bypassed, so Mira does not reuse saved copies of pages.
+- **Cookies are shared on Android.** Android's WebView keeps one cookie and
+  site-storage store for every tab. A private tab does not isolate that store:
+  a site can recognize you from a normal tab, signing in here can sign you in
+  there, and closing the tab does not clear those cookies. Use Android Settings
+  → Apps → Mira → Storage → Clear storage to remove them.
+- **No discussion lookup.** Mira does not send a private tab's address to Hacker
+  News or Lobsters.
+- **No screen capture.** While a private tab is open, Mira asks Android to block
+  screenshots and screen recordings and to blank the app-switcher preview. On
+  devices or builds where the native shield is unavailable, Mira covers the app
+  with a quiet screen instead.
+- **Still a browser.** A website you open still receives your IP address, the
+  requested address, and your user agent, and can set cookies in the shared
+  store. Private tabs do not encrypt, proxy, or anonymise traffic, and they are
+  not a VPN or Tor.
+- **Closing all private tabs closes their pages.** Private tabs are held in
+  memory only and do not survive closing Mira. Closing them does not clear
+  cookies or site storage, because Android shares those with normal tabs.
 
 ## Sharing into Mira
 
@@ -143,8 +192,13 @@ not send data anywhere.
 - External app schemes are limited to `mailto:`, `tel:`, `sms:`, and `geo:`.
   A web page cannot launch an arbitrary Android activity.
 - Android Safe Browsing stays enabled for malware and phishing warnings.
-- Discussion lookup is limited to the address of the page being read and can be
-  turned off at any time.
+- Discussion lookup is limited to the address of the page being read, can be
+  turned off at any time, and never runs in a private tab.
+- Private tabs write no history or trails, bypass the page cache, and never run
+  discussion lookup. Android's WebView shares cookies and site storage with
+  normal tabs; see Cookies and site storage.
+- While a private tab is open, the Android window uses `FLAG_SECURE` to block
+  screenshots and screen recordings and to blank the app-switcher preview.
 - WebView metrics reporting to Google is opted out.
 - Android backup is disabled, so local browsing data is not copied to Google
   Drive.
