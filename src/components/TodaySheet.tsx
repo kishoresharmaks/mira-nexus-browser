@@ -6,6 +6,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { useCatalogConfig } from '@/lib/catalog-provider';
 import {
   curatedDateLabel,
   getCuratedArchive,
@@ -32,8 +33,10 @@ type Props = {
 export function TodaySheet({ visible, onClose, onOpen }: Props) {
   const { theme } = useTheme();
   const { height } = useWindowDimensions();
-  const today = getDailyPage();
-  const archive = getCuratedArchive(11).slice(1);
+  const { todayPages } = useCatalogConfig();
+  const now = new Date();
+  const today = getDailyPage(now, todayPages);
+  const archive = getCuratedArchive(11, now, todayPages).slice(1);
 
   return (
     <BottomSheet visible={visible} onClose={onClose}>

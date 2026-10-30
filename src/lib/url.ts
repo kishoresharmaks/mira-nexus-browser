@@ -1,6 +1,15 @@
+import {
+  BUNDLED_CATALOG,
+  DEFAULT_SEARCH_ENGINE,
+  buildSearchUrl,
+  searchMatchFromUrl,
+  type SearchEngine,
+} from './catalog';
 import type { InputTarget } from '@/types';
 
-export const SEARCH_ENDPOINT = 'https://duckduckgo.com/';
+export { searchMatchFromUrl, searchQueryFromUrl } from './catalog';
+
+export const SEARCH_ENDPOINT = DEFAULT_SEARCH_ENGINE.searchUrl;
 
 const URL_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 const DOMAIN =
@@ -14,11 +23,17 @@ export function isPrivateHostname(hostname: string): boolean {
   return PRIVATE_HOSTNAME.test(hostname);
 }
 
-export function toSearchUrl(query: string): string {
-  return `${SEARCH_ENDPOINT}?q=${encodeURIComponent(query.trim())}`;
+export function toSearchUrl(
+  query: string,
+  engine: SearchEngine = DEFAULT_SEARCH_ENGINE,
+): string {
+  return buildSearchUrl(query, engine);
 }
 
-export function resolveInput(raw: string): InputTarget | null {
+export function resolveInput(
+  raw: string,
+  engine: SearchEngine = DEFAULT_SEARCH_ENGINE,
+): InputTarget | null {
   const value = raw.trim();
   if (!value) return null;
 
@@ -57,10 +72,10 @@ export function resolveInput(raw: string): InputTarget | null {
 
   if (URL_SCHEME.test(value) && !value.includes(' ')) {
     // Unknown or non-web schemes are safer as a search than as arbitrary navigation.
-    return { url: toSearchUrl(value), kind: 'search', host: 'DuckDuckGo' };
+    return { url: toSearchUrl(value, engine), kind: 'search', host: engine.name };
   }
 
-  return { url: toSearchUrl(value), kind: 'search', host: 'DuckDuckGo' };
+  return { url: toSearchUrl(value, engine), kind: 'search', host: engine.name };
 }
 
 export function hostOf(url: string): string {
@@ -112,30 +127,27 @@ export function toSecureHttps(url: string): string | null {
   }
 }
 
-export function searchQueryFromUrl(url: string): string | null {
-  try {
-    const parsed = new URL(url);
-    if (!/(^|\.)duckduckgo\.com$/i.test(parsed.hostname)) return null;
-    return parsed.searchParams.get('q');
-  } catch {
-    return null;
-  }
-}
-
 export type DisplayUrl = {
   host: string;
   path: string;
   secure: boolean;
 };
 
-export function getDisplayUrl(url: string): DisplayUrl {
+export function getDisplayUrl(
+  url: string,
+  engines: SearchEngine[] = BUNDLED_CATALOG.engines,
+): DisplayUrl {
   if (!url || url === 'about:blank') {
     return { host: 'New page', path: '', secure: true };
   }
 
-  const query = searchQueryFromUrl(url);
-  if (query) {
-    return { host: 'DuckDuckGo', path: `“${query}”`, secure: true };
+  const match = searchMatchFromUrl(url, engines);
+  if (match) {
+    return {
+      host: match.engine.name,
+      path: `“${match.query}”`,
+      secure: true,
+    };
   }
 
   try {

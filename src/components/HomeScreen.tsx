@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCatalogConfig } from '@/lib/catalog-provider';
 import { haptic } from '@/lib/haptics';
 import { relativeTime } from '@/lib/time';
 import { getDisplayUrl } from '@/lib/url';
@@ -50,6 +51,7 @@ type Props = {
   onOpenTodayArchive: () => void;
   onOpenTrails: () => void;
   onOpenTabs: () => void;
+  onOpenSettings: () => void;
   onOpenTab: (id: string) => void;
   onCloseTab: (id: string) => void;
   onResumeTrail: (trail: Trail) => void;
@@ -76,6 +78,7 @@ export function HomeScreen({
   onOpenTodayArchive,
   onOpenTrails,
   onOpenTabs,
+  onOpenSettings,
   onOpenTab,
   onCloseTab,
   onResumeTrail,
@@ -84,6 +87,7 @@ export function HomeScreen({
   onResetShortcuts,
 }: Props) {
   const { theme, mode } = useTheme();
+  const { activeEngine, engines } = useCatalogConfig();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [editing, setEditing] = useState(false);
@@ -139,6 +143,13 @@ export function HomeScreen({
                   variant="surface"
                   size={38}
                   onPress={onToggleTheme}
+                />
+                <IconButton
+                  icon="settings"
+                  label="Search settings"
+                  variant="surface"
+                  size={38}
+                  onPress={onOpenSettings}
                 />
               </View>
             </View>
@@ -198,7 +209,7 @@ export function HomeScreen({
                   Search or enter a website
                 </Text>
                 <Text style={[styles.searchHint, { color: theme.muted }]}>
-                  Private results · DuckDuckGo
+                  Private results · {activeEngine.name}
                 </Text>
               </View>
               <View style={[styles.searchGo, { backgroundColor: theme.accent }]}>
@@ -397,7 +408,7 @@ export function HomeScreen({
                 >
                   {tabs.map((tab) => {
                     const url = tab.snapshot.url || tab.initialUrl;
-                    const display = getDisplayUrl(url);
+                    const display = getDisplayUrl(url, engines);
                     const active = tab.id === activeTabId;
                     const title = tab.snapshot.title || display.host;
 

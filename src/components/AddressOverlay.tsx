@@ -14,6 +14,7 @@ import {
   type TextStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCatalogConfig } from '@/lib/catalog-provider';
 import { haptic } from '@/lib/haptics';
 import { relativeTime } from '@/lib/time';
 import { resolveInput } from '@/lib/url';
@@ -64,6 +65,7 @@ export function AddressOverlay({
   onSubmit,
 }: Props) {
   const { theme, mode } = useTheme();
+  const { activeEngine } = useCatalogConfig();
   const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(visible);
   const [query, setQuery] = useState(initialValue);
@@ -104,7 +106,7 @@ export function AddressOverlay({
   if (!mounted) return null;
 
   const trimmed = query.trim();
-  const direct = trimmed ? resolveInput(trimmed) : null;
+  const direct = trimmed ? resolveInput(trimmed, activeEngine) : null;
   const search = trimmed.toLowerCase();
 
   const shortcutMatches: Suggestion[] = trimmed
@@ -323,7 +325,9 @@ export function AddressOverlay({
                   numberOfLines={1}
                   style={[styles.primaryMeta, { color: theme.muted }]}
                 >
-                  {direct.kind === 'url' ? direct.url : 'DuckDuckGo · Private search'}
+                  {direct.kind === 'url'
+                    ? direct.url
+                    : `${activeEngine.name} · Private search`}
                 </Text>
               </View>
               <Icon
@@ -382,7 +386,7 @@ export function AddressOverlay({
               <Text style={[styles.tip, { color: theme.faint }]}>
                 {privateTab
                   ? 'Private tab. History and trails stay untouched.'
-                  : 'Searches go to DuckDuckGo. History stays on this device.'}
+                  : `Searches go to ${activeEngine.name}. History stays on this device.`}
               </Text>
             </View>
           ) : null}

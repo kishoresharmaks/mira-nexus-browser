@@ -6,7 +6,8 @@ Mira opens ordinary websites in a full-screen WebView with a small, considered
 set of controls. It groups browsing into **Trails**, keeps up to **five tabs**
 alive while the app is open, offers **Today's page** — one hand-picked,
 independent page a day — and **Private tabs** that leave no history, bypass the
-page cache, and block screen capture. It also shows the public **Hacker News and
+page cache, and block screen capture. Search is a choice: private presets, or
+any HTTPS engine you add yourself. It also shows the public **Hacker News and
 Lobsters** conversation around a page in a native overlay. No account, no feed,
 no analytics, no advertising.
 
@@ -24,8 +25,9 @@ Built with Expo SDK 58, React Native 0.88, React 19, TypeScript, and Expo Router
 
 - Full browser on `react-native-webview`: back, forward, reload, stop, loading
   progress, pull-to-refresh on iOS, and a designed error state.
-- One omnibox. Bare domains become websites; plain words become a private
-  DuckDuckGo search. Search results are never written to history.
+- One omnibox. Bare domains become websites; plain words search with the engine
+  chosen in Search settings (DuckDuckGo by default). Search results are never
+  written to history.
 - HTTPS-only top-level navigation. Public HTTP addresses are upgraded to HTTPS.
 - Site-owned favicons fetched directly from each host (no third-party icon
   service).
@@ -33,6 +35,20 @@ Built with Expo SDK 58, React Native 0.88, React 19, TypeScript, and Expo Router
   menu.
 - Crash recovery: a renderer crash remounts the WebView instead of blanking the
   screen.
+
+### Search settings
+
+- Presets are published from the catalog desk and can change without an app
+  release. DuckDuckGo is the default; Brave, Startpage, Mojeek, Qwant, and Kagi
+  ship alongside it.
+- Pick any preset, or add a custom engine by pasting an HTTPS results URL with
+  one `%s` where the query belongs. Mira normalises the template and validates
+  it before saving.
+- The active engine and custom engines are stored only on the device. Queries go
+  to the chosen engine, never to the catalog endpoint.
+- The catalog is fetched over HTTPS, validated, cached for about an hour, and
+  refreshed on foreground or when Search settings opens if it is stale. A
+  bundled copy is always available offline.
 
 ### Trails
 
@@ -96,9 +112,12 @@ Built with Expo SDK 58, React Native 0.88, React 19, TypeScript, and Expo Router
 
 ### Today's page
 
-- One curated, evergreen page per local calendar day, chosen from a bundled list
-  of 22 independent essays and small sites.
-- No server request to choose it. The page is only fetched when you tap through.
+- One curated, evergreen page per local calendar day, chosen from a published
+  list of 22 independent essays and small sites.
+- The list is fetched from the same public catalog as search presets, cached on
+  the device, and falls back to the copy bundled in the app. No account, device
+  ID, query, or browsing history is sent.
+- The page itself is only fetched when you tap through.
 - Archive of the last ten days.
 - Also available on the Android home-screen widget.
 
@@ -176,6 +195,46 @@ the chrome, the empty start page, and the history suppression, but an iframe
 cannot isolate cookies (the Android build shares them too) or block screen
 capture.
 
+### Catalog desk
+
+`catalog/defaults.json` is the canonical list of search presets and Today pages.
+Edit it, then mirror it into the app and the admin:
+
+```bash
+npm run catalog:sync
+```
+
+The admin is a separate Next.js app in `admin/`:
+
+```bash
+cd admin
+npm install
+npm run dev
+```
+
+Create `admin/.env.local` first:
+
+```
+ADMIN_PASSWORD=at-least-8-characters
+ADMIN_SESSION_SECRET=at-least-32-random-characters
+```
+
+Open `http://localhost:3100`, sign in, edit the draft, and publish. Without Blob
+credentials the admin writes to the ignored `admin/.data/catalog-state.json`;
+production uses a private Vercel Blob store. Deployment details are in
+[admin/README.md](admin/README.md).
+
+The app reads `EXPO_PUBLIC_CATALOG_URL` at build time and treats an empty value
+as "use the bundled catalog":
+
+```
+EXPO_PUBLIC_CATALOG_URL=https://<project>.vercel.app/api/catalog
+```
+
+A published change reaches the app on its next hourly check, foreground refresh,
+or manual check in Search settings. A malformed or unreachable feed never blocks
+the browser: the last good copy, then the bundled copy, is used.
+
 ### Quality gates
 
 ```bash
@@ -214,6 +273,7 @@ shell." The defaults are deliberately strict.
 | Release build | Minified and resource-shrunk; no analytics, ads, or crash SDK. |
 | Share intake | Length-capped, control characters stripped, http(s) only, credentials rejected, plain text never auto-navigated. |
 | Widget | RemoteViews only; reads validated local storage; no network or remote code. |
+| Catalog feed | Public read-only HTTPS JSON for search presets and Today pages. The request carries no account, device ID, query, or browsing history; Mira validates and caches the response and falls back to its bundled copy. |
 
 Android's WebView exposes one cookie and DOM-storage store per app, so private
 tabs cannot be cookie-isolated without a native WebView profile. Mira does not
@@ -225,6 +285,11 @@ iOS, `incognito` is safe: it uses a non-persistent `WKWebsiteDataStore`.
 `plugins/with-webview-hardening.js` writes the Safe Browsing and metrics
 metadata into the Android manifest. Security-relevant flags live in `app.json`,
 `BrowserPane.tsx`, and `src/lib/url.ts`.
+
+The catalog desk is protected by a single password and a signed HTTP-only cookie;
+the public `/api/catalog` route is read-only. Search URLs and page links are
+validated as HTTPS before they can be published. Drafts are private; only a
+pressed Publish writes the public feed.
 
 The full policy is in [PRIVACY.md](PRIVACY.md) and the hostable version is
 [docs/privacy.html](docs/privacy.html).
@@ -239,6 +304,7 @@ src/
   app/
     _layout.tsx             fonts, splash, safe area, theme, toast, stack
     index.tsx               app shell: tabs, trails, Today, share, deep links
+    settings.tsx            search presets, custom engines, catalog status
     +native-intent.tsx      routes widget/share links to the single screen
   components/
     HomeScreen.tsx          Today, latest trail, open-tabs strip, shortcuts, recents
@@ -264,7 +330,9 @@ src/
     url.ts                  URL parsing, HTTPS upgrade, private-host checks, favicons
     inbound.ts              share/deep-link validation
     trails.ts               trail grouping, caps, normalization
-    curation.ts             bundled Today list and daily rotation
+    catalog.ts              catalog schema, validation, URL templates, custom engines
+    catalog-provider.tsx    fetch/cache/search choice context
+    curation.ts             Today rotation over the active catalog
     history.ts              history entries and normalization
     privateShield.ts        optional expo-screen-capture bridge
     community.ts            HN/Lobsters lookup, canonical URLs, comments, cache
@@ -288,8 +356,12 @@ docs/
   privacy.html              hostable privacy policy
   play/feature-graphic.png  1024×500 Play feature graphic
   play/screenshots/         eight Play phone captures
+catalog/defaults.json       canonical search and Today catalog
+scripts/
+  generate-assets.mjs       brand asset generation
+  sync-catalog.mjs          mirrors the catalog into the app and admin
+admin/                      Next.js catalog desk, deployed separately
 public/demo.html            web-preview reading page
-scripts/generate-assets.mjs brand asset generation
 ```
 
 ---
@@ -313,10 +385,15 @@ Before publishing:
 1. Replace `REPLACE_WITH_YOUR_EMAIL@example.com` in `PRIVACY.md` and
    `docs/privacy.html`.
 2. Host `docs/privacy.html` at a public HTTPS URL.
-3. Follow [PLAY_STORE.md](PLAY_STORE.md) for listing copy, screenshots, Data
+3. Deploy `admin/` to Vercel with a private Blob store, set `ADMIN_PASSWORD` and
+   `ADMIN_SESSION_SECRET`, publish the catalog, and point
+   `EXPO_PUBLIC_CATALOG_URL` at its `/api/catalog` route before building the app.
+4. Follow [PLAY_STORE.md](PLAY_STORE.md) for listing copy, screenshots, Data
    safety, content rating, and the review checklist.
-4. On a physical Android device, open a private tab and confirm that
+5. On a physical Android device, open a private tab and confirm that
    screenshots are blocked and the app-switcher thumbnail is blank.
+6. With the device offline, confirm the app still opens with its bundled search
+   presets and Today list.
 
 Play Console requirements change; the guide calls out what to verify at
 submission.
@@ -344,8 +421,8 @@ submission.
 - **Some sites do not work in a WebView** or require their native app. That is a
   site decision.
 - **The web build cannot render frame-blocked sites** by design.
-- **Today's page is editorial, not algorithmic.** It rotates locally and does not
-  learn from your reading.
+- **Today's page is editorial, not algorithmic.** It rotates locally from a
+  published catalog and does not learn from your reading.
 - **Discussion matching is by address.** A thread posted with a substantially
   different URL will not match, and the sheet is read-only: it shows the first
   120 comments to six levels and links out for the rest.

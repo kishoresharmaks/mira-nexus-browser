@@ -14,6 +14,7 @@ import { InstrumentSans_700Bold } from '@expo-google-fonts/instrument-sans/700Bo
 import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif/400Regular';
 import { InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif/400Regular_Italic';
 import { ToastProvider } from '@/components/Toast';
+import { CatalogProvider } from '@/lib/catalog-provider';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -46,9 +47,11 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <ToastProvider>
-          <Navigator />
-        </ToastProvider>
+        <CatalogProvider>
+          <ToastProvider>
+            <Navigator />
+          </ToastProvider>
+        </CatalogProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

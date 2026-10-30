@@ -7,6 +7,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { haptic } from '@/lib/haptics';
+import { useCatalogConfig } from '@/lib/catalog-provider';
 import { getDisplayUrl, hostOf } from '@/lib/url';
 import { MAX_TABS } from '@/lib/storage-keys';
 import { fonts, privateTheme } from '@/theme';
@@ -223,9 +224,10 @@ function TabCard({
   onClose: (id: string) => void;
 }) {
   const { theme } = useTheme();
+  const { engines } = useCatalogConfig();
   const tone = tab.private ? privateTheme : theme;
   const url = tab.snapshot.url || tab.initialUrl;
-  const display = getDisplayUrl(url);
+  const display = getDisplayUrl(url, engines);
   const blank = tab.private && !url;
   const title = blank ? 'Private tab' : tab.snapshot.title || hostOf(url);
   const host = blank ? 'No page yet' : display.host;

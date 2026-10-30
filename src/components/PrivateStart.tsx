@@ -11,6 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import { useCatalogConfig } from '@/lib/catalog-provider';
 import { useAnimatedValue } from '@/lib/useAnimatedValue';
 import { privateCookieStartNote } from '@/lib/privateCopy';
 import { fonts, privateTheme } from '@/theme';
@@ -38,6 +39,7 @@ type Props = {
 export function PrivateStart({ onSearch, onOpenInfo }: Props) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const { activeEngine } = useCatalogConfig();
   const reveal = useAnimatedValue(0);
 
   useEffect(() => {
@@ -126,7 +128,7 @@ export function PrivateStart({ onSearch, onOpenInfo }: Props) {
             <View style={styles.searchCopy}>
               <Text style={styles.searchTitle}>Search privately</Text>
               <Text style={styles.searchHint}>
-                or type a link · DuckDuckGo
+                or type a link · {activeEngine.name}
               </Text>
             </View>
             <View style={styles.searchGo}>

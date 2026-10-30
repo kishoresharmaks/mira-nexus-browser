@@ -29,10 +29,13 @@ Mira is a general-purpose browser. It does not require a login, does not contain
 ads, and does not send browsing data to the developer. The optional discussion
 lookup does send the current page address to two public discussion services, so
 the Data safety form declares that share while the developer collects nothing.
-Private tabs write no history, bypass the page cache, block screen capture, and
-never trigger that lookup. On Android, cookies and site storage are shared with
-normal tabs, so a site may still recognize you. The privacy policy must be
-publicly reachable before the first review.
+Mira also fetches a small public catalog of search presets and Today pages; that
+request carries no account, device ID, query, or browsing history, and the app
+keeps a bundled fallback. Private tabs write no history, bypass the page cache,
+block screen capture, and never trigger the discussion lookup. On Android,
+cookies and site storage are shared with normal tabs, so a site may still
+recognize you. The privacy policy must be publicly reachable before the first
+review.
 
 ---
 
@@ -55,46 +58,49 @@ A quieter browser: trails, five tabs, private rooms, and one page a day.
 ```
 Mira is a browser for reading, not scrolling.
 
-It opens ordinary websites in a clean, full-screen view with only the controls you need. No feed, no account, no advertising, and no analytics. Your history, trails, shortcuts, and theme stay on your device.
+It opens ordinary websites in a clean, full-screen view with only the controls you need. No feed, no account, no advertising, no analytics. Your history, trails, shortcuts, search choice, and theme stay on your device.
 
 TRAILS
-Mira groups the pages you visit into trails. Read for a while, wander through a few links, then put the phone down. When you come back, the trail is waiting — a row of dots showing where you were. Resume it, rename it, or delete it. A new trail begins after a long pause, so yesterday's reading does not blur into today's.
+Mira groups the pages you visit into trails. Read for a while, wander through a few links, then put the phone down. When you come back, the trail is waiting: a row of dots showing where you were. Resume it, rename it, or delete it.
 
 FIVE TABS, KEPT ALIVE
-Open up to five pages and move between them without losing your place. Tap the tab count in the toolbar to see every open page as a grid. Close one to release it. Tabs live in memory while Mira is open and clear when the app closes, so nothing is left behind.
+Open up to five pages and move between them without losing your place. Tap the tab count to see every open page as a grid. Close one to release it. Tabs live in memory and clear when the app closes.
+
+SEARCH, YOUR WAY
+Mira ships with a small set of private search presets, and you can add any HTTPS search site you trust. The choice lives on your device; your query goes to the engine you picked, not to Mira.
 
 PRIVATE TABS
-Open a private tab from the home screen, tab sheet, or page menu. It starts on a quiet local page, so no request is made until you choose an address. Private tabs never write history or trails, hide stored history in the address field, load pages with the cache bypassed, and skip discussion lookup. Android's WebView shares cookies and site storage with normal tabs, so a site may remember you; closing the tab does not clear those cookies. While one is open, Android blocks screenshots and recordings and blanks the app-switcher preview. Close the tab, or the whole private group, and its pages are gone.
+Private tabs never write history or trails, hide stored history in the address field, bypass the page cache, and skip discussion lookup. They open on a quiet local page, so no request is made until you choose an address. Android's WebView shares cookies and site storage with normal tabs, so a site may remember you. While one is open, Android blocks screenshots and recordings and blanks the app-switcher preview. Close the tab, or the whole group, and its pages are gone.
 
 TODAY'S PAGE
-One hand-picked, independent page each day. An essay, a garden, a small corner of the web worth an unhurried minute. It rotates with your local calendar and is bundled in the app, so choosing it never contacts a server. The last ten days are kept in an archive.
+One hand-picked, independent page each day: an essay, a garden, a small corner of the web worth an unhurried minute. It rotates with your local calendar. The list comes from a small public catalog and is cached on your device, so it works offline; a copy is bundled in the app. The catalog request carries no account, device ID, or browsing history. The page is fetched only when you tap it; the last ten days stay in an archive.
 
 PUBLIC DISCUSSIONS
-When you open an article, Mira can quietly check whether it has been posted to Hacker News or Lobsters. If a public thread exists, a small chip appears above the toolbar with its score and comment count. Tap it to read the conversation in a native sheet — points, comments, nested replies, and a one-tap path to the original thread — without leaving the page. Only the current page address is sent to those public services. The setting is on by default and can be turned off in the Discussions sheet; results are held in memory for 15 minutes and never written to history.
+When you open an article, Mira can quietly check whether it has been posted to Hacker News or Lobsters. If a public thread exists, a small chip appears above the toolbar with its score and comment count. Tap it for the conversation in a native sheet, with points, nested replies, and a path to the original thread. Only the current page address is sent to those services. The setting is on by default and can be turned off in the Discussions sheet; results stay in memory and are never written to history.
 
 SHARE INTO MIRA
-Send a link from any app's share sheet and it opens in a new tab. Share plain text and Mira places it in the address field, ready to search. Only web links and text are accepted; everything else is ignored.
+Send a link from any app's share sheet and it opens in a new tab. Share plain text and Mira places it in the address field, ready to search.
 
 ANDROID HOME-SCREEN WIDGET
-Put Today's page on your home screen. The widget also shows up to three shortcuts when there is room. Tap any of them to open Mira directly. It updates through the day and follows your light or dark theme.
+Put Today's page on your home screen. The widget also shows up to three shortcuts when there is room. Tap any to open Mira. It updates through the day and follows your theme.
 
 PRIVATE BY CONSTRUCTION
-• No account and no sign-in.
-• No analytics, advertising, or crash-reporting SDK.
-• History and trails are stored only on your device.
+• No account, sign-in, analytics, ads, or crash-reporting SDK.
+• History, trails, search choice, and theme stay on your device.
 • Android backup is disabled, so browsing data is not copied to Google Drive.
 • HTTPS-only top-level browsing; public HTTP links are upgraded.
 • Third-party cookies are disabled and mixed content is blocked.
-• Discussion lookup sends only the current page address to Hacker News and Lobsters, and can be switched off.
+• Search engines are yours: private presets plus any HTTPS engine you add. The catalog request carries no account, device ID, or browsing history.
+• Discussion lookup sends only the current page address, and can be switched off.
 • File access, geolocation, camera, and microphone are denied inside pages.
 • External links are limited to mail, phone, SMS, and maps.
 • Android Safe Browsing stays on.
 • Delete history and trails at any time from the page menu.
 
 A SMALL, CONSIDERED INTERFACE
-Warm paper, ink, a single orange accent. Instrument Serif for headlines and Instrument Sans for everything else. Light and dark themes follow your system and remember your choice. Shortcuts pin the pages you return to most.
+Warm paper, ink, a single orange accent. Instrument Serif for headlines, Instrument Sans for everything else. Light and dark themes follow your system and remember your choice.
 
-Mira is a browser, so the web is as open as the web is. It does not filter what you can read, and it does not pretend that every site is safe. It simply gets out of the way.
+The web is as open as the web is. Mira does not filter what you can read, and it does not pretend every site is safe.
 
 No account. No feed. No noise.
 ```
@@ -107,6 +113,7 @@ First release.
 • Trails: browsing grouped into sessions you can resume
 • Five tabs with a grid switcher
 • Private tabs: no history, cache bypassed, screen-capture shield
+• Search your way: private presets or your own HTTPS engine
 • Today's page, hand-picked daily, with a ten-day archive
 • Hacker News and Lobsters discussions, in a native overlay
 • Share links and text into Mira
@@ -184,6 +191,14 @@ Data-type row:
 | Data type | Collected by developer | Shared | Recipients | Purpose | Optional | Ephemeral | Encrypted |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Web browsing history (current page address only) | **No** | **Yes** | Algolia HN Search API (`hn.algolia.com`) for Hacker News; Lobsters (`lobste.rs`) | App functionality — find public discussion threads | **Yes** — "Look up discussions" can be turned off | **Yes** — held in memory for 15 minutes, never written to history or trails | **Yes** |
+
+The public catalog request is a plain HTTPS GET for a small configuration file.
+It carries no account, device ID, search query, or browsing history, and Mira
+does not use it to identify or profile anyone. Do not declare it as browsing
+history. Like any HTTPS request, the hosting provider may keep standard request
+logs (IP address, user agent) for security and reliability; those logs are not
+used for analytics or personalisation. If the app later adds accounts, sync, or
+analytics, this form must change before that release ships.
 
 Do **not** declare the sites the user visits in the browser itself: those are
 user-initiated requests to the sites, not collection by Mira. Do **not** declare
@@ -278,7 +293,9 @@ audience at 13+.
 
 ---
 
-## 7. Privacy policy hosting
+## 7. Hosting the policy and catalog
+
+### Privacy policy
 
 `docs/privacy.html` is self-contained: no fonts, scripts, images, or analytics are
 loaded from the network. Host the file at a stable public HTTPS URL and use that
@@ -301,6 +318,31 @@ Set the output directory to `docs`.
 Copy `docs/privacy.html` to `/privacy.html` on the domain you control. Keep the
 URL stable; changing it later requires a Play Console update.
 
+### Catalog admin (separate Next.js app)
+
+The search presets and Today pages are edited in `admin/`, a Next.js app that
+deploys independently of the mobile build.
+
+1. Create a Vercel project from `admin/`.
+2. Add a private Vercel Blob store and connect it to the project.
+3. Set `ADMIN_PASSWORD` (8+ characters) and `ADMIN_SESSION_SECRET` (32+
+   characters, random) as Production environment variables.
+4. Deploy. Open `/`, sign in with the password, edit the draft, and publish.
+5. Copy the public feed URL, normally
+   `https://<project>.vercel.app/api/catalog`.
+6. Put that URL in the Expo build environment as `EXPO_PUBLIC_CATALOG_URL`, then
+   rebuild the app. An empty value keeps the app on its bundled catalog.
+
+The public feed is read-only, CORS-enabled, and cached for five minutes at the
+edge. The admin writes to a private Blob path; drafts never reach the public feed
+until you press Publish. Without Blob credentials the admin falls back to
+`admin/.data/catalog-state.json` for local development only. See
+`admin/README.md`.
+
+The catalog carries only public editorial data: engine names, search URLs, page
+titles, links, categories, notes, and reading times. Never put personal data in
+it.
+
 ### Before you publish
 
 - [ ] Replace `REPLACE_WITH_YOUR_EMAIL@example.com` in **both** `PRIVACY.md` and
@@ -310,6 +352,10 @@ URL stable; changing it later requires a Play Console update.
 - [ ] Confirm the page loads with no network requests other than the document
       itself (browser dev tools → Network → reload).
 - [ ] Paste the URL into Play Console → App content → Privacy policy.
+- [ ] Deploy the catalog admin, publish a revision, and open `/api/catalog` to
+      confirm the public feed.
+- [ ] Set `EXPO_PUBLIC_CATALOG_URL` for the production build and confirm the app
+      still opens with its bundled catalog when the feed is unreachable.
 
 ---
 
@@ -393,7 +439,11 @@ version) deliberately when the listing should show a new number.
 - [x] Share intent accepts `text/*` only.
 - [x] Widget has a preview image and bundled fonts.
 - [x] No analytics, ads, or crash-reporting SDK in `package.json`.
-- [x] `PRIVACY.md` and `docs/privacy.html` describe the shipped behaviour.
+- [x] Search presets and Today pages load from a validated public catalog with a
+      bundled fallback; the request carries no account, device ID, query, or
+      browsing history.
+- [x] `PRIVACY.md` and `docs/privacy.html` describe the shipped behaviour,
+      including search-engine choice and the catalog request.
 
 ### Store setup
 
@@ -411,6 +461,8 @@ version) deliberately when the listing should show a new number.
 - [ ] Set target audience to 13+ and "designed for families" to No.
 - [ ] Declare no ads.
 - [ ] Provide the app-access note (no login).
+- [ ] Deploy the catalog admin, publish a revision, and set
+      `EXPO_PUBLIC_CATALOG_URL` for the production build.
 - [ ] Add a support email and (optionally) a website.
 - [ ] Complete the "Government apps" and "Financial features" declarations.
 - [ ] Upload the production `.aab` to internal testing.
@@ -473,8 +525,14 @@ app-switcher preview is blank.
 To test trails: open two or three different sites, return home, and open the
 latest trail card. Trails group pages visited within about 25 minutes.
 
-To test Today's page: tap the large card on the home screen. The list is bundled
-in the app; no server is involved.
+To test search engines: return home and open Search settings from the menu. Pick
+a different preset, then type a query in the address field. The chosen engine
+opens the results. You can also add a custom HTTPS results URL containing %s;
+it is stored only on the device.
+
+To test Today's page: tap the large card on the home screen. The list is
+published from a small public catalog and cached on the device; a bundled copy
+is always available offline. The page itself is only requested when you tap it.
 
 To test public discussions: open a well-known article that has appeared on Hacker
 News, for example "https://frankchimero.com/blog/2015/the-webs-grain/". After it
@@ -493,7 +551,8 @@ requests only INTERNET (plus VIBRATE for haptics). Camera, microphone, location,
 storage, contacts, SMS, and notification permissions are removed from the
 manifest. Third-party cookies are disabled and top-level browsing is HTTPS-only.
 The optional discussion lookup sends only the current page address to the public
-Hacker News (Algolia) and Lobsters APIs; it can be switched off in the app.
+Hacker News (Algolia) and Lobsters APIs; it can be switched off in the app. The
+catalog request carries no account, device ID, query, or browsing history.
 ```
 
 If review asks about "unrestricted web access" or the content rating, point to the
@@ -523,8 +582,9 @@ child-safe browser; it is not.
   app. That is a site decision, not something Mira can override.
 - **Web preview is not the product.** `BrowserPane.web.tsx` is an iframe fallback
   for design QA; many sites block framing.
-- **The curated list is local and small.** Today's page is editorial, not a
-  personalised feed, and it does not fetch recommendations.
+- **The curated list is editorial and small.** Today's page is chosen from a
+  published list, not a personalised feed. A bundled copy keeps it working
+  offline; it does not learn from your reading.
 - **Discussion matching is by address.** Mira canonicalises `http`/`https`,
   `www.`, trailing slashes, fragments, and common tracking parameters, but a
   thread posted with a substantially different URL will not match.
@@ -546,8 +606,9 @@ The three most likely objections, and the fix:
 2. **Data safety mismatch.**
    The discussion lookup sends the current page address to Hacker News and
    Lobsters, so declare "shares Web browsing history" and mark it optional and
-   ephemeral. If you later add crash reporting or analytics, update the form and
-   the policy before shipping.
+   ephemeral. The catalog request carries no user data; do not declare it as
+   browsing history. If you later add crash reporting or analytics, update the
+   form and the policy before shipping.
 3. **Content rating understated.**
    A browser has unrestricted web access. Answer yes, accept the Teen rating, and
    keep Safe Browsing enabled.

@@ -1,213 +1,14 @@
+import { BUNDLED_CATALOG } from './catalog';
 import type { CuratedPage } from '@/types';
 
 const DAY_MS = 86_400_000;
 export const TODAY_ARCHIVE_DAYS = 10;
 
 /**
- * Hand-picked, evergreen pages — not a feed. The list is deliberately small
- * and rotates by local calendar day, so the same page appears once every three
- * weeks without any network request or server.
+ * The bundled copy of the editorial list. A published admin catalog can replace
+ * it at runtime, but the app always has this shelf when the network is absent.
  */
-export const CURATED_PAGES: CuratedPage[] = [
-  {
-    id: 'slow-web',
-    title: 'The Slow Web',
-    url: 'https://www.jackcheng.com/the-slow-web/',
-    host: 'jackcheng.com',
-    category: 'ESSAY',
-    note: 'A case for software that respects the pace of a human afternoon.',
-    readMinutes: 6,
-  },
-  {
-    id: 'webs-grain',
-    title: "The Web's Grain",
-    url: 'https://frankchimero.com/blog/2015/the-webs-grain/',
-    host: 'frankchimero.com',
-    category: 'ESSAY',
-    note: 'Frank Chimero on making things that belong to the medium they live in.',
-    readMinutes: 18,
-  },
-  {
-    id: 'garden-stream',
-    title: 'The Garden and the Stream',
-    url: 'https://hapgood.us/2015/10/17/the-garden-and-the-stream-a-technopastoral/',
-    host: 'hapgood.us',
-    category: 'IDEA',
-    note: 'Two ways of knowing the web: the stream that forgets, the garden that grows.',
-    readMinutes: 14,
-  },
-  {
-    id: 'web-we-lost',
-    title: 'The Web We Lost',
-    url: 'https://anildash.com/2012/12/13/the-web-we-lost/',
-    host: 'anildash.com',
-    category: 'ESSAY',
-    note: 'Anil Dash remembers the web before it became a set of silos.',
-    readMinutes: 10,
-  },
-  {
-    id: 'fast-software',
-    title: 'Fast Software, the Best Software',
-    url: 'https://craigmod.com/essays/fast_software/',
-    host: 'craigmod.com',
-    category: 'CRAFT',
-    note: 'Craig Mod on the quiet pleasure of tools that answer immediately.',
-    readMinutes: 9,
-  },
-  {
-    id: 'marginalian',
-    title: 'The Marginalian',
-    url: 'https://www.themarginalian.org/',
-    host: 'themarginalian.org',
-    category: 'LIBRARY',
-    note: 'Maria Popova’s long-running archive of reading, wonder, and attention.',
-    readMinutes: 12,
-  },
-  {
-    id: 'public-domain-review',
-    title: 'The Public Domain Review',
-    url: 'https://publicdomainreview.org/',
-    host: 'publicdomainreview.org',
-    category: 'COLLECTION',
-    note: 'Curious objects and out-of-print ideas, free to wander.',
-    readMinutes: 15,
-  },
-  {
-    id: 'pudding',
-    title: 'The Pudding',
-    url: 'https://pudding.cool/',
-    host: 'pudding.cool',
-    category: 'VISUAL ESSAY',
-    note: 'Data stories that argue with charts, motion, and a point of view.',
-    readMinutes: 11,
-  },
-  {
-    id: 'works-in-progress',
-    title: 'Works in Progress',
-    url: 'https://worksinprogress.co/',
-    host: 'worksinprogress.co',
-    category: 'JOURNAL',
-    note: 'Essays on progress, building, and the texture of a better world.',
-    readMinutes: 20,
-  },
-  {
-    id: 'gwern',
-    title: 'Gwern.net',
-    url: 'https://gwern.net/',
-    host: 'gwern.net',
-    category: 'GARDEN',
-    note: 'A one-person library of long, interlinked, meticulously kept notes.',
-    readMinutes: 25,
-  },
-  {
-    id: 'raptitude',
-    title: 'Raptitude',
-    url: 'https://www.raptitude.com/',
-    host: 'raptitude.com',
-    category: 'NOTEBOOK',
-    note: 'David Cain on paying attention to the ordinary day in front of you.',
-    readMinutes: 7,
-  },
-  {
-    id: 'creative-independent',
-    title: 'The Creative Independent',
-    url: 'https://thecreativeindependent.com/',
-    host: 'thecreativeindependent.com',
-    category: 'INTERVIEW',
-    note: 'Working artists on doubt, routine, money, and making the next thing.',
-    readMinutes: 14,
-  },
-  {
-    id: 'aeon',
-    title: 'Aeon',
-    url: 'https://aeon.co/',
-    host: 'aeon.co',
-    category: 'ESSAY',
-    note: 'Philosophy and science essays with room to think.',
-    readMinutes: 18,
-  },
-  {
-    id: 'nautilus',
-    title: 'Nautilus',
-    url: 'https://nautil.us/',
-    host: 'nautil.us',
-    category: 'SCIENCE',
-    note: 'Science writing that begins with wonder, not a press release.',
-    readMinutes: 12,
-  },
-  {
-    id: 'longreads',
-    title: 'Longreads',
-    url: 'https://longreads.com/',
-    host: 'longreads.com',
-    category: 'READING LIST',
-    note: 'A daily shelf of stories worth sitting with.',
-    readMinutes: 22,
-  },
-  {
-    id: 'are-na',
-    title: 'Are.na',
-    url: 'https://www.are.na/',
-    host: 'are.na',
-    category: 'COMMONS',
-    note: 'A quiet place to collect and connect ideas with other people.',
-    readMinutes: 8,
-  },
-  {
-    id: 'standard-ebooks',
-    title: 'Standard Ebooks',
-    url: 'https://standardebooks.org/',
-    host: 'standardebooks.org',
-    category: 'LIBRARY',
-    note: 'Public-domain books, carefully edited and beautifully set.',
-    readMinutes: 30,
-  },
-  {
-    id: 'paris-review',
-    title: 'The Paris Review',
-    url: 'https://www.theparisreview.org/',
-    host: 'theparisreview.org',
-    category: 'LITERATURE',
-    note: 'Interviews, fiction, and the long memory of a literary magazine.',
-    readMinutes: 16,
-  },
-  {
-    id: '99pi',
-    title: '99% Invisible',
-    url: 'https://99percentinvisible.org/',
-    host: '99percentinvisible.org',
-    category: 'DESIGN',
-    note: 'The unnoticed design of everyday things, told with curiosity.',
-    readMinutes: 10,
-  },
-  {
-    id: 'aldaily',
-    title: 'Arts & Letters Daily',
-    url: 'https://www.aldaily.com/',
-    host: 'aldaily.com',
-    category: 'DIGEST',
-    note: 'A tidy front page for essays, criticism, and argument.',
-    readMinutes: 9,
-  },
-  {
-    id: 'dense-discovery',
-    title: 'Dense Discovery',
-    url: 'https://www.densediscovery.com/',
-    host: 'densediscovery.com',
-    category: 'LETTER',
-    note: 'A weekly note on design, technology, and living deliberately.',
-    readMinutes: 6,
-  },
-  {
-    id: 'unusual-articles',
-    title: 'Wikipedia: Unusual Articles',
-    url: 'https://en.wikipedia.org/wiki/Wikipedia:Unusual_articles',
-    host: 'en.wikipedia.org',
-    category: 'RABBIT HOLE',
-    note: 'A carefully kept list of the strangest corners of the encyclopedia.',
-    readMinutes: 13,
-  },
-];
+export const CURATED_PAGES: CuratedPage[] = BUNDLED_CATALOG.pages;
 
 /** A stable serial for a local calendar date, independent of DST shifts. */
 function daySerial(date: Date): number {
@@ -225,15 +26,21 @@ function atOffset(from: Date, offset: number): Date {
   );
 }
 
-function pageForSerial(serial: number): CuratedPage {
-  const index =
-    ((serial % CURATED_PAGES.length) + CURATED_PAGES.length) %
-    CURATED_PAGES.length;
-  return CURATED_PAGES[index];
+function usablePages(pages: CuratedPage[]): CuratedPage[] {
+  return pages.length > 0 ? pages : CURATED_PAGES;
 }
 
-export function getDailyPage(date = new Date()): CuratedPage {
-  return pageForSerial(daySerial(date));
+function pageForSerial(serial: number, pages: CuratedPage[]): CuratedPage {
+  const shelf = usablePages(pages);
+  const index = ((serial % shelf.length) + shelf.length) % shelf.length;
+  return shelf[index];
+}
+
+export function getDailyPage(
+  date = new Date(),
+  pages: CuratedPage[] = CURATED_PAGES,
+): CuratedPage {
+  return pageForSerial(daySerial(date), pages);
 }
 
 export function curatedDateLabel(date = new Date()): string {
@@ -261,11 +68,12 @@ export type CuratedDay = {
 export function getCuratedArchive(
   count = TODAY_ARCHIVE_DAYS,
   from = new Date(),
+  pages: CuratedPage[] = CURATED_PAGES,
 ): CuratedDay[] {
   return Array.from({ length: count }, (_, offset) => {
     const date = atOffset(from, offset);
     return {
-      page: pageForSerial(daySerial(date)),
+      page: pageForSerial(daySerial(date), pages),
       date,
       label:
         offset === 0

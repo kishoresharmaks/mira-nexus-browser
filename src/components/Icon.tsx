@@ -34,7 +34,8 @@ export type IconName =
   | 'sparkle'
   | 'edit'
   | 'archive'
-  | 'message';
+  | 'message'
+  | 'settings';
 
 function content(name: IconName, color: string): ReactNode {
   switch (name) {
@@ -256,6 +257,15 @@ function content(name: IconName, color: string): ReactNode {
     case 'message':
       return (
         <Path d="M20.5 11.8c0 3.9-3.8 7-8.5 7-1 0-2-.14-2.9-.4L4.5 20l1.3-3.5c-1.4-1.2-2.3-2.9-2.3-4.7 0-3.9 3.8-7 8.5-7s8.5 3.1 8.5 7Z" />
+      );
+    case 'settings':
+      return (
+        <>
+          <Path d="M4 7h9.5" />
+          <Circle cx="17" cy="7" r="2.2" />
+          <Path d="M20 17h-9.5" />
+          <Circle cx="7" cy="17" r="2.2" />
+        </>
       );
     default:
       return null;

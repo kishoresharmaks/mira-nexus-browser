@@ -505,8 +505,8 @@
         <h2>The short version</h2>
         <ul>
           <li>Mira has no account, no analytics, no advertising, and no crash-reporting SDK.</li>
-          <li>Your history, shortcuts, trails, and appearance choice are stored only on your device.</li>
-          <li>Mira does not operate a server that receives your browsing activity.</li>
+          <li>Your history, shortcuts, trails, search-engine choice, and appearance choice are stored only on your device.</li>
+          <li>Mira does not operate a server that receives your browsing activity. It hosts one public catalog of search presets and Today pages; the app fetches that catalog without an account, device ID, search query, or browsing history.</li>
           <li>When you open a website, your device talks directly to that website, exactly as a browser does.</li>
           <li>When discussion lookup is on (the default), Mira sends the address of the page you are reading to Hacker News and Lobsters to find public threads. You can turn this off in the Discussions sheet. Private tabs never trigger this lookup.</li>
           <li>Private tabs leave no history or trails, bypass WebView's page cache, and block screen capture. Android's WebView shares cookies and site storage with normal tabs, so a site may still recognize you.</li>
@@ -554,6 +554,16 @@
                 <td>Discussion lookup preference (on/off)</td>
                 <td>Remembers whether Mira asks Hacker News and Lobsters about the current page</td>
                 <td>Until you change it or uninstall</td>
+              </tr>
+              <tr>
+                <td>Search choice and custom engines (name, search URL)</td>
+                <td>Remembers which engine handles typed searches; engines you add stay on this device</td>
+                <td>Until you change the choice, remove the engine, or uninstall</td>
+              </tr>
+              <tr>
+                <td>Cached catalog (search presets and Today pages)</td>
+                <td>Lets Mira open with the last published lists when the catalog endpoint is unreachable</td>
+                <td>Until a newer catalog replaces it or you clear app storage</td>
               </tr>
               <tr>
                 <td>Open tabs</td>
@@ -620,11 +630,17 @@
           contacts, storage, notifications, and “display over other apps” permissions are
           explicitly removed from the Android manifest.
         </p>
+        <p>
+          The catalog request does not identify you: it carries no account, device ID,
+          search terms, or history. The hosting provider may process standard request logs
+          such as an IP address and user agent to serve and protect the endpoint; Mira does
+          not use those logs to build a profile or to personalise the catalog.
+        </p>
       </section>
 
       <section id="network">
         <h2><span class="num">03</span>Network requests Mira makes</h2>
-        <p>Mira is a browser, so it makes network requests when you ask it to.</p>
+        <p>Mira is a browser, so it makes network requests as part of ordinary use.</p>
         <ul class="plain">
           <li>
             <strong>Websites you open.</strong> The page is requested directly by your
@@ -635,9 +651,22 @@
           </li>
           <li>
             <strong>Search.</strong> If you type words instead of an address, Mira opens a
-            DuckDuckGo search results page (<a href="https://duckduckgo.com/">duckduckgo.com</a>).
-            Your query is sent to DuckDuckGo under its own privacy policy. Search-result
+            results page for the engine selected in Search settings. The default is
+            DuckDuckGo (<a href="https://duckduckgo.com/">duckduckgo.com</a>); you can
+            choose another preset or add a custom HTTPS search URL that contains
+            <code>%s</code>. Your query is sent to that engine under its own privacy
+            policy. Mira does not send the query to its catalog server. Search-result
             pages are not written to Mira's history.
+          </li>
+          <li>
+            <strong>Catalog.</strong> Mira fetches a small, public catalog of search
+            presets and Today pages from a hosted HTTPS endpoint. The request is a plain
+            read: it carries no account, device identifier, search query, or browsing
+            history. Standard request logs at the hosting provider may include an IP
+            address and user agent for security and reliability; Mira does not use them to
+            profile readers. Mira validates the response, caches it for about an hour, and
+            falls back to the copy bundled inside the app if the endpoint is unreachable
+            or malformed. You can trigger a check yourself in Search settings.
           </li>
           <li>
             <strong>Favicons.</strong> To show a site's own icon, Mira requests the icon
@@ -646,9 +675,10 @@
             not sent to an icon provider.
           </li>
           <li>
-            <strong>Today's page.</strong> The daily reading list is bundled inside the
-            app. Mira does not contact a server to choose it, and does not fetch the page
-            until you tap it.
+            <strong>Today's page.</strong> The daily reading list comes from the same
+            public catalog described above. Mira does not contact a server to choose a
+            day's page beyond that catalog fetch, and does not fetch the page itself until
+            you tap it. If the catalog has never been downloaded, the bundled list is used.
           </li>
           <li>
             <strong>Safe Browsing.</strong> Android's WebView checks addresses against
@@ -795,6 +825,7 @@
           </li>
           <li>Android Safe Browsing stays enabled for malware and phishing warnings.</li>
           <li>Discussion lookup is limited to the address of the page being read, can be turned off at any time, and never runs in a private tab.</li>
+          <li>The catalog feed is public, read-only, and fetched over HTTPS. Mira validates it, caches it, and falls back to the bundled copy when it is missing, malformed, or unreachable.</li>
           <li>Private tabs write no history or trails, bypass the page cache, and never run discussion lookup. Android's WebView shares cookies and site storage with normal tabs; see <a href="#cookies">Cookies and site storage</a>.</li>
           <li>While a private tab is open, the Android window uses <code>FLAG_SECURE</code> to block screenshots and screen recordings and to blank the app-switcher preview.</li>
           <li>WebView metrics reporting to Google is opted out.</li>

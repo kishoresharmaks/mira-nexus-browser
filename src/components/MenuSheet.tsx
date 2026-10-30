@@ -6,6 +6,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { shouldLookupCommunity } from '@/lib/community';
+import { useCatalogConfig } from '@/lib/catalog-provider';
 import { haptic } from '@/lib/haptics';
 import { privateCookieMenuMeta } from '@/lib/privateCopy';
 import { fonts } from '@/theme';
@@ -33,6 +34,7 @@ type Props = {
   onOpenTabs: () => void;
   onOpenTrails: () => void;
   onOpenCommunity: () => void;
+  onOpenSettings: () => void;
   onCloseTab: () => void;
   tabCount: number;
   trailCount: number;
@@ -59,6 +61,7 @@ export function MenuSheet({
   onOpenTabs,
   onOpenTrails,
   onOpenCommunity,
+  onOpenSettings,
   onCloseTab,
   tabCount,
   trailCount,
@@ -69,8 +72,9 @@ export function MenuSheet({
   onNewPrivateTab,
 }: Props) {
   const { theme, mode, setMode } = useTheme();
+  const { activeEngine, engines } = useCatalogConfig();
   const { height } = useWindowDimensions();
-  const display = getDisplayUrl(url);
+  const display = getDisplayUrl(url, engines);
   const host = display.host;
   const hasPage = Boolean(url);
   const showDiscussions = !privateTab && shouldLookupCommunity(url);
@@ -271,6 +275,31 @@ export function MenuSheet({
                 <Icon name="clock" size={18} color={theme.inkSoft} />
               </View>
               <Text style={[styles.rowLabel, { color: theme.ink }]}>History</Text>
+              <Icon
+                name="chevronRight"
+                size={16}
+                color={theme.faint}
+                strokeWidth={1.9}
+              />
+            </PressableScale>
+
+            <PressableScale
+              onPress={() => run(onOpenSettings)}
+              style={styles.listRow}
+              accessibilityLabel={`Search engine settings, currently ${activeEngine.name}`}
+            >
+              <View style={[styles.rowIcon, { backgroundColor: theme.surfaceAlt }]}>
+                <Icon name="settings" size={18} color={theme.inkSoft} />
+              </View>
+              <Text style={[styles.rowLabel, { color: theme.ink }]}>
+                Search engine
+              </Text>
+              <Text
+                numberOfLines={1}
+                style={[styles.rowMeta, styles.engineMeta, { color: theme.faint }]}
+              >
+                {activeEngine.name}
+              </Text>
               <Icon
                 name="chevronRight"
                 size={16}
@@ -527,6 +556,10 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: 11,
     marginRight: 2,
+  },
+  engineMeta: {
+    maxWidth: 132,
+    fontFamily: fonts.sans,
   },
   privateRowCopy: {
     flex: 1,

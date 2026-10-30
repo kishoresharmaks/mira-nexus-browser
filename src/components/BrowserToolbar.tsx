@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCatalogConfig } from '@/lib/catalog-provider';
 import { haptic } from '@/lib/haptics';
 import { getDisplayUrl } from '@/lib/url';
 import { fonts, softShadow } from '@/theme';
@@ -40,8 +41,9 @@ export function BrowserToolbar({
   onCopy,
 }: Props) {
   const { theme } = useTheme();
+  const { engines } = useCatalogConfig();
   const insets = useSafeAreaInsets();
-  const display = getDisplayUrl(snapshot.url);
+  const display = getDisplayUrl(snapshot.url, engines);
   const empty = !snapshot.url;
 
   return (

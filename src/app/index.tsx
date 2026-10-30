@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { router } from 'expo-router';
 import { useShareIntent } from 'expo-share-intent';
 import { AddressOverlay } from '@/components/AddressOverlay';
 import { BrowserPane } from '@/components/BrowserPane';
@@ -26,6 +27,7 @@ import { TabsSheet } from '@/components/TabsSheet';
 import { TodaySheet } from '@/components/TodaySheet';
 import { TrailsSheet } from '@/components/TrailsSheet';
 import { useToast } from '@/components/Toast';
+import { useCatalogConfig } from '@/lib/catalog-provider';
 import {
   canonicalizeArticleUrl,
   invalidateCommunityLookup,
@@ -119,6 +121,7 @@ function createTab(
 export default function Mira() {
   const { theme, toggleMode } = useTheme();
   const toast = useToast();
+  const { activeEngine, engines, todayPages } = useCatalogConfig();
 
   const [shortcuts, setShortcuts, shortcutsReady] = usePersistentState<
     Shortcut[]
@@ -184,7 +187,7 @@ export default function Mira() {
   const normalTabs = tabs.filter((tab) => !tab.private);
   const privateChromeRef = useLatest(privateChrome);
   const pinned = shortcuts.some((item) => item.url === snapshot.url);
-  const addressValue = searchQueryFromUrl(snapshot.url) ?? snapshot.url;
+  const addressValue = searchQueryFromUrl(snapshot.url, engines) ?? snapshot.url;
   const communityCanonical = canonicalizeArticleUrl(snapshot.url);
   const communityForCurrentPage =
     communityLookup && communityLookup.canonicalUrl === communityCanonical
@@ -387,7 +390,7 @@ export default function Mira() {
 
   const submitAddress = useCallback(
     (raw: string) => {
-      const target = resolveInput(raw);
+      const target = resolveInput(raw, activeEngine);
       if (!target) return;
       const wantsNewTab =
         addressNewTabRef.current ||
@@ -403,7 +406,7 @@ export default function Mira() {
       }
       navigateTab(activeTabRef.current, target.url);
     },
-    [activeTabRef, browserActiveRef, navigateTab, openInNewTab],
+    [activeEngine, activeTabRef, browserActiveRef, navigateTab, openInNewTab],
   );
 
   const openHistory = useCallback(() => {
@@ -439,6 +442,11 @@ export default function Mira() {
   const openPrivateInfo = useCallback(() => {
     haptic.tap();
     setPrivateInfoOpen(true);
+  }, []);
+
+  const openSettings = useCallback(() => {
+    haptic.tap();
+    router.push('/settings');
   }, []);
 
   const openPrivateInfoAfterMenu = useCallback(() => {
@@ -576,7 +584,7 @@ export default function Mira() {
 
   const handleVisit = useCallback(
     (url: string, title: string) => {
-      if (!isWebUrl(url) || searchQueryFromUrl(url)) return;
+      if (!isWebUrl(url) || searchQueryFromUrl(url, engines)) return;
       const entry = historyEntry(url, title);
       if (!entry) return;
 
@@ -590,7 +598,7 @@ export default function Mira() {
         appendTrailVisit(previous, trailFromHistory(entry), entry.visitedAt),
       );
     },
-    [setHistory, setTrails],
+    [engines, setHistory, setTrails],
   );
 
   const closeTab = useCallback(
@@ -905,7 +913,7 @@ export default function Mira() {
       setAppState(state);
 
       if (state === 'active') {
-        setToday(getDailyPage());
+        setToday(getDailyPage(new Date(), todayPages));
         if (shortcutsReadyRef.current) {
           refreshMiraWidget(shortcutsRef.current);
         }
@@ -928,7 +936,7 @@ export default function Mira() {
       }
     });
     return () => subscription.remove();
-  }, [privateChromeRef, shortcutsReadyRef, shortcutsRef]);
+  }, [privateChromeRef, shortcutsReadyRef, shortcutsRef, todayPages]);
 
   // The shield follows private tabs, not just the visible private page. A
   // hidden private WebView is still a private page in memory.
@@ -942,11 +950,18 @@ export default function Mira() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      const next = getDailyPage();
+      const next = getDailyPage(new Date(), todayPages);
       setToday((previous) => (previous.id === next.id ? previous : next));
     }, 60_000);
     return () => clearInterval(timer);
-  }, []);
+  }, [todayPages]);
+
+  // A published catalog changes the shelf without a restart. Keep the home
+  // card in step as soon as the new pages arrive.
+  useEffect(() => {
+    const next = getDailyPage(new Date(), todayPages);
+    setToday((previous) => (previous.id === next.id ? previous : next));
+  }, [todayPages]);
 
   // Discussion lookup is deliberately late and optional: wait until the page
   // has settled, debounce redirects, and stop immediately if the address, tab,
@@ -1040,6 +1055,7 @@ export default function Mira() {
           onOpenTodayArchive={openTodayArchive}
           onOpenTrails={openTrails}
           onOpenTabs={openTabs}
+          onOpenSettings={openSettings}
           onOpenTab={activateTab}
           onCloseTab={closeTab}
           onResumeTrail={resumeTrail}
@@ -1172,6 +1188,7 @@ export default function Mira() {
           onOpenTabs={openTabsAfterMenu}
           onOpenTrails={openTrailsAfterMenu}
           onOpenCommunity={openCommunityAfterMenu}
+          onOpenSettings={openSettings}
           onCloseTab={() => {
             if (activeTabId) closeTab(activeTabId);
           }}
