@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { coerceCatalog, validateCatalog } from '@/lib/catalog';
 import { isAuthenticated, sameOrigin } from '@/lib/auth';
-import { readState, writeState } from '@/lib/store';
+import { publishState, readState } from '@/lib/store';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -55,7 +55,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const revision = (state.published?.revision ?? 0) + 1;
+    const expectedRevision = state.published?.revision ?? 0;
+    const revision = expectedRevision + 1;
     const published = {
       ...draft,
       engines: draft.engines.map((engine) => ({ ...engine })),
@@ -64,9 +65,23 @@ export async function POST(request: Request) {
       publishedAt: new Date().toISOString(),
     };
 
-    const next = { draft, published };
-    await writeState(next);
-    return NextResponse.json({ draft, published, issues: [] });
+    const saved = await publishState({ draft, published }, expectedRevision);
+    if (!saved.ok) {
+      return NextResponse.json(
+        {
+          error:
+            'The catalog changed while you were publishing. Reload the desk and try again.',
+        },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json({
+      draft,
+      published,
+      savedAt: saved.savedAt,
+      issues: [],
+    });
   } catch (error) {
     console.error('publish failed', error);
     return NextResponse.json(

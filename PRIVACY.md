@@ -45,9 +45,12 @@ not sent to the developer or to any third party.
 | Open tabs | In-memory only while the app is running | Cleared when Mira is closed |
 | Private tab cookies and site storage | Keeps sites working while you browse; Android's WebView shares one store across all tabs | Until the site expires them or you clear app storage |
 
-There is no database in the cloud and no account to delete. Private tabs write
-no history, trails, or page state; their cookies and site storage are not
-isolated from normal tabs.
+There is no account to delete, and Mira does not store your browsing data in
+the cloud. The hosted catalog database contains only public editorial data:
+engine names, search URLs, page titles, links, categories, notes, and reading
+times. It has no reader account, device ID, query, or browsing history. Private
+tabs write no history, trails, or page state; their cookies and site storage are
+not isolated from normal tabs.
 
 ### How to delete it
 

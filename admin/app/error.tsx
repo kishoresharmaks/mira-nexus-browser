@@ -21,7 +21,7 @@ export default function ErrorPage({
         </h1>
         <p className="state-copy">
           The store did not answer. Nothing was published or overwritten. Check
-          the Blob connection or the local data file, then try again.
+          the MongoDB connection, then try again.
         </p>
         <div className="state-actions">
           <button type="button" className="btn btn-primary" onClick={reset}>

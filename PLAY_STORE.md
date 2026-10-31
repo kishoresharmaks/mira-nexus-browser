@@ -324,9 +324,11 @@ The search presets and Today pages are edited in `admin/`, a Next.js app that
 deploys independently of the mobile build.
 
 1. Create a Vercel project from `admin/`.
-2. Add a private Vercel Blob store and connect it to the project.
-3. Set `ADMIN_PASSWORD` (8+ characters) and `ADMIN_SESSION_SECRET` (32+
-   characters, random) as Production environment variables.
+2. Create a MongoDB Atlas database (the free tier is enough) and add a database
+   user with `readWrite` access to `mira`.
+3. Set `ADMIN_PASSWORD` (8+ characters), `ADMIN_SESSION_SECRET` (32+
+   characters, random), and `MONGODB_URI` (the Atlas SRV string) as Production
+   environment variables.
 4. Deploy. Open `/`, sign in with the password, edit the draft, and publish.
 5. Copy the public feed URL, normally
    `https://<project>.vercel.app/api/catalog`.
@@ -334,9 +336,9 @@ deploys independently of the mobile build.
    rebuild the app. An empty value keeps the app on its bundled catalog.
 
 The public feed is read-only, CORS-enabled, and cached for five minutes at the
-edge. The admin writes to a private Blob path; drafts never reach the public feed
-until you press Publish. Without Blob credentials the admin falls back to
-`admin/.data/catalog-state.json` for local development only. See
+edge. The admin stores the draft and published catalog in MongoDB Atlas; drafts
+never reach the public feed until you press Publish. Local preview can use
+`MIRA_DEV_FILE_STORE=1`; production requires `MONGODB_URI`. See
 `admin/README.md`.
 
 The catalog carries only public editorial data: engine names, search URLs, page

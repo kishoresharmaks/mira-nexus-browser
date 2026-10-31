@@ -217,11 +217,13 @@ Create `admin/.env.local` first:
 ```
 ADMIN_PASSWORD=at-least-8-characters
 ADMIN_SESSION_SECRET=at-least-32-random-characters
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/
 ```
 
-Open `http://localhost:3100`, sign in, edit the draft, and publish. Without Blob
-credentials the admin writes to the ignored `admin/.data/catalog-state.json`;
-production uses a private Vercel Blob store. Deployment details are in
+Open `http://localhost:3100`, sign in, edit the draft, and publish. The admin
+stores the draft and the last published revision in MongoDB Atlas. If Atlas is
+not set up yet, add `MIRA_DEV_FILE_STORE=1` for a local file preview; production
+ignores that flag and requires `MONGODB_URI`. Deployment details are in
 [admin/README.md](admin/README.md).
 
 The app reads `EXPO_PUBLIC_CATALOG_URL` at build time and treats an empty value
@@ -385,9 +387,10 @@ Before publishing:
 1. Replace `REPLACE_WITH_YOUR_EMAIL@example.com` in `PRIVACY.md` and
    `docs/privacy.html`.
 2. Host `docs/privacy.html` at a public HTTPS URL.
-3. Deploy `admin/` to Vercel with a private Blob store, set `ADMIN_PASSWORD` and
-   `ADMIN_SESSION_SECRET`, publish the catalog, and point
-   `EXPO_PUBLIC_CATALOG_URL` at its `/api/catalog` route before building the app.
+3. Deploy `admin/` to Vercel with a MongoDB Atlas connection, set
+   `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, and `MONGODB_URI`, publish the
+   catalog, and point `EXPO_PUBLIC_CATALOG_URL` at its `/api/catalog` route
+   before building the app.
 4. Follow [PLAY_STORE.md](PLAY_STORE.md) for listing copy, screenshots, Data
    safety, content rating, and the review checklist.
 5. On a physical Android device, open a private tab and confirm that

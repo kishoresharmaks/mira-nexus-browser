@@ -3,9 +3,11 @@ import { MiraMark } from './MiraMark';
 export function SetupNotice({
   password,
   secret,
+  mongodb,
 }: {
   password: boolean;
   secret: boolean;
+  mongodb: boolean;
 }) {
   return (
     <main className="login-page">
@@ -22,8 +24,9 @@ export function SetupNotice({
             setup.
           </h1>
           <p className="login-deck">
-            The desk needs a password and a signing secret before it can open.
-            Both live in the server environment, never in the browser.
+            The desk needs a password, a signing secret, and a MongoDB
+            connection before it can open. All three live in the server
+            environment, never in the browser.
           </p>
         </section>
 
@@ -33,11 +36,11 @@ export function SetupNotice({
           </h2>
           <p className="login-panel-copy">
             Copy <span className="figure">admin/.env.example</span> to{' '}
-            <span className="figure">admin/.env.local</span>, set both values,
-            and restart the server.
+            <span className="figure">admin/.env.local</span>, set the values, and
+            restart the server.
           </p>
           <pre className="setup-code">
-            {'ADMIN_PASSWORD=your-password\nADMIN_SESSION_SECRET=at-least-32-random-characters'}
+            {'ADMIN_PASSWORD=your-password\nADMIN_SESSION_SECRET=at-least-32-random-characters\nMONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/'}
           </pre>
           <ul className="setup-list">
             <li>
@@ -48,11 +51,16 @@ export function SetupNotice({
               <span>ADMIN_SESSION_SECRET</span>
               <span>{secret ? 'Set' : 'Missing'}</span>
             </li>
+            <li>
+              <span>MONGODB_URI</span>
+              <span>{mongodb ? 'Set' : 'Missing'}</span>
+            </li>
           </ul>
           <p className="login-note">
-            Production also needs a private Vercel Blob store connected to this
-            project. Local development writes to{' '}
-            <span className="figure">admin/.data</span>.
+            Use the SRV connection string from MongoDB Atlas. For a local
+            preview without Atlas, set{' '}
+            <span className="figure">MIRA_DEV_FILE_STORE=1</span>; production
+            ignores it.
           </p>
         </section>
       </div>

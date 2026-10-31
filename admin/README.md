@@ -8,6 +8,58 @@ A small Next.js admin for the two lists Mira reads remotely:
 The app fetches only the published catalog from a public, read-only endpoint.
 Drafts are private until you press Publish.
 
+## How the catalog is stored
+
+The desk uses **MongoDB Atlas**. Everything lives in one document:
+
+- Database: `mira` (override with `MONGODB_DB`)
+- Collection: `catalog` (override with `MONGODB_COLLECTION`)
+- Document: `_id: "catalog"`
+
+```json
+{
+  "_id": "catalog",
+  "storeVersion": 1,
+  "draft": {
+    "version": 1,
+    "defaultEngineId": "duckduckgo",
+    "engines": [],
+    "pages": []
+  },
+  "published": {
+    "version": 1,
+    "defaultEngineId": "duckduckgo",
+    "engines": [],
+    "pages": [],
+    "revision": 1,
+    "publishedAt": "2026-10-27T00:00:00.000Z"
+  },
+  "savedAt": "2026-10-30T09:12:00.000Z",
+  "updatedAt": "2026-10-30T09:12:00.000Z"
+}
+```
+
+Reads and writes go through `admin/lib/store.ts`:
+
+1. `readState()` reuses a cached `MongoClient` (kept on `globalThis` so Next.js
+   hot reload and reused serverless instances do not open a pool per request)
+   and runs `findOne({ _id: "catalog" })`.
+2. If the document does not exist, the desk inserts the seed from
+   `admin/lib/default-catalog.json`. If two requests race, the duplicate-key
+   loser reads the winner instead of overwriting it.
+3. `PUT /api/catalog/draft` calls `saveDraft()`, which updates **only** the
+   `draft` field plus `savedAt` and `updatedAt`. A draft save cannot replace a
+   newer published revision with a stale copy.
+4. `POST /api/catalog/publish` validates the draft, then calls `publishState()`.
+   That write is a compare-and-set on the `published.revision` the editor
+   reviewed. It updates `draft` and `published` together and returns `409` if
+   another publish won first.
+5. `GET /api/catalog` reads `published`, removes disabled entries, and serves
+   the public shape with an ETag based on the revision.
+
+The client and server both treat stored data as untrusted: `coerceStoreState()`
+and `coerceCatalog()` rebuild it before use.
+
 ## Local development
 
 ```bash
@@ -21,9 +73,10 @@ Edit `.env.local`:
 ```
 ADMIN_PASSWORD=at-least-8-characters
 ADMIN_SESSION_SECRET=at-least-32-random-characters
+MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/?retryWrites=true&w=majority
 ```
 
-Generate a secret with:
+Generate the signing secret with:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
@@ -35,9 +88,53 @@ Start the desk:
 npm run dev
 ```
 
-Open <http://localhost:3100>. Without Blob credentials the admin stores state in
-the ignored `admin/.data/catalog-state.json`. Delete that file to return to the
-seed catalog.
+Open <http://localhost:3100>.
+
+### Before Atlas is available
+
+The production path is MongoDB only. For a local preview you can opt into a file
+store explicitly:
+
+```
+MIRA_DEV_FILE_STORE=1
+```
+
+That uses the git-ignored `admin/.data/catalog-state.json` and makes the header
+say **Local file · dev only**. The flag is ignored when `NODE_ENV=production`.
+Without `MONGODB_URI` and without the flag, the desk shows the setup screen
+instead of silently writing to a filesystem that disappears on redeploy.
+
+## Atlas setup
+
+1. Create a cluster (the free M0 tier is enough for one editor).
+2. **Database Access** → add a user whose role is `readWrite` on `mira`.
+3. **Network Access** → add the public IP of the machine running the admin.
+   Vercel Functions use dynamic egress addresses; either allow `0.0.0.0/0` with
+   a strong database password, or use fixed egress/private networking.
+4. **Connect** → **Drivers** → **Node.js** → copy the `mongodb+srv://` string.
+   Replace the password placeholder and URL-encode special characters
+   (`@`, `:`, `/`, `?`, `#`, `%`).
+5. Put the string in `MONGODB_URI`. Leave the database name out of the path if
+   you prefer `MONGODB_DB=mira`; otherwise put `/mira` before the `?`.
+
+### DNS check
+
+`mongodb+srv` needs the cluster's SRV and TXT records to resolve before the
+driver can connect:
+
+```powershell
+nslookup -type=SRV _mongodb._tcp.<cluster-host>
+nslookup -type=TXT <cluster-host>
+```
+
+Both must return records. If SRV lookups are blocked on the local network, the
+desk cannot connect even with a correct password. Use a network that resolves
+SRV/TXT, or switch to a standard `mongodb://` seed-list URI if Atlas provides
+one for your cluster.
+
+When the desk cannot read the store it shows the driver error, the target
+`mira.catalog`, and a checklist for DNS, Network Access, and the database user.
+The URI itself is never rendered.
 
 ## Environment
 
@@ -45,23 +142,13 @@ seed catalog.
 | --- | --- | --- |
 | `ADMIN_PASSWORD` | Yes | The single password for the desk. Minimum 8 characters. |
 | `ADMIN_SESSION_SECRET` | Yes | HMAC key for the session cookie. Minimum 32 characters. Rotating it signs every session out. |
-| `BLOB_READ_WRITE_TOKEN` | Production | Private Vercel Blob access. |
-| `BLOB_STORE_ID` | Production | Alternative to the token when the store is connected through Vercel's OIDC binding. |
+| `MONGODB_URI` | Yes | Atlas connection string. `mongodb+srv` or `mongodb`. Server-only. |
+| `MONGODB_DB` | No | Database name. Defaults to `mira`. |
+| `MONGODB_COLLECTION` | No | Collection name. Defaults to `catalog`. |
+| `MIRA_DEV_FILE_STORE` | No | Set to `1` in local development to use the file store when `MONGODB_URI` is missing. Ignored in production. |
 
-Both admin values are required. If either is missing or too short, the desk
-shows a setup notice instead of the login form.
-
-## Storage
-
-- **Production:** private Vercel Blob at `mira/catalog-state.json`.
-- **Local fallback:** `admin/.data/catalog-state.json` when no Blob credentials
-  are present.
-- **Seed:** `admin/lib/default-catalog.json`, generated from
-  `catalog/defaults.json`.
-
-The stored object holds both the draft and the last published revision. Writes
-are whole-file and single-editor; this desk is built for one operator, not a
-team with concurrent editing.
+If a required value is missing or too short, the desk shows a setup notice with
+the missing variable names instead of the login form.
 
 ## Routes
 
@@ -70,7 +157,7 @@ team with concurrent editing.
 | `/` | Password | The workbench. |
 | `GET /api/catalog` | Public | Published feed, CORS-enabled, ETag, five-minute edge cache. |
 | `PUT /api/catalog/draft` | Session | Save the draft without publishing. |
-| `POST /api/catalog/publish` | Session | Validate and publish a new revision. |
+| `POST /api/catalog/publish` | Session | Validate and publish a new revision. Returns `409` on a revision conflict. |
 | `POST /api/auth/login` | Public | Rate-limited password login. |
 | `POST /api/auth/logout` | Session | Clear the session cookie. |
 
@@ -79,9 +166,11 @@ team with concurrent editing.
 1. Push this repository to a Git host Vercel can read.
 2. Import the repository and set **Root Directory** to `admin`.
 3. Framework preset: **Next.js**. Build command: `npm run build`.
-4. Create a **private** Vercel Blob store and connect it to the project.
-5. Add `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` under Production (and Preview
-   if you want a staging desk).
+4. Add `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, and `MONGODB_URI` under
+   Production (and Preview if you want a staging desk). Add `MONGODB_DB` or
+   `MONGODB_COLLECTION` only if you changed the defaults.
+5. Confirm Atlas **Network Access** allows Vercel's egress, and that the
+   database user can read and write `mira`.
 6. Deploy. Open the production URL, sign in, edit the draft, and publish.
 7. Check `https://<project>/api/catalog` in a private window. It must return the
    published catalog with `"revision"` set.
@@ -118,15 +207,21 @@ npm run catalog:sync
 ```
 
 This refreshes `src/lib/default-catalog.json` and
-`admin/lib/default-catalog.json`. The admin seed only applies when no stored
-state exists, so syncing does not overwrite a live draft or published revision.
+`admin/lib/default-catalog.json`. The admin seed only applies when no MongoDB
+document exists, so syncing does not overwrite a live draft or published
+revision.
 
 ## Security notes
 
+- The MongoDB URI is a server secret. Never expose it through a `NEXT_PUBLIC_`
+  variable, the browser, or a log line.
+- Give the Atlas user `readWrite` on one database, not an administrative role.
 - The session is an HMAC-signed, HTTP-only, `SameSite=Lax` cookie that expires
   after seven days.
 - Login attempts are limited to eight failures per ten minutes per client key.
 - State-changing routes check `Origin` against `Host`.
+- Publishing is a compare-and-set on the revision, so two tabs cannot silently
+  replace each other's revision.
 - The public feed is read-only, CORS-enabled, and contains only enabled entries.
 - The admin frame is denied (`X-Frame-Options: DENY`), and the desk sends
   `no-referrer` plus a restrictive permissions policy.

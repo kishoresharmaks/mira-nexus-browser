@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { coerceCatalog } from '@/lib/catalog';
 import { isAuthenticated, sameOrigin } from '@/lib/auth';
-import { readState, storageMode, writeState } from '@/lib/store';
+import { readState, saveDraft, storageMode } from '@/lib/store';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -73,13 +73,14 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const state = await readState();
-    const next = { ...state, draft };
-    await writeState(next);
-    return NextResponse.json({
-      draft: next.draft,
-      savedAt: new Date().toISOString(),
-    });
+    const saved = await saveDraft(draft);
+    if (!saved.ok) {
+      return NextResponse.json(
+        { error: 'The draft changed elsewhere. Reload the desk and try again.' },
+        { status: 409 },
+      );
+    }
+    return NextResponse.json({ draft, savedAt: saved.savedAt });
   } catch (error) {
     console.error('draft save failed', error);
     return NextResponse.json(

@@ -34,7 +34,8 @@ type Section = 'engines' | 'today';
 type Props = {
   initialDraft: Catalog;
   initialPublished: PublishedCatalog | null;
-  storage: 'blob' | 'file';
+  storage: 'mongodb' | 'file';
+  storageTarget: string;
   today: { year: number; month: number; day: number };
 };
 
@@ -106,6 +107,7 @@ export function Workbench({
   initialDraft,
   initialPublished,
   storage,
+  storageTarget,
   today,
 }: Props) {
   const [draft, setDraft] = useState<Catalog>(initialDraft);
@@ -598,9 +600,9 @@ export function Workbench({
                   : 'Draft loaded from storage'}
             </span>
             <span>
-              {storage === 'blob'
-                ? 'Private Blob storage'
-                : 'Local file storage'}
+              {storage === 'mongodb'
+                ? `MongoDB · ${storageTarget}`
+                : 'Local file · dev only'}
             </span>
           </div>
         </div>
