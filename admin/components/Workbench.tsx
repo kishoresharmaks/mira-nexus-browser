@@ -15,6 +15,7 @@ import {
   liveCounts,
   uniqueId,
   validateCatalog,
+  type AdsConfig,
   type Catalog,
   type Engine,
   type Issue,
@@ -22,6 +23,7 @@ import {
   type PublishedCatalog,
 } from '@/lib/catalog';
 import { MiraMark } from '@/components/MiraMark';
+import { AdsEditor } from './workbench/AdsEditor';
 import { EngineEditor } from './workbench/EngineEditor';
 import { EnginePanel } from './workbench/EnginePanel';
 import { PageEditor } from './workbench/PageEditor';
@@ -29,7 +31,9 @@ import { PagePanel } from './workbench/PagePanel';
 import { TodayLedger } from './workbench/TodayLedger';
 import { WorkbenchDock } from './workbench/WorkbenchDock';
 
-type Section = 'engines' | 'today';
+type Section = 'engines' | 'today' | 'ads';
+
+const SECTIONS: Section[] = ['engines', 'today', 'ads'];
 
 type Props = {
   initialDraft: Catalog;
@@ -150,7 +154,8 @@ export function Workbench({
     draft.engines.find((engine) => engine.id === engineId) ?? null;
   const selectedPage =
     draft.pages.find((page) => page.id === pageId) ?? null;
-  const activeId = section === 'engines' ? engineId : pageId;
+  const activeId =
+    section === 'engines' ? engineId : section === 'today' ? pageId : null;
   const nextRevision = (published?.revision ?? 0) + 1;
 
   const beginEdit = () => {
@@ -196,6 +201,14 @@ export function Workbench({
       pages: current.pages.map((page) =>
         page.id === id ? { ...page, ...patch } : page,
       ),
+    }));
+  };
+
+  const updateAds = (patch: Partial<AdsConfig>) => {
+    beginEdit();
+    setDraft((current) => ({
+      ...current,
+      ads: { ...current.ads, ...patch },
     }));
   };
 
@@ -428,7 +441,9 @@ export function Workbench({
   const handleTabKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
     event.preventDefault();
-    const next: Section = section === 'engines' ? 'today' : 'engines';
+    const index = SECTIONS.indexOf(section);
+    const delta = event.key === 'ArrowRight' ? 1 : -1;
+    const next = SECTIONS[(index + delta + SECTIONS.length) % SECTIONS.length];
     setSection(next);
     window.requestAnimationFrame(() => {
       document.getElementById(`tab-${next}`)?.focus();
@@ -483,6 +498,8 @@ export function Workbench({
         ? initialDraft.engines.find((engine) => engine.id === requestedItem)
         : initialDraft.engines[0];
       setEngineId(match?.id ?? null);
+    } else if (requestedSection === 'ads') {
+      setSection('ads');
     }
     setUrlReady(true);
   }, [initialDraft]);
@@ -574,11 +591,11 @@ export function Workbench({
       <main className="shell">
         <div className="page-head">
           <div>
-            <h1 className="page-title">Two lists, kept in order.</h1>
+            <h1 className="page-title">Three lists, kept in order.</h1>
             <p className="page-deck">
-              Search engines and the Today rotation. Edit the draft, review the
-              week, then publish. The app keeps its bundled copy whenever this
-              desk cannot be reached.
+              Search engines, the Today rotation, and one quiet home-screen ad
+              slot. Edit the draft, review the week, then publish. The app keeps
+              its bundled copy whenever this desk cannot be reached.
             </p>
           </div>
           <div className="page-meta">
@@ -686,6 +703,19 @@ export function Workbench({
             Today&rsquo;s page
             <span className="tab-count">{draft.pages.length}</span>
           </button>
+          <button
+            type="button"
+            className="tab"
+            role="tab"
+            id="tab-ads"
+            aria-selected={section === 'ads'}
+            aria-controls="panel-ads"
+            tabIndex={section === 'ads' ? 0 : -1}
+            onClick={() => switchSection('ads')}
+          >
+            Advertising
+            <span className="tab-count">{draft.ads.enabled ? 'On' : 'Off'}</span>
+          </button>
         </div>
 
         {issues.length > 0 ? (
@@ -748,7 +778,7 @@ export function Workbench({
               </div>
             </div>
           </section>
-        ) : (
+        ) : section === 'today' ? (
           <section
             className="panel-section"
             role="tabpanel"
@@ -791,6 +821,16 @@ export function Workbench({
               liveCount={live.pages}
               today={today}
             />
+          </section>
+        ) : (
+          <section
+            className="panel-section"
+            role="tabpanel"
+            id="panel-ads"
+            aria-labelledby="tab-ads"
+            tabIndex={0}
+          >
+            <AdsEditor ads={draft.ads} busy={busy} onUpdate={updateAds} />
           </section>
         )}
       </main>

@@ -18,6 +18,7 @@ import { PressableScale } from '@/components/PressableScale';
 import { ScreenBackdrop } from '@/components/ScreenBackdrop';
 import { useToast } from '@/components/Toast';
 import { useCatalogConfig } from '@/lib/catalog-provider';
+import { useAds } from '@/lib/ads-provider';
 import {
   templateFromExample,
   validateCustomEngine,
@@ -53,6 +54,7 @@ export default function SearchSettings() {
     source,
     updatedAt,
   } = useCatalogConfig();
+  const { ads, privacyOptionsRequired, showPrivacyOptions, testMode } = useAds();
 
   const [name, setName] = useState('');
   const [searchUrl, setSearchUrl] = useState('');
@@ -112,6 +114,16 @@ export default function SearchSettings() {
     haptic.tap();
     const ok = await refreshCatalog();
     toast.show(ok ? 'Catalog is up to date' : 'Could not reach the catalog');
+  };
+
+  const handleAdPrivacy = async () => {
+    haptic.tap();
+    const ok = await showPrivacyOptions();
+    toast.show(
+      ok
+        ? 'Ad privacy choices updated'
+        : 'Could not open the ad privacy choices',
+    );
   };
 
   return (
@@ -565,6 +577,111 @@ export default function SearchSettings() {
                 </View>
               </View>
             </View>
+
+            {ads.enabled ? (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={[styles.sectionLabel, { color: theme.muted }]}>
+                    ADVERTISING
+                  </Text>
+                  <Text style={[styles.sectionMeta, { color: theme.faint }]}>
+                    {testMode ? 'Test banner' : 'Live banner'}
+                  </Text>
+                </View>
+
+                <View
+                  style={[
+                    styles.card,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.line,
+                    },
+                    softShadow(theme.mode),
+                  ]}
+                >
+                  <View style={styles.catalogHead}>
+                    <View
+                      style={[
+                        styles.catalogIcon,
+                        { backgroundColor: theme.accentSoft },
+                      ]}
+                    >
+                      <Icon
+                        name="shield"
+                        size={17}
+                        color={theme.accent}
+                        strokeWidth={1.8}
+                      />
+                    </View>
+                    <View style={styles.catalogCopy}>
+                      <Text
+                        style={[styles.catalogTitle, { color: theme.ink }]}
+                      >
+                        One banner on Home
+                      </Text>
+                      <Text
+                        numberOfLines={2}
+                        style={[styles.catalogMeta, { color: theme.muted }]}
+                      >
+                        Served by Google AdMob. Never in the browser, private
+                        tabs, sheets, or this screen.
+                      </Text>
+                    </View>
+                    {privacyOptionsRequired ? (
+                      <PressableScale
+                        onPress={handleAdPrivacy}
+                        scaleTo={0.97}
+                        style={[
+                          styles.checkButton,
+                          { borderColor: theme.line },
+                        ]}
+                        accessibilityLabel="Review ad privacy choices"
+                      >
+                        <Icon
+                          name="shield"
+                          size={13}
+                          color={theme.inkSoft}
+                          strokeWidth={2}
+                        />
+                        <Text
+                          style={[
+                            styles.checkText,
+                            { color: theme.inkSoft },
+                          ]}
+                        >
+                          Choices
+                        </Text>
+                      </PressableScale>
+                    ) : null}
+                  </View>
+
+                  <View
+                    style={[
+                      styles.catalogNote,
+                      { borderTopColor: theme.line },
+                    ]}
+                  >
+                    <Icon
+                      name="shield"
+                      size={14}
+                      color={theme.faint}
+                      strokeWidth={1.8}
+                    />
+                    <Text
+                      style={[styles.catalogNoteText, { color: theme.muted }]}
+                    >
+                      {testMode
+                        ? 'This build requests Google test ads only. '
+                        : ''}
+                      Google may use your advertising ID, IP address, and ad
+                      interactions to serve and measure ads. Where your region
+                      requires it, a Choices button appears here to review or
+                      withdraw your choice.
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ) : null}
 
             <Text style={[styles.footer, { color: theme.faint }]}>
               Changes save as you make them.

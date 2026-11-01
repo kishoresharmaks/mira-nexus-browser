@@ -1,5 +1,15 @@
 import bundled from '@/lib/default-catalog.json';
 
+export type AdsLayout = 'inline' | 'anchored';
+
+export type AdsConfig = {
+  enabled: boolean;
+  testMode: boolean;
+  layout: AdsLayout;
+  androidUnitId: string;
+  iosUnitId: string;
+};
+
 export type Engine = {
   id: string;
   name: string;
@@ -21,6 +31,7 @@ export type Page = {
 export type Catalog = {
   version: 1;
   defaultEngineId: string;
+  ads: AdsConfig;
   engines: Engine[];
   pages: Page[];
 };
@@ -40,6 +51,7 @@ export type PublicCatalog = {
   revision: number;
   publishedAt: string;
   defaultEngineId: string;
+  ads: AdsConfig;
   engines: {
     id: string;
     name: string;
@@ -69,6 +81,19 @@ export const MAX_PAGES = 250;
 const MAX_URL = 2_048;
 const MARKER = 'miraquerytoken';
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const AD_UNIT_ID = /^ca-app-pub-\d{16}\/\d{10}$/;
+
+export const DEFAULT_ADS: AdsConfig = {
+  enabled: false,
+  testMode: true,
+  layout: 'inline',
+  androidUnitId: '',
+  iosUnitId: '',
+};
+
+export function isAdUnitId(value: string): boolean {
+  return AD_UNIT_ID.test(value);
+}
 const PRIVATE_HOSTNAME =
   /^(?:localhost|127(?:\.\d{1,3}){3}|10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}|\[?::1\]?|.+\.local)$/i;
 
@@ -231,6 +256,21 @@ function enabledEngineIds(catalog: Catalog): Set<string> {
 }
 
 /**
+ * Ads are opt-in. Missing or malformed config resolves to the safe default:
+ * no ads, test units, inline placement.
+ */
+export function coerceAds(value: unknown): AdsConfig {
+  if (!isRecord(value)) return { ...DEFAULT_ADS };
+  return {
+    enabled: value.enabled === true,
+    testMode: value.testMode !== false,
+    layout: value.layout === 'anchored' ? 'anchored' : 'inline',
+    androidUnitId: text(value.androidUnitId, 64),
+    iosUnitId: text(value.iosUnitId, 64),
+  };
+}
+
+/**
  * Storage and requests are both untrusted boundaries. Coerce a payload into a
  * complete catalog without deciding whether it is publishable yet; drafts are
  * allowed to be incomplete, only the live feed is not.
@@ -291,7 +331,7 @@ export function coerceCatalog(value: unknown): Catalog | null {
     ? requestedDefault
     : (engines.find((engine) => engine.enabled)?.id ?? engines[0]?.id ?? '');
 
-  return { version: 1, defaultEngineId, engines, pages };
+  return { version: 1, defaultEngineId, ads: coerceAds(value.ads), engines, pages };
 }
 
 export function validateCatalog(catalog: Catalog): Issue[] {
@@ -384,6 +424,33 @@ export function validateCatalog(catalog: Catalog): Issue[] {
     }
   }
 
+  const ads = catalog.ads;
+  if (ads.enabled && !ads.testMode) {
+    const androidValid = isAdUnitId(ads.androidUnitId);
+    const iosValid = isAdUnitId(ads.iosUnitId);
+    if (ads.androidUnitId && !androidValid) {
+      issues.push({
+        at: 'Android ad unit',
+        message:
+          'Use a live Android unit ID in the form ca-app-pub-<16 digits>/<10 digits>.',
+      });
+    }
+    if (ads.iosUnitId && !iosValid) {
+      issues.push({
+        at: 'iOS ad unit',
+        message:
+          'Use a live iOS unit ID in the form ca-app-pub-<16 digits>/<10 digits>.',
+      });
+    }
+    if (!androidValid && !iosValid) {
+      issues.push({
+        at: 'Ads',
+        message:
+          'Add a valid Android or iOS ad unit ID, or turn test mode back on.',
+      });
+    }
+  }
+
   return issues;
 }
 
@@ -415,6 +482,7 @@ export function toPublicCatalog(
     defaultEngineId: liveIds.has(published.defaultEngineId)
       ? published.defaultEngineId
       : engines[0].id,
+    ads: { ...published.ads },
     engines,
     pages,
   };
@@ -425,6 +493,7 @@ type BundledShape = {
   revision: number;
   publishedAt: string;
   defaultEngineId: string;
+  ads?: unknown;
   engines: { id: string; name: string; searchUrl: string; note: string }[];
   pages: {
     id: string;
@@ -442,6 +511,7 @@ export function createSeedState(): StoreState {
   const draft: Catalog = {
     version: 1,
     defaultEngineId: bundledCatalog.defaultEngineId,
+    ads: coerceAds(bundledCatalog.ads),
     engines: bundledCatalog.engines.map((engine) => ({
       ...engine,
       enabled: true,

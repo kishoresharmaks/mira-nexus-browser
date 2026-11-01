@@ -1046,6 +1046,7 @@ export default function Mira() {
           privateTabCount={privateTabCount}
           today={today}
           todayLabel={curatedShortDate()}
+          adsVisible={!browserActive}
           onOpenSearch={() => openAddress('', true)}
           onOpenPrivateTab={openPrivateTab}
           onOpenPrivateTabs={openTabs}

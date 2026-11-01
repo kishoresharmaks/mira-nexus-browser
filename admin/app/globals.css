@@ -1255,6 +1255,324 @@ h4 {
   max-width: 62ch;
 }
 
+/* Advertising desk */
+
+.ads-grid {
+  align-items: stretch;
+}
+
+.ad-stage {
+  border-top: var(--rule-bar) solid var(--color-rule-strong);
+  background: var(--color-sheet);
+  padding: var(--space-4);
+}
+
+.ad-toggle-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: var(--rule-hair) solid var(--color-rule);
+}
+
+.ad-toggle-row:first-child {
+  padding-top: 0;
+}
+
+.ad-toggle-copy {
+  min-width: 0;
+}
+
+.ad-toggle-title {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.ad-toggle-note {
+  margin-top: 2px;
+  max-width: 52ch;
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--color-muted);
+}
+
+.ad-switch {
+  flex: none;
+  width: 2.75rem;
+  height: 1.55rem;
+  margin-top: 2px;
+  padding: 2px;
+  border: var(--rule-hair) solid var(--color-rule-strong);
+  border-radius: 999px;
+  background: var(--color-paper-3);
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.ad-switch[data-on="true"] {
+  border-color: var(--color-accent-deep);
+  background: var(--color-accent);
+}
+
+.ad-switch:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ad-switch-thumb {
+  display: block;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: var(--color-sheet);
+  box-shadow: 0 1px 2px rgba(25, 22, 16, 0.25);
+  transition: transform 160ms ease;
+}
+
+.ad-switch[data-on="true"] .ad-switch-thumb {
+  transform: translateX(1.18rem);
+}
+
+.ad-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ad-fields:disabled {
+  opacity: 0.6;
+}
+
+.ad-layout-fieldset {
+  min-width: 0;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.ad-layout-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.ad-layout-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--rule-hair) solid var(--color-rule);
+  background: var(--color-paper-top);
+  cursor: pointer;
+}
+
+.ad-layout-option[data-selected="true"] {
+  border-color: var(--color-ink);
+  box-shadow: inset var(--rule-bar) 0 0 var(--color-accent);
+}
+
+.ad-layout-option input {
+  flex: none;
+  margin: 0.18rem 0 0;
+  accent-color: var(--color-accent);
+}
+
+.ad-layout-copy {
+  display: block;
+  min-width: 0;
+}
+
+.ad-layout-title {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.ad-layout-note {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+.ad-note {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border-left: var(--rule-bar) solid var(--color-accent);
+  background: var(--color-paper-2);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  color: var(--color-ink-2);
+}
+
+.ad-note--warn {
+  border-left-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.ad-fields .field:last-of-type {
+  margin-bottom: 0;
+}
+
+.ad-preview-editor {
+  background: var(--color-paper-2);
+}
+
+.ad-preview-frame {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 20rem);
+  min-height: 31rem;
+  margin: 0 auto;
+  padding: 0.55rem;
+  border: var(--rule-hair) solid var(--color-rule-strong);
+  border-radius: 1.4rem;
+  background: var(--color-paper);
+  box-shadow: 0 18px 40px rgba(25, 22, 16, 0.12);
+}
+
+.ad-preview-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.15rem 0.5rem 0.4rem;
+  font-family: var(--font-figure);
+  font-size: 0.55rem;
+  color: var(--color-muted);
+}
+
+.ad-preview-status-right {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  color: var(--color-ink);
+}
+
+.ad-preview-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding: 0.7rem 0.8rem 0.8rem;
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: 0.95rem;
+  background: var(--color-paper-top);
+}
+
+.ad-preview-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ad-preview-mark {
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 1.5px solid var(--color-ink);
+  border-radius: 50%;
+  box-shadow: inset 0.16rem 0 0 var(--color-accent);
+}
+
+.ad-preview-wordmark {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  color: var(--color-ink);
+}
+
+.ad-preview-headline {
+  margin-top: 0.9rem;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1.03;
+  color: var(--color-ink);
+}
+
+.ad-preview-headline em {
+  font-family: var(--font-display);
+  font-style: italic;
+}
+
+.ad-preview-search {
+  margin-top: 0.7rem;
+  padding: 0.45rem 0.55rem;
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: 0.45rem;
+  background: var(--color-sheet);
+  font-size: 0.58rem;
+  color: var(--color-muted);
+}
+
+.ad-preview-label {
+  margin-top: 0.9rem;
+  font-size: 0.47rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--color-muted);
+}
+
+.ad-preview-card {
+  height: 3.4rem;
+  margin-top: 0.35rem;
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    135deg,
+    var(--color-accent-soft),
+    var(--color-sheet) 62%
+  );
+}
+
+.ad-preview-trail {
+  height: 1.5rem;
+  margin-top: 0.35rem;
+  border: var(--rule-hair) solid var(--color-rule);
+  border-radius: 0.45rem;
+  background: var(--color-sheet);
+}
+
+.ad-preview-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 3.4rem;
+  margin-top: 0.75rem;
+  border: 1px dashed var(--color-rule-strong);
+  background: var(--color-paper-2);
+}
+
+.ad-preview-frame[data-layout="anchored"] .ad-preview-slot {
+  margin-top: auto;
+  border-style: solid;
+  border-top: 2px solid var(--color-accent);
+}
+
+.ad-preview-tag {
+  padding: 0.08rem 0.22rem;
+  background: var(--color-ink);
+  color: var(--color-paper-top);
+  font-family: var(--font-figure);
+  font-size: 0.45rem;
+  letter-spacing: 0.04em;
+}
+
+.ad-preview-copy {
+  font-size: 0.58rem;
+  color: var(--color-muted);
+}
+
+.ad-preview-footnote {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: var(--rule-hair) solid var(--color-rule);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--color-muted);
+}
+
 @media (min-width: 64.0625rem) {
   .editor {
     position: sticky;

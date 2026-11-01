@@ -14,6 +14,7 @@ import {
   BUNDLED_CATALOG,
   normalizeCatalog,
   normalizeCustomEngines,
+  type AdsConfig,
   type Catalog,
   type SearchEngine,
 } from '@/lib/catalog';
@@ -45,6 +46,7 @@ type CatalogContextValue = {
   customEngines: SearchEngine[];
   activeEngine: SearchEngine;
   todayPages: Catalog['pages'];
+  ads: AdsConfig;
   selectEngine: (id: string) => void;
   addCustomEngine: (engine: SearchEngine) => void;
   removeCustomEngine: (id: string) => void;
@@ -274,6 +276,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       customEngines: search.customEngines,
       activeEngine,
       todayPages: catalog.pages,
+      ads: catalog.ads,
       selectEngine,
       addCustomEngine,
       removeCustomEngine,
@@ -289,6 +292,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       addCustomEngine,
       catalog.engines,
       catalog.pages,
+      catalog.ads,
       engines,
       refreshCatalog,
       refreshError,

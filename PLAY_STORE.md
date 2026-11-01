@@ -2,7 +2,8 @@
 
 Everything in this file is written for the app as it exists in this repository:
 package `com.mira.browser`, version `1.0.0`, Android-only release, Expo SDK 58
-(target API 36), no account, no ads, no analytics.
+(target API 36), no account, one optional home-screen banner served by Google
+AdMob, no analytics.
 
 Play Console requirements change. Treat the "verify at submission" notes as part
 of the checklist, not as optional reading.
@@ -19,20 +20,26 @@ of the checklist, not as optional reading.
 | Category | **Tools** |
 | Tags | Browser, Reading, Productivity |
 | Pricing | Free, no in-app purchases |
-| Ads | No |
+| Ads | **Yes** — one adaptive banner on the home screen, served by Google AdMob |
 | Account required | No |
 | Platforms | Android phone and tablet (portrait) |
 | Privacy policy | `https://REPLACE_WITH_YOUR_DOMAIN/privacy.html` |
 | Support email | `REPLACE_WITH_YOUR_EMAIL@example.com` |
 
-Mira is a general-purpose browser. It does not require a login, does not contain
-ads, and does not send browsing data to the developer. The optional discussion
-lookup does send the current page address to two public discussion services, so
-the Data safety form declares that share while the developer collects nothing.
-Mira also fetches a small public catalog of search presets and Today pages; that
-request carries no account, device ID, query, or browsing history, and the app
-keeps a bundled fallback. Private tabs write no history, bypass the page cache,
-block screen capture, and never trigger the discussion lookup. On Android,
+Mira is a general-purpose browser. It does not require a login and does not send
+browsing data to the developer. One optional adaptive banner on the home screen
+is served by Google AdMob; it never appears in the browser, private tabs, sheets,
+or Settings. The Google Mobile Ads SDK can receive an advertising ID, IP address,
+app interactions, and diagnostics for ad delivery, measurement, and fraud
+prevention, so the Data safety form declares those types as shared with Google.
+Where required, Mira gathers UMP consent before initializing the SDK, and the app
+offers a privacy-choices button in Settings. The optional discussion lookup sends
+the current page address to two public discussion services, so the Data safety
+form declares that share as well; the developer collects nothing. Mira also
+fetches a small public catalog of search presets, Today pages, and ad settings;
+that request carries no account, device ID, query, or browsing history, and the
+app keeps a bundled fallback. Private tabs write no history, bypass the page
+cache, block screen capture, and never trigger the discussion lookup. On Android,
 cookies and site storage are shared with normal tabs, so a site may still
 recognize you. The privacy policy must be publicly reachable before the first
 review.
@@ -58,7 +65,7 @@ A quieter browser: trails, five tabs, private rooms, and one page a day.
 ```
 Mira is a browser for reading, not scrolling.
 
-It opens ordinary websites in a clean, full-screen view with only the controls you need. No feed, no account, no advertising, no analytics. Your history, trails, shortcuts, search choice, and theme stay on your device.
+It opens ordinary websites in a clean, full-screen view with only the controls you need. No feed, no account, no analytics, and only one small home-screen banner. Your history, trails, shortcuts, search choice, and theme stay on your device.
 
 TRAILS
 Mira groups the pages you visit into trails. Read for a while, wander through a few links, then put the phone down. When you come back, the trail is waiting: a row of dots showing where you were. Resume it, rename it, or delete it.
@@ -84,8 +91,12 @@ Send a link from any app's share sheet and it opens in a new tab. Share plain te
 ANDROID HOME-SCREEN WIDGET
 Put Today's page on your home screen. The widget also shows up to three shortcuts when there is room. Tap any to open Mira. It updates through the day and follows your theme.
 
+ONE QUIET HOME-SCREEN BANNER
+Mira can show a single adaptive banner on the home screen, served by Google AdMob. It never appears while you browse, in private tabs, in sheets, or in Settings. Where required, Mira asks for consent before requesting an ad, and Settings offers a button to review or withdraw your ad choices. Google may use your advertising ID, IP address, app interactions, and diagnostics to serve, measure, and protect that ad. The developer does not receive that data.
+
 PRIVATE BY CONSTRUCTION
-• No account, sign-in, analytics, ads, or crash-reporting SDK.
+• No account, sign-in, analytics, or crash-reporting SDK.
+• One small home-screen banner, served by Google AdMob; no ads in the browser, private tabs, sheets, or Settings.
 • History, trails, search choice, and theme stay on your device.
 • Android backup is disabled, so browsing data is not copied to Google Drive.
 • HTTPS-only top-level browsing; public HTTP links are upgraded.
@@ -119,6 +130,7 @@ First release.
 • Share links and text into Mira
 • Android home-screen widget
 • HTTPS-only browsing, third-party cookies off, no analytics
+• One quiet home-screen banner, clearly marked
 • Light and dark themes
 ```
 
@@ -172,25 +184,41 @@ clean: 9:41, full battery, no notifications, no debug banner.
 
 ## 4. Data safety form
 
-Mira has no developer-operated server and does not collect data. One feature does
-send the address of the page you are reading directly to two third-party
-discussion services, so the most defensible Data safety answer is "shares Web
-browsing history" rather than a blanket "no data". Play lets a data type be
-shared without being collected by the developer.
+Mira has no developer-operated server and the developer does not receive user
+data. Two features send data to third parties:
+
+1. The optional discussion lookup sends the current page address to Hacker News
+   and Lobsters.
+2. The home-screen banner uses the Google Mobile Ads SDK, which collects and
+   shares ad data with Google.
+
+Play treats data transmitted by an embedded SDK as collected by the app, so
+declare the AdMob data types below as collected and shared even though the
+developer never receives them. Play also lets a data type be shared without
+being collected by the developer, which is how the discussion lookup is declared.
 
 ### Section: Data collection and security
 
 | Question | Answer |
 | --- | --- |
-| Does your app collect or share any of the required user data types? | **Yes** — the optional discussion lookup shares the current page address with Hacker News and Lobsters. The developer collects nothing. |
-| Is all of the user data collected by your app encrypted in transit? | **Yes** — HTTPS only; cleartext traffic is disabled |
-| Do you provide a way for users to request that their data be deleted? | **Yes** — in-app History → Clear history removes Mira's lists; Android Settings → Apps → Mira → Storage → Clear storage removes cookies and site storage, including private-tab cookies; the discussion lookup stores nothing on a server |
+| Does your app collect or share any of the required user data types? | **Yes** — the optional discussion lookup shares the current page address with Hacker News and Lobsters; the Google Mobile Ads SDK collects and shares ad data with Google. The developer receives neither. |
+| Is all of the user data collected by your app encrypted in transit? | **Yes** — HTTPS/TLS only; cleartext traffic is disabled |
+| Do you provide a way for users to request that their data be deleted? | **Yes** — in-app History → Clear history removes Mira's lists; Android Settings → Apps → Mira → Storage → Clear storage removes cookies, site storage, and the UMP consent record; Android Settings → Privacy → Ads lets users reset or delete the advertising ID; the discussion lookup stores nothing on a server |
 
-Data-type row:
+Data-type rows:
 
-| Data type | Collected by developer | Shared | Recipients | Purpose | Optional | Ephemeral | Encrypted |
+| Data type | Collected by app | Shared | Recipients | Purpose | Optional | Ephemeral | Encrypted |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Web browsing history (current page address only) | **No** | **Yes** | Algolia HN Search API (`hn.algolia.com`) for Hacker News; Lobsters (`lobste.rs`) | App functionality — find public discussion threads | **Yes** — "Look up discussions" can be turned off | **Yes** — held in memory for 15 minutes, never written to history or trails | **Yes** |
+| Approximate location (estimated from IP address) | **Yes** — by the Google Mobile Ads SDK | **Yes** | Google AdMob | Advertising or marketing; Analytics; Fraud prevention, security, and compliance | **No** — consent-gated where required | **No** | **Yes** |
+| App interactions (app launches, taps, video views) | **Yes** — by the Google Mobile Ads SDK | **Yes** | Google AdMob | Advertising or marketing; Analytics; Fraud prevention, security, and compliance | **No** — consent-gated where required | **No** | **Yes** |
+| Device or other IDs (advertising ID, app set ID) | **Yes** — by the Google Mobile Ads SDK | **Yes** | Google AdMob | Advertising or marketing; Analytics; Fraud prevention, security, and compliance | **No** — consent-gated where required; the advertising ID can be reset or deleted in Android settings | **No** | **Yes** |
+| Other app performance data (diagnostics: launch time, hang rate, energy usage) | **Yes** — by the Google Mobile Ads SDK | **Yes** | Google AdMob | Analytics; Fraud prevention, security, and compliance | **No** | **No** | **Yes** |
+
+Where Google's UMP flow requires consent, refusing consent stops ad requests and
+the SDK is not initialized. Users can reopen the consent form from Settings →
+Advertising. The developer can also disable the placement entirely in the
+published catalog.
 
 The public catalog request is a plain HTTPS GET for a small configuration file.
 It carries no account, device ID, search query, or browsing history, and Mira
@@ -203,11 +231,12 @@ analytics, this form must change before that release ships.
 Do **not** declare the sites the user visits in the browser itself: those are
 user-initiated requests to the sites, not collection by Mira. Do **not** declare
 history, trails, shortcuts, private-tab history, or the theme as collected; Mira
-never sends them to the developer. Private tabs also skip the discussion lookup,
-so their addresses are never sent to Hacker News or Lobsters. Cookies and site
-storage are set by the sites the user visits and stay in Android's WebView; Mira
-does not collect them. If a future release adds sync, crash reporting, or
-analytics, this form must change before that release ships.
+never sends them to the developer. Private tabs also skip the discussion lookup
+and unmount the ad banner, so neither their addresses nor their content reach
+Hacker News, Lobsters, or the ad SDK. Cookies and site storage are set by the
+sites the user visits and stay in Android's WebView; Mira does not collect them.
+If a future release adds sync, crash reporting, or analytics, this form must
+change before that release ships.
 
 If the form requires a note, use:
 
@@ -215,19 +244,35 @@ If the form requires a note, use:
 Mira has no account, no analytics SDK, and no developer-operated server. History,
 trails, shortcuts, and the theme are stored in Android app-private storage and
 never leave the device. Private tabs write no history or trails, bypass the page
-cache, block screen capture, and never run the discussion lookup. Android's
-WebView shares cookies and site storage with normal tabs, so a site may recognize
-the reader; closing private tabs does not clear those cookies. As a browser, Mira
-requests the sites the user opens directly, as any browser does. The optional
-discussion lookup sends only the current page address to the public Hacker News
-(Algolia) and Lobsters APIs; it sends no account, device identifier, search
-terms, or browsing history, holds the response in memory for 15 minutes, and
-never runs in a private tab. Android backup is disabled.
+cache, block screen capture, and never run the discussion lookup or show an ad.
+Android's WebView shares cookies and site storage with normal tabs, so a site may
+recognize the reader; closing private tabs does not clear those cookies. As a
+browser, Mira requests the sites the user opens directly, as any browser does.
+The optional discussion lookup sends only the current page address to the public
+Hacker News (Algolia) and Lobsters APIs; it sends no account, device identifier,
+search terms, or browsing history, holds the response in memory for 15 minutes,
+and never runs in a private tab. One adaptive banner on the home screen is served
+by Google AdMob using the Google Mobile Ads SDK. The SDK may collect the
+advertising ID, app set ID, IP address (used to estimate general location), app
+interactions, and diagnostics for advertising, analytics, and fraud prevention.
+Mira gathers UMP consent before initializing the SDK where required and offers a
+privacy-choices button in Settings. Ads never appear in the browser, private
+tabs, sheets, or Settings. Android backup is disabled.
 ```
 
 ### Section: Ads
 
-No ads. Do not enable the "Contains ads" label.
+**Yes.** Turn on the "Contains ads" label. Mira shows one adaptive banner on the
+home screen, served by Google AdMob. It is not an ad-free app and must not be
+labelled as one, even if the published catalog currently has the placement
+switched off.
+
+Before submitting, enable the banner in the published catalog and test with a
+production build so the declaration matches what reviewers see. Test mode must
+be off in the published configuration for a production submission; otherwise the
+app only requests Google test ads. Ads never appear in the browser, private tabs,
+sheets, or Settings. Where UMP requires consent, the app asks before the first
+request and exposes the choice again in Settings.
 
 ### Section: App access
 
@@ -247,7 +292,7 @@ No login, account, invite code, or location restriction. Open the app and browse
 | News app | No |
 | COVID-19 contact tracing | No |
 | Data safety | As above |
-| Advertising ID | Not used |
+| Advertising ID | **Yes** — used for advertising, analytics, and fraud prevention by the Google Mobile Ads SDK |
 | Photo/video permissions | Not requested |
 | Location permissions | Not requested |
 | Camera/microphone | Not requested |
@@ -272,6 +317,7 @@ Mira is a browser, so answer the "unrestricted web access" question truthfully:
 | Gambling, contests, or real-money purchases | **No** | No purchases, no gambling features |
 | Does the app share the user's current location? | **No** | Location is blocked in the WebView and not requested |
 | Does the app allow users to purchase digital goods? | **No** | No billing integration |
+| Does the app contain ads? | **Yes** | One adaptive home-screen banner served by Google AdMob |
 
 Expected outcome: **Teen** (or the regional equivalent) because of unrestricted
 web access. Do not try to force a lower rating by hiding the browser behaviour;
@@ -320,8 +366,8 @@ URL stable; changing it later requires a Play Console update.
 
 ### Catalog admin (separate Next.js app)
 
-The search presets and Today pages are edited in `admin/`, a Next.js app that
-deploys independently of the mobile build.
+The search presets, Today pages, and the home-screen ad configuration are edited
+in `admin/`, a Next.js app that deploys independently of the mobile build.
 
 1. Create a Vercel project from `admin/`.
 2. Create a MongoDB Atlas database (the free tier is enough) and add a database
@@ -341,8 +387,9 @@ never reach the public feed until you press Publish. Local preview can use
 `MIRA_DEV_FILE_STORE=1`; production requires `MONGODB_URI`. See
 `admin/README.md`.
 
-The catalog carries only public editorial data: engine names, search URLs, page
-titles, links, categories, notes, and reading times. Never put personal data in
+The catalog carries only public editorial and configuration data: engine names,
+search URLs, page titles, links, categories, notes, reading times, whether the
+banner is enabled, its layout, and its ad unit IDs. Never put personal data in
 it.
 
 ### Before you publish
@@ -358,6 +405,14 @@ it.
       confirm the public feed.
 - [ ] Set `EXPO_PUBLIC_CATALOG_URL` for the production build and confirm the app
       still opens with its bundled catalog when the feed is unreachable.
+- [ ] Create the AdMob app entries for Android and iOS, replace the Google test app
+      IDs in `app.json`, and create one adaptive banner unit per platform.
+- [ ] Enter the real unit IDs in the admin Advertising tab, turn test mode off,
+      enable the banner, and publish.
+- [ ] Confirm the production build shows the real banner on Home and no banner in
+      the browser, private tabs, sheets, or Settings.
+- [ ] Check Settings → Advertising: the privacy-choices button appears where UMP
+      requires it and reopens the consent form.
 
 ---
 
@@ -372,10 +427,11 @@ npx eas-cli@latest init          # links this directory to an EAS project
 
 `eas init` writes `extra.eas.projectId` into `app.json`. Commit that change.
 
-### Development build (share extension, widget, and capture shield)
+### Development build (share extension, widget, capture shield, and AdMob)
 
-Expo Go cannot load `expo-share-intent` or `react-native-android-widget`, and the
-widget task handler is skipped there. Use a development build:
+Expo Go cannot load `expo-share-intent`, `react-native-android-widget`, or
+`react-native-google-mobile-ads`, and the widget task handler is skipped there.
+Use a development build:
 
 ```bash
 npx eas-cli@latest build --profile development --platform android
@@ -393,6 +449,13 @@ Install the APK on a physical Android device. Then verify:
   and the app-switcher preview is blank.
 - Close all private tabs → screenshots work again and no private entry remains in
   history or trails.
+- Enable ads in the admin with test mode on, publish, and refresh the app
+  catalog → a label-marked Google test banner appears on Home.
+- Open a page, a sheet, a private tab, and Settings → no banner appears.
+- Return Home → the banner is requested again.
+- In an EEA test locale, confirm the UMP form appears once, refusing consent
+  suppresses the banner, and Settings → Advertising → Choices reopens the form.
+- Replace the test app IDs and units only when you are ready to test live fill.
 
 ### Production build
 
@@ -429,7 +492,9 @@ version) deliberately when the listing should show a new number.
 - [x] `npx expo-doctor` passes 20/20.
 - [x] `npx expo export --platform android` succeeds.
 - [x] `usesCleartextTraffic: false`; `allowBackup: false`.
-- [x] Only `INTERNET` and `VIBRATE` remain in the merged manifest.
+- [x] `INTERNET`, `ACCESS_NETWORK_STATE`, `VIBRATE`, `WAKE_LOCK`, and
+      `com.google.android.gms.permission.AD_ID` remain in the merged manifest for
+      browsing and ads.
 - [x] Camera, microphone, location, storage, contacts, SMS, notifications, and
       overlay permissions are blocked.
 - [x] Android Safe Browsing enabled; WebView metrics opted out.
@@ -440,12 +505,16 @@ version) deliberately when the listing should show a new number.
       previews that lack the native module.
 - [x] Share intent accepts `text/*` only.
 - [x] Widget has a preview image and bundled fonts.
-- [x] No analytics, ads, or crash-reporting SDK in `package.json`.
-- [x] Search presets and Today pages load from a validated public catalog with a
-      bundled fallback; the request carries no account, device ID, query, or
-      browsing history.
+- [x] No analytics or crash-reporting SDK in `package.json`. Google Mobile Ads is
+      the only ad SDK, and it initializes only after UMP consent.
+- [x] One adaptive banner on Home only; it unmounts in the browser, private tabs,
+      sheets, and Settings.
+- [x] Search presets, Today pages, and ad settings load from a validated public
+      catalog with a bundled fallback; the request carries no account, device ID,
+      query, or browsing history.
 - [x] `PRIVACY.md` and `docs/privacy.html` describe the shipped behaviour,
-      including search-engine choice and the catalog request.
+      including search-engine choice, the catalog request, and advertising.
+- [x] `app.json` uses Google test app IDs until real AdMob apps are created.
 
 ### Store setup
 
@@ -457,14 +526,17 @@ version) deliberately when the listing should show a new number.
 - [ ] Upload the eight captures in `docs/play/screenshots/` in the listed order.
 - [ ] Fill in the short and full descriptions.
 - [ ] Complete Data safety: "shares Web browsing history" for the optional
-      discussion lookup; developer collects nothing. Private-tab history is never
-      written; private cookies are shared with normal tabs on Android.
-- [ ] Complete the content rating questionnaire (unrestricted web access: yes).
+      discussion lookup, plus the AdMob data types (approximate location, app
+      interactions, device or other IDs, other app performance data) collected and
+      shared with Google. Private-tab history is never written; private cookies
+      are shared with normal tabs on Android.
+- [ ] Complete the content rating questionnaire (unrestricted web access: yes,
+      contains ads: yes).
 - [ ] Set target audience to 13+ and "designed for families" to No.
-- [ ] Declare no ads.
+- [ ] Declare "Contains ads" and "Advertising ID: Yes" in Play Console.
 - [ ] Provide the app-access note (no login).
-- [ ] Deploy the catalog admin, publish a revision, and set
-      `EXPO_PUBLIC_CATALOG_URL` for the production build.
+- [ ] Deploy the catalog admin, publish a revision with the production ad unit IDs,
+      and set `EXPO_PUBLIC_CATALOG_URL` for the production build.
 - [ ] Add a support email and (optionally) a website.
 - [ ] Complete the "Government apps" and "Financial features" declarations.
 - [ ] Upload the production `.aab` to internal testing.
@@ -495,6 +567,14 @@ version) deliberately when the listing should show a new number.
 - [ ] Rename a trail, delete a trail, clear history.
 - [ ] Share a link and plain text into Mira.
 - [ ] Add, resize, tap, and theme-test the widget.
+- [ ] With ads enabled and test mode on, confirm one labeled test banner on Home.
+- [ ] Browse, open a sheet, open a private tab, and open Settings; confirm no
+      banner is present in any of them.
+- [ ] Return to Home and confirm the banner can request again.
+- [ ] In a UMP-regulated test locale, refuse consent; confirm no ad request and
+      no crash, then reopen Choices in Settings and grant consent.
+- [ ] With ads disabled in the published catalog, refresh and confirm the slot
+      disappears without leaving an empty gap.
 - [ ] Toggle light/dark; both are legible.
 - [ ] Rotate? Mira is portrait-only by design; confirm the listing says so.
 - [ ] Verify the app launches with no network (offline error state is designed).
@@ -548,13 +628,18 @@ and place the widget. Tap the headline to open the page.
 To test share intake: share a link from Chrome to Mira. The link opens in a new
 tab.
 
-No login credentials, subscriptions, or location access are needed. The app
-requests only INTERNET (plus VIBRATE for haptics). Camera, microphone, location,
-storage, contacts, SMS, and notification permissions are removed from the
-manifest. Third-party cookies are disabled and top-level browsing is HTTPS-only.
-The optional discussion lookup sends only the current page address to the public
-Hacker News (Algolia) and Lobsters APIs; it can be switched off in the app. The
-catalog request carries no account, device ID, query, or browsing history.
+Advertising: when the published catalog enables it, one adaptive banner appears
+on the home screen, labeled ADVERTISEMENT. It is served by Google AdMob. It never
+appears in the browser, private tabs, sheets, or Settings. Where UMP requires
+consent, the app shows a consent form before the first request; the same choice
+can be reopened from Settings → Advertising. The app requests INTERNET,
+ACCESS_NETWORK_STATE, VIBRATE, WAKE_LOCK, and the advertising ID permission.
+Camera, microphone, location, storage, contacts, SMS, and notification
+permissions are removed from the manifest. Third-party cookies are disabled and
+top-level browsing is HTTPS-only. The optional discussion lookup sends only the
+current page address to the public Hacker News (Algolia) and Lobsters APIs; it
+can be switched off in the app. The catalog request carries no account, device
+ID, query, or browsing history.
 ```
 
 If review asks about "unrestricted web access" or the content rating, point to the
@@ -579,6 +664,14 @@ child-safe browser; it is not.
   persist.
 - **No built-in ad blocker.** Third-party cookies are off, but requests are not
   filtered.
+- **One banner, home only.** Mira does not use interstitials, rewarded ads, or
+  native ad units. The banner never appears in the browser, private tabs, sheets,
+  or Settings, and a failed request leaves no empty slot.
+- **The banner is remotely configured.** Whether it appears, its layout, and its
+  unit IDs come from the published catalog. The app may keep the last cached
+  configuration for about an hour when it cannot refresh.
+- **Ads need a native build.** Expo Go and the web preview cannot load the AdMob
+  SDK, so they show no banner at all.
 - **No sync.** There is no account and no cloud.
 - **Some sites refuse to load in a WebView** or require a custom tab / installed
   app. That is a site decision, not something Mira can override.
@@ -600,7 +693,7 @@ child-safe browser; it is not.
 
 ## 12. If Play rejects the release
 
-The three most likely objections, and the fix:
+The most likely objections, and the fix:
 
 1. **Privacy policy unreachable or placeholder contact.**
    Host `docs/privacy.html`, replace the email, and resubmit. This is the most
@@ -608,10 +701,15 @@ The three most likely objections, and the fix:
 2. **Data safety mismatch.**
    The discussion lookup sends the current page address to Hacker News and
    Lobsters, so declare "shares Web browsing history" and mark it optional and
-   ephemeral. The catalog request carries no user data; do not declare it as
-   browsing history. If you later add crash reporting or analytics, update the
-   form and the policy before shipping.
-3. **Content rating understated.**
+   ephemeral. The AdMob SDK collects approximate location (from IP), app
+   interactions, device or other IDs, and diagnostics for advertising, analytics,
+   and fraud prevention; declare those as collected and shared with Google. The
+   catalog request carries no user data; do not declare it as browsing history.
+3. **"Contains ads" or advertising ID mismatch.**
+   Mira is not ad-free. Enable "Contains ads", declare the advertising ID, and
+   submit a build whose published catalog actually enables the banner. Do not
+   hide the placement behind test mode in production.
+4. **Content rating understated.**
    A browser has unrestricted web access. Answer yes, accept the Teen rating, and
    keep Safe Browsing enabled.
 

@@ -1,9 +1,11 @@
 # Mira catalog desk
 
-A small Next.js admin for the two lists Mira reads remotely:
+A small Next.js admin for the three lists Mira reads remotely:
 
 - **Search engines** — the presets shown in Search settings, plus the default.
 - **Today's page** — the editorial shelf used by the daily rotation.
+- **Advertising** — whether the one home-screen AdMob banner is on, its layout,
+  test mode, and the per-platform unit IDs.
 
 The app fetches only the published catalog from a public, read-only endpoint.
 Drafts are private until you press Publish.
@@ -23,12 +25,26 @@ The desk uses **MongoDB Atlas**. Everything lives in one document:
   "draft": {
     "version": 1,
     "defaultEngineId": "duckduckgo",
+    "ads": {
+      "enabled": false,
+      "testMode": true,
+      "layout": "inline",
+      "androidUnitId": "",
+      "iosUnitId": ""
+    },
     "engines": [],
     "pages": []
   },
   "published": {
     "version": 1,
     "defaultEngineId": "duckduckgo",
+    "ads": {
+      "enabled": false,
+      "testMode": true,
+      "layout": "inline",
+      "androidUnitId": "",
+      "iosUnitId": ""
+    },
     "engines": [],
     "pages": [],
     "revision": 1,
@@ -197,10 +213,31 @@ cache, so a newly published revision can take a few minutes to appear.
 - Limits match the app: **40 engines** and **250 pages**. The app drops anything
   above those limits.
 
+## Advertising
+
+The third tab edits the single home-screen placement. Nothing is sent to Google
+from the desk; the app requests ads directly after UMP consent.
+
+| Field | Behaviour |
+| --- | --- |
+| `enabled` | Turns the placement on or off in the next published feed. Default off. |
+| `testMode` | Forces Google test units. Development builds force test units even when this is off. |
+| `layout` | `inline` sits between Today's page and Trails; `anchored` pins above the bottom safe area. |
+| `androidUnitId` / `iosUnitId` | AdMob banner unit IDs in the form `ca-app-pub-<16 digits>/<10 digits>`. Leave a platform blank if it is not shipping. |
+
+Publishing live mode (`enabled` on, `testMode` off) requires at least one valid
+unit ID. Malformed IDs block publish with a field-level issue; the app also
+rejects them and shows no slot. The public feed carries the resolved
+configuration, so a change reaches the app on its next catalog check.
+
+Use Google test app IDs in `app.json` until the real AdMob apps exist. Replace
+them before a production build; Android crashes at startup if the AdMob
+application ID is invalid.
+
 ## Source of truth
 
-`catalog/defaults.json` in the repository root is canonical. After editing it,
-run from the repository root:
+`catalog/defaults.json` in the repository root is canonical, including the `ads`
+block. After editing it, run from the repository root:
 
 ```bash
 npm run catalog:sync
@@ -223,6 +260,9 @@ revision.
 - Publishing is a compare-and-set on the revision, so two tabs cannot silently
   replace each other's revision.
 - The public feed is read-only, CORS-enabled, and contains only enabled entries.
+- AdMob app IDs live in `app.json`; ad unit IDs live in the published catalog.
+  Unit IDs are public identifiers, not secrets. Never put an AdMob account
+  password or API credential in the catalog.
 - The admin frame is denied (`X-Frame-Options: DENY`), and the desk sends
   `no-referrer` plus a restrictive permissions policy.
 - The public feed carries no reader data. Keep it that way: no names, emails,

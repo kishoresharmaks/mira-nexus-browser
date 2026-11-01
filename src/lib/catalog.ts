@@ -1,6 +1,16 @@
 import type { CuratedPage } from '@/types';
 import bundledJson from './default-catalog.json';
 
+export type AdsLayout = 'inline' | 'anchored';
+
+export type AdsConfig = {
+  enabled: boolean;
+  testMode: boolean;
+  layout: AdsLayout;
+  androidUnitId: string;
+  iosUnitId: string;
+};
+
 export type SearchEngine = {
   id: string;
   name: string;
@@ -14,6 +24,7 @@ export type Catalog = {
   revision: number;
   publishedAt: string;
   defaultEngineId: string;
+  ads: AdsConfig;
   engines: SearchEngine[];
   pages: CuratedPage[];
 };
@@ -28,6 +39,7 @@ const MAX_PAGES = 250;
 const MAX_URL = 2_048;
 const MARKER = 'miraquerytoken';
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const AD_UNIT_ID = /^ca-app-pub-\d{16}\/\d{10}$/;
 const PRIVATE_HOSTNAME =
   /^(?:localhost|127(?:\.\d{1,3}){3}|10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}|\[?::1\]?|.+\.local)$/i;
 
@@ -47,6 +59,35 @@ function cleanText(value: unknown, max: number): string {
 function cleanId(value: unknown): string {
   const id = cleanText(value, 64).toLowerCase();
   return ID.test(id) ? id : '';
+}
+
+export const DEFAULT_ADS: AdsConfig = {
+  enabled: false,
+  testMode: true,
+  layout: 'inline',
+  androidUnitId: '',
+  iosUnitId: '',
+};
+
+export function isAdUnitId(value: string): boolean {
+  return AD_UNIT_ID.test(value);
+}
+
+function normalizeAds(value: unknown): AdsConfig {
+  if (!isRecord(value)) return { ...DEFAULT_ADS };
+  return {
+    enabled: value.enabled === true,
+    testMode: value.testMode !== false,
+    layout: value.layout === 'anchored' ? 'anchored' : 'inline',
+    androidUnitId:
+      typeof value.androidUnitId === 'string'
+        ? value.androidUnitId.trim().slice(0, 64)
+        : '',
+    iosUnitId:
+      typeof value.iosUnitId === 'string'
+        ? value.iosUnitId.trim().slice(0, 64)
+        : '',
+  };
 }
 
 function hostOfUrl(url: string): string {
@@ -174,6 +215,7 @@ export function normalizeCatalog(value: unknown): Catalog | null {
     defaultEngineId: engines.some((engine) => engine.id === defaultEngineId)
       ? defaultEngineId
       : engines[0].id,
+    ads: normalizeAds(value.ads),
     engines,
     pages,
   };

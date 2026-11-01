@@ -26,6 +26,7 @@ import type {
 } from '@/types';
 import { BrandMark } from './BrandMark';
 import { Favicon } from './Favicon';
+import { HomeAdSlot } from './HomeAdSlot';
 import { Icon } from './Icon';
 import { IconButton } from './IconButton';
 import { PressableScale } from './PressableScale';
@@ -42,6 +43,7 @@ type Props = {
   privateTabCount: number;
   today: CuratedPage;
   todayLabel: string;
+  adsVisible: boolean;
   onOpenSearch: () => void;
   onOpenPrivateTab: () => void;
   onOpenPrivateTabs: () => void;
@@ -69,6 +71,7 @@ export function HomeScreen({
   privateTabCount,
   today,
   todayLabel,
+  adsVisible,
   onOpenSearch,
   onOpenPrivateTab,
   onOpenPrivateTabs,
@@ -91,6 +94,7 @@ export function HomeScreen({
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [editing, setEditing] = useState(false);
+  const [anchoredAdHeight, setAnchoredAdHeight] = useState(0);
 
   const displaySize = Math.min(60, Math.max(43, width * 0.132));
   const recent = history.slice(0, 3);
@@ -105,7 +109,8 @@ export function HomeScreen({
           styles.scroll,
           {
             paddingTop: insets.top + 8,
-            paddingBottom: insets.bottom + 34,
+            paddingBottom:
+              34 + (anchoredAdHeight > 0 ? anchoredAdHeight : insets.bottom),
           },
         ]}
       >
@@ -308,6 +313,8 @@ export function HomeScreen({
               </View>
             </View>
           </Reveal>
+
+          <HomeAdSlot layout="inline" visible={adsVisible} />
 
           {latestTrail ? (
             <Reveal delay={260}>
@@ -688,12 +695,17 @@ export function HomeScreen({
             <View style={styles.footer}>
               <Icon name="shield" size={14} color={theme.faint} strokeWidth={1.7} />
               <Text style={[styles.footerText, { color: theme.faint }]}>
-                No account. No feed. No noise.
+                No account. No feed. Your history stays yours.
               </Text>
             </View>
           </Reveal>
         </View>
       </ScrollView>
+      <HomeAdSlot
+        layout="anchored"
+        visible={adsVisible}
+        onHeightChange={setAnchoredAdHeight}
+      />
     </View>
   );
 }

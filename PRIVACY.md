@@ -1,16 +1,22 @@
 # Mira Privacy Policy
 
-**Effective date:** 27 October 2026
+**Effective date:** 31 October 2026
 **App:** Mira — a quieter browser (`com.mira.browser`)
 **Platform:** Android
 
 Mira is built to browse the web without building a profile of the person
 browsing. This policy explains, in plain language, what the app stores, what it
-sends over the network, and what it deliberately does not do.
+sends over the network, and what it deliberately does not do, including the one
+optional home-screen banner served by Google AdMob.
 
 ## The short version
 
-- Mira has no account, no analytics, no advertising, and no crash-reporting SDK.
+- Mira has no account, no analytics, and no crash-reporting SDK. It can show one
+  small banner on the home screen, served by Google AdMob.
+- Ads never appear in the browser, in private tabs, in sheets, or in Settings.
+  Google may use your advertising ID and ad interactions to serve and measure
+  that banner; you can review your choices under Advertising in Settings where
+  your region requires it.
 - Your history, shortcuts, trails, search-engine choice, and appearance choice
   are stored only on your device.
 - Mira does not operate a server that receives your browsing activity. It hosts
@@ -41,16 +47,18 @@ not sent to the developer or to any third party.
 | Appearance preference (light/dark) | Keeps your chosen theme | Until you change it or uninstall |
 | Discussion lookup preference (on/off) | Remembers whether Mira asks Hacker News and Lobsters about the current page | Until you change it or uninstall |
 | Search choice and custom engines (name, search URL) | Remembers which engine handles typed searches; engines you add stay on this device | Until you change the choice, remove the engine, or uninstall |
-| Cached catalog (search presets and Today pages) | Lets Mira open with the last published lists when the catalog endpoint is unreachable | Until a newer catalog replaces it or you clear app storage |
+| Ad consent choices (UMP) | Google's consent SDK stores your advertising consent on the device so Mira does not ask on every launch | Until you change your choice, clear app storage, or uninstall |
+| Cached catalog (search presets, Today pages, and ad settings) | Lets Mira open with the last published lists and ad configuration when the catalog endpoint is unreachable | Until a newer catalog replaces it or you clear app storage |
 | Open tabs | In-memory only while the app is running | Cleared when Mira is closed |
 | Private tab cookies and site storage | Keeps sites working while you browse; Android's WebView shares one store across all tabs | Until the site expires them or you clear app storage |
 
 There is no account to delete, and Mira does not store your browsing data in
-the cloud. The hosted catalog database contains only public editorial data:
-engine names, search URLs, page titles, links, categories, notes, and reading
-times. It has no reader account, device ID, query, or browsing history. Private
-tabs write no history, trails, or page state; their cookies and site storage are
-not isolated from normal tabs.
+the cloud. The hosted catalog database contains only public editorial and
+configuration data: engine names, search URLs, page titles, links, categories,
+notes, reading times, whether the home banner is enabled, its layout, and its
+ad unit IDs. It has no reader account, device ID, query, or browsing history.
+Private tabs write no history, trails, or page state; their cookies and site
+storage are not isolated from normal tabs.
 
 ### How to delete it
 
@@ -71,20 +79,24 @@ not isolated from normal tabs.
 
 ## What Mira does not collect
 
-Mira does not collect, transmit, sell, or share:
+The developer does not collect, receive, sell, or share:
 
 - your name, email address, phone number, or contacts;
 - your precise or approximate location;
-- your advertising ID or any other persistent device identifier;
+- your advertising ID, app set ID, or other persistent device identifiers —
+  Google's ad SDK can access these on your device for the home-screen banner, as
+  described under Advertising, but Mira itself does not read or transmit them;
 - your browsing history, search terms, or a log of the pages you open (the
   optional, per-page discussion lookup is described under Network requests);
 - crash logs, diagnostics, or usage analytics;
 - photos, files, camera, microphone, or SMS content.
 
-The app declares only the `INTERNET` permission (plus `VIBRATE` for haptic
-feedback). Camera, microphone, location, contacts, storage, notifications, and
-"display over other apps" permissions are explicitly removed from the Android
-manifest.
+The app's merged Android manifest declares `INTERNET` and
+`ACCESS_NETWORK_STATE` for browsing and ad delivery, `VIBRATE` for haptic
+feedback, `WAKE_LOCK`, which the Google Mobile Ads SDK uses to keep a request
+alive, and `com.google.android.gms.permission.AD_ID` for advertising ID access.
+Camera, microphone, location, contacts, storage, notifications, and "display
+over other apps" permissions are explicitly removed from the Android manifest.
 
 The catalog request does not identify you: it carries no account, device ID,
 search terms, or history. The hosting provider may process standard request logs
@@ -136,8 +148,46 @@ Mira is a browser, so it makes network requests as part of ordinary use.
    history or trails. Private tabs never make this request. Turn the setting off
    in the Discussions sheet to stop these requests; the rest of the browser
    continues to work.
+8. **Advertising.** When the published catalog enables ads, the home screen asks
+   Google AdMob for one banner. That request goes to Google, not to the
+   developer. See Advertising below for what it can include and how consent
+   works.
 
-Mira contains no advertising SDK, no analytics SDK, and no social login.
+Mira contains no analytics SDK and no social login. The only third-party SDK
+that can transmit data is the Google Mobile Ads SDK described under Advertising.
+
+## Advertising
+
+Mira can show one adaptive banner on the home screen, served by Google AdMob. It
+is the only advertising in the app, and it is off unless the published catalog
+enables it.
+
+- **Where it appears.** Between Today's page and Trails, or pinned above the
+  bottom safe area, depending on the published layout. It never appears in the
+  browser, in a private tab, in a sheet, in Settings, or on the private start
+  page. Leaving the home screen unmounts the banner and stops its request.
+- **What is requested.** Mira asks Google for one banner using a unit ID from
+  the published catalog. The request can include the advertising ID, app set
+  ID, IP address, device and app information, and ad interaction information
+  such as app launches and taps. Google may use the IP address to estimate
+  general location. Mira does not send your history, trails, search terms, open
+  tabs, or the address of the page you are reading to the ad SDK.
+- **Consent.** Before the SDK initializes, Mira runs Google's User Messaging
+  Platform (UMP) consent flow and, on iOS, asks for App Tracking Transparency
+  permission. If you do not consent, Mira does not request ads. Where Google
+  requires it, Settings → Advertising shows a Choices button that reopens the
+  consent form so you can change or withdraw your choice at any time.
+- **Your advertising ID.** The Google Mobile Ads SDK can access Android's
+  advertising ID and app set ID for ad delivery, measurement, and fraud
+  prevention. You can reset or delete the advertising ID in Android Settings →
+  Privacy → Ads. Mira itself does not read, store, or transmit it.
+- **Content rating.** Mira configures the SDK with a maximum ad content rating
+  of Teen (`MaxAdContentRating.T`).
+- **Test mode.** While test mode is on, or in any development build, Mira
+  requests Google's test banner instead of paid inventory.
+- **Not a sale by the developer.** The developer does not sell personal
+  information. Google handles ad data under its own privacy policy:
+  <https://policies.google.com/technologies/partner-sites>.
 
 ## Cookies and site storage
 
@@ -217,6 +267,10 @@ not send data anywhere.
 - Android Safe Browsing stays enabled for malware and phishing warnings.
 - Discussion lookup is limited to the address of the page being read, can be
   turned off at any time, and never runs in a private tab.
+- Ads initialize only after Google's UMP consent flow resolves; if consent does
+  not permit ad requests, Mira requests none. The banner exists only on the home
+  screen, unmounts while you browse, and is never placed in a private tab, a
+  sheet, or Settings. Ad content is capped at a Teen rating.
 - The catalog feed is public, read-only, and fetched over HTTPS. Mira validates
   it, caches it, and falls back to the bundled copy when it is missing, malformed,
   or unreachable.
@@ -235,8 +289,10 @@ not send data anywhere.
 
 Mira is a general-purpose browser and is not directed to children under 13. It
 does not knowingly collect personal information from anyone, including
-children. Because Mira can open ordinary websites, parents and guardians should
-supervise use in the same way they would with any browser.
+children. Ad content is capped at a Teen rating, and Mira does not ask the ad SDK
+to treat the app as child-directed. Because Mira can open ordinary websites,
+parents and guardians should supervise use in the same way they would with any
+browser.
 
 ## Changes to this policy
 

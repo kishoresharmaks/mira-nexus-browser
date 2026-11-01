@@ -14,6 +14,7 @@ import { InstrumentSans_700Bold } from '@expo-google-fonts/instrument-sans/700Bo
 import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif/400Regular';
 import { InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif/400Regular_Italic';
 import { ToastProvider } from '@/components/Toast';
+import { AdsProvider } from '@/lib/ads-provider';
 import { CatalogProvider } from '@/lib/catalog-provider';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
@@ -48,9 +49,11 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider>
         <CatalogProvider>
-          <ToastProvider>
-            <Navigator />
-          </ToastProvider>
+          <AdsProvider>
+            <ToastProvider>
+              <Navigator />
+            </ToastProvider>
+          </AdsProvider>
         </CatalogProvider>
       </ThemeProvider>
     </SafeAreaProvider>

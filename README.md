@@ -8,8 +8,9 @@ alive while the app is open, offers **Today's page** — one hand-picked,
 independent page a day — and **Private tabs** that leave no history, bypass the
 page cache, and block screen capture. Search is a choice: private presets, or
 any HTTPS engine you add yourself. It also shows the public **Hacker News and
-Lobsters** conversation around a page in a native overlay. No account, no feed,
-no analytics, no advertising.
+Lobsters** conversation around a page in a native overlay. One optional,
+clearly marked home-screen banner — served by Google AdMob and configured from
+the catalog — is the only advertising. No account, no feed, no analytics.
 
 The visual language is warm and editorial: paper, ink, a single orange accent,
 Instrument Serif for display type and Instrument Sans for everything else. Light
@@ -121,6 +122,26 @@ Built with Expo SDK 58, React Native 0.88, React 19, TypeScript, and Expo Router
 - Archive of the last ten days.
 - Also available on the Android home-screen widget.
 
+### Advertising
+
+- One adaptive banner, on the home screen only: either inline between Today's
+  page and Trails, or anchored above the bottom safe area. The layout is chosen
+  in the catalog desk and can change without an app release.
+- Ads are off by default. The published catalog controls `enabled`, `testMode`,
+  `layout`, and one AdMob unit ID per platform. A development build always forces
+  Google test units, and test mode can be left on for safe review builds.
+- The banner unmounts in the browser, private tabs, sheets, and Settings. It
+  never reserves an empty slot: a failed request collapses quietly.
+- Before the SDK initializes, the app runs Google's UMP consent flow and, on iOS,
+  requests App Tracking Transparency permission. If consent does not permit ad
+  requests, none are made. Settings → Advertising reopens the consent form when
+  the region requires it.
+- Ad content is capped at a Teen rating (`MaxAdContentRating.T`). Mira itself
+  never reads or stores the advertising ID; Google's SDK handles ad delivery,
+  measurement, and fraud prevention.
+- Expo Go and the web preview cannot load the native ad module, so they show no
+  banner and the rest of the app still works.
+
 ### Share intake
 
 - Share a link from any app into Mira: it opens in a new tab.
@@ -161,10 +182,10 @@ Built with Expo SDK 58, React Native 0.88, React 19, TypeScript, and Expo Router
 - A physical Android device for share-sheet and widget testing
 
 Expo Go can preview the core browser on Android because `react-native-webview`
-is bundled. **Share intake, the widget, and the private-tab screen-capture
-shield require a development build** — their native modules are not in Expo Go.
-Private tabs still work without the shield, with the app-switcher veil as a
-fallback.
+is bundled. **Share intake, the widget, the private-tab screen-capture shield,
+and AdMob require a development build** — their native modules are not in Expo
+Go. Private tabs still work without the shield, with the app-switcher veil as a
+fallback, and the app simply shows no banner where the ad module is unavailable.
 
 ---
 
@@ -197,8 +218,8 @@ capture.
 
 ### Catalog desk
 
-`catalog/defaults.json` is the canonical list of search presets and Today pages.
-Edit it, then mirror it into the app and the admin:
+`catalog/defaults.json` is the canonical list of search presets, Today pages, and
+the home-screen ad settings. Edit it, then mirror it into the app and the admin:
 
 ```bash
 npm run catalog:sync
@@ -271,11 +292,12 @@ shell." The defaults are deliberately strict.
 | WebView metrics | Opted out of Google reporting. |
 | Debugging | WebView debugging is enabled in development only. |
 | Backup | `allowBackup=false`; local browsing data is not copied to Google Drive. |
-| Permissions | `INTERNET` and `VIBRATE` only. Camera, microphone, location, storage, contacts, SMS, notifications, overlay, and package-query permissions are blocked. |
-| Release build | Minified and resource-shrunk; no analytics, ads, or crash SDK. |
+| Permissions | `INTERNET`, `ACCESS_NETWORK_STATE`, `VIBRATE`, `WAKE_LOCK`, and `com.google.android.gms.permission.AD_ID` for browsing and ads. Camera, microphone, location, storage, contacts, SMS, notifications, overlay, and package-query permissions are blocked. |
+| Advertising | One adaptive home-screen banner, off by default. UMP consent runs before the SDK initializes; a refused consent means no ad request. The slot unmounts in the browser, private tabs, sheets, and Settings, and ad content is capped at a Teen rating. |
+| Release build | Minified and resource-shrunk; no analytics or crash SDK. Google Mobile Ads is the only ad SDK and is initialized only after consent. |
 | Share intake | Length-capped, control characters stripped, http(s) only, credentials rejected, plain text never auto-navigated. |
 | Widget | RemoteViews only; reads validated local storage; no network or remote code. |
-| Catalog feed | Public read-only HTTPS JSON for search presets and Today pages. The request carries no account, device ID, query, or browsing history; Mira validates and caches the response and falls back to its bundled copy. |
+| Catalog feed | Public read-only HTTPS JSON for search presets, Today pages, and ad settings. The request carries no account, device ID, query, or browsing history; Mira validates and caches the response and falls back to its bundled copy. |
 
 Android's WebView exposes one cookie and DOM-storage store per app, so private
 tabs cannot be cookie-isolated without a native WebView profile. Mira does not
@@ -289,8 +311,8 @@ metadata into the Android manifest. Security-relevant flags live in `app.json`,
 `BrowserPane.tsx`, and `src/lib/url.ts`.
 
 The catalog desk is protected by a single password and a signed HTTP-only cookie;
-the public `/api/catalog` route is read-only. Search URLs and page links are
-validated as HTTPS before they can be published. Drafts are private; only a
+the public `/api/catalog` route is read-only. Search URLs, page links, and ad unit
+IDs are validated before they can be published. Drafts are private; only a
 pressed Publish writes the public feed.
 
 The full policy is in [PRIVACY.md](PRIVACY.md) and the hostable version is
@@ -306,10 +328,11 @@ src/
   app/
     _layout.tsx             fonts, splash, safe area, theme, toast, stack
     index.tsx               app shell: tabs, trails, Today, share, deep links
-    settings.tsx            search presets, custom engines, catalog status
+    settings.tsx            search presets, catalog status, advertising choices
     +native-intent.tsx      routes widget/share links to the single screen
   components/
     HomeScreen.tsx          Today, latest trail, open-tabs strip, shortcuts, recents
+    HomeAdSlot.tsx          inline/anchored adaptive banner with quiet failure
     TodayCard.tsx           inverse editorial Today card
     TrailCard.tsx           latest-trail card with dot row
     TrailDots.tsx           one dot per page
@@ -334,6 +357,8 @@ src/
     trails.ts               trail grouping, caps, normalization
     catalog.ts              catalog schema, validation, URL templates, custom engines
     catalog-provider.tsx    fetch/cache/search choice context
+    ads.ts                  guarded AdMob loader, test/live unit resolution, ATT
+    ads-provider.tsx        UMP consent, SDK init, privacy-options state
     curation.ts             Today rotation over the active catalog
     history.ts              history entries and normalization
     privateShield.ts        optional expo-screen-capture bridge
@@ -358,7 +383,7 @@ docs/
   privacy.html              hostable privacy policy
   play/feature-graphic.png  1024×500 Play feature graphic
   play/screenshots/         eight Play phone captures
-catalog/defaults.json       canonical search and Today catalog
+catalog/defaults.json       canonical search, Today, and ad configuration
 scripts/
   generate-assets.mjs       brand asset generation
   sync-catalog.mjs          mirrors the catalog into the app and admin
@@ -391,12 +416,19 @@ Before publishing:
    `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, and `MONGODB_URI`, publish the
    catalog, and point `EXPO_PUBLIC_CATALOG_URL` at its `/api/catalog` route
    before building the app.
-4. Follow [PLAY_STORE.md](PLAY_STORE.md) for listing copy, screenshots, Data
-   safety, content rating, and the review checklist.
-5. On a physical Android device, open a private tab and confirm that
+4. Create the AdMob apps and adaptive banner units, replace the Google test app
+   IDs in `app.json`, enter the unit IDs in the admin Advertising tab, turn test
+   mode off, enable the banner, and publish.
+5. Follow [PLAY_STORE.md](PLAY_STORE.md) for listing copy, screenshots, Data
+   safety, content rating, the "Contains ads" declaration, and the review
+   checklist.
+6. On a physical Android device, open a private tab and confirm that
    screenshots are blocked and the app-switcher thumbnail is blank.
-6. With the device offline, confirm the app still opens with its bundled search
-   presets and Today list.
+7. With ads enabled, confirm one labeled banner appears on Home and none appears
+   in the browser, private tabs, sheets, or Settings. Refuse UMP consent in a
+   regulated test locale and confirm no ad is requested.
+8. With the device offline, confirm the app still opens with its bundled search
+   presets, Today list, and ad settings.
 
 Play Console requirements change; the guide calls out what to verify at
 submission.
@@ -420,6 +452,12 @@ submission.
   `expo-screen-capture` is in the development or production binary.
 - **No ad blocker.** Third-party cookies are off, but network requests are not
   filtered.
+- **One banner, home only.** There are no interstitials, rewarded ads, or native
+  ad units. A failed or unfilled request collapses to nothing, and Expo Go or the
+  web preview cannot load the AdMob module at all.
+- **Ads are remotely configured.** The published catalog controls whether the
+  banner appears, its layout, and its unit IDs. A cached catalog can keep the
+  previous setting for about an hour when the feed is unreachable.
 - **No sync.** There is no account and no cloud.
 - **Some sites do not work in a WebView** or require their native app. That is a
   site decision.
