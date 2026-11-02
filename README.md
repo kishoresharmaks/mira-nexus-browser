@@ -397,34 +397,36 @@ public/demo.html            web-preview reading page
 
 Native projects are generated (CNG). Never hand-edit `android/` or `ios/`.
 
-### Test APK from GitHub Actions
+### APK and AAB from GitHub Actions
 
-Push a tag and the workflow builds a release APK, verifies its signature, and
-attaches it to a GitHub Release:
+Push a tag and the workflow builds a release APK and an Android App Bundle,
+verifies both signatures, and attaches them to a GitHub Release:
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-The APK is `mira-<version>-<versionCode>.apk` with a matching `.sha256`. The
-workflow can sign with an uploaded keystore; without one it uses Expo's debug
-key and labels the build as sideload-only. Manual runs produce an artifact
-without creating a release. Setup, signing, installation, and troubleshooting
-are in [docs/RELEASING.md](docs/RELEASING.md).
+The assets are `mira-<version>-<versionCode>.apk` (sideload for testers),
+`mira-<version>-<versionCode>.aab` (upload to Play Console), and
+`SHA256SUMS.txt`. The workflow can sign with an uploaded keystore; without one it
+uses Expo's debug key and labels the build as sideload-only — do not upload that
+`.aab`. Manual runs produce an artifact without creating a release. Setup,
+signing, installation, and troubleshooting are in
+[docs/RELEASING.md](docs/RELEASING.md).
 
 ### Play Store bundle
 
-```bash
-npx eas-cli@latest build --profile development --platform android
-npx eas-cli@latest build --profile production --platform android
-npx eas-cli@latest submit --profile production --platform android
-```
+The recommended path is the same GitHub Actions workflow: push a tag, download
+the `.aab` from the release, and upload it in Play Console. It avoids the
+260-character path limit in local Windows builds and uses the same upload key as
+the tester APK. The complete walkthrough — Play Console setup, signing, listing
+copy, declarations, testing tracks, and rollout — is in
+[PLAY_STORE_PUBLISHING.md](PLAY_STORE_PUBLISHING.md).
 
-`eas.json` defines development, preview, and production profiles. Production
-builds an `.aab`, auto-increments `versionCode`, and submits to the internal
-track by default. To build the bundle locally with the same upload key as the CI
-APK, follow [docs/RELEASING.md](docs/RELEASING.md#5-build-the-play-bundle).
+EAS is optional. `eas.json` defines development, preview, and production
+profiles; the production profile builds an `.aab`. Do not mix an EAS-managed key
+with the CI upload key under one listing.
 
 Before publishing:
 
@@ -432,18 +434,19 @@ Before publishing:
    `docs/privacy.html`.
 2. Host `docs/privacy.html` at a public HTTPS URL.
 3. Deploy `admin/` with MongoDB Atlas. The recommended path is Docker Compose +
-   Caddy on a VPS: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Publish the
+   Caddy on a VPS: [VPS_DEPLOYMENT.md](VPS_DEPLOYMENT.md). Publish the
    catalog, then point `EXPO_PUBLIC_CATALOG_URL` at
    `https://<domain>/api/catalog` before building the app.
-4. Set the GitHub Actions repository variable `EXPO_PUBLIC_CATALOG_URL` and, for
-   stable tester updates, the four signing secrets described in
-   [docs/RELEASING.md](docs/RELEASING.md).
+4. Set the GitHub Actions repository variable `EXPO_PUBLIC_CATALOG_URL` and the
+   four signing secrets described in
+   [PLAY_STORE_PUBLISHING.md](PLAY_STORE_PUBLISHING.md#83-add-the-key-to-github-actions).
 5. Create the AdMob apps and adaptive banner units, replace the Google test app
    IDs in `app.json`, enter the unit IDs in the admin Advertising tab, turn test
    mode off, enable the banner, and publish.
-6. Follow [PLAY_STORE.md](PLAY_STORE.md) for listing copy, screenshots, Data
-   safety, content rating, the "Contains ads" declaration, and the review
-   checklist.
+6. Follow
+   [PLAY_STORE_PUBLISHING.md](PLAY_STORE_PUBLISHING.md) for listing copy,
+   screenshots, Data safety, content rating, the "Contains ads" declaration, and
+   the review checklist.
 7. On a physical Android device, open a private tab and confirm that
    screenshots are blocked and the app-switcher thumbnail is blank.
 8. With ads enabled, confirm one labeled banner appears on Home and none appears

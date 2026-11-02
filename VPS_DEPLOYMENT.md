@@ -1,9 +1,14 @@
-# Deploying the Mira catalog desk
+# VPS deployment for Mira
 
-The admin is a single Next.js container behind Caddy. Caddy terminates HTTPS,
-obtains and renews certificates automatically, and proxies to the app over the
-private Compose network. The catalog itself lives in MongoDB Atlas, so rebuilding
-or replacing the VPS never loses a draft or a published revision.
+This is the complete production runbook for the Mira catalog desk: one Next.js
+container behind Caddy, with the catalog stored in MongoDB Atlas. Follow it from
+top to bottom on a fresh Ubuntu server. Nothing else in the repository has to be
+read to finish the deployment.
+
+Caddy terminates HTTPS, obtains and renews certificates automatically, and
+proxies to the app over the private Compose network. The catalog itself lives in
+MongoDB Atlas, so rebuilding or replacing the VPS never loses a draft or a
+published revision.
 
 ```
 Internet
@@ -25,6 +30,21 @@ What runs where:
 
 The app never talks to the admin UI. It only reads the published feed. The
 password, session secret, and MongoDB URI never leave the server.
+
+## How to use this file
+
+| Phase | Section | Time |
+| --- | --- | --- |
+| Create the database | [2](#2-create-the-atlas-cluster) | 10 min |
+| Point DNS | [3](#3-point-dns-at-the-vps) | 5 min + propagation |
+| Prepare the server | [4](#4-prepare-the-vps) | 15 min |
+| Deploy and verify | [5](#5-deploy-the-admin) | 10 min |
+| Connect the app | [6](#6-connect-the-app) | 5 min |
+| Backups and monitoring | [7](#7-day-two-operations), [8](#8-monitoring) | 15 min |
+
+You need shell access to the VPS, a domain, and a MongoDB Atlas account. The
+first deploy takes about an hour including DNS and the Docker build.
+`PLAY_STORE_PUBLISHING.md` covers the app release that consumes this feed.
 
 ---
 
@@ -142,7 +162,12 @@ From your computer, confirm key login before changing `sshd_config`:
 ssh deploy@YOUR_VPS_IP
 ```
 
-Then edit `/etc/ssh/sshd_config` on the VPS:
+From here on, run commands as `deploy`. Privileged steps use `sudo`. Edit
+`/etc/ssh/sshd_config`:
+
+```bash
+sudo nano /etc/ssh/sshd_config
+```
 
 ```text
 PermitRootLogin no
@@ -153,18 +178,18 @@ PubkeyAuthentication yes
 Restart SSH and keep the current session open until a second session succeeds:
 
 ```bash
-systemctl restart ssh
+sudo systemctl restart ssh
 ```
 
 ### 4.3 Firewall
 
 ```bash
-ufw allow OpenSSH
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw allow 443/udp
-ufw enable
-ufw status
+sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 443/udp
+sudo ufw enable
+sudo ufw status
 ```
 
 Only ports 22, 80, and 443 should be exposed. Docker publishes ports by writing
@@ -177,8 +202,8 @@ that should stay private. The admin container uses `expose`, not `ports`.
 ### 4.4 Install Docker
 
 ```bash
-curl -fsSL https://get.docker.com | sh
-usermod -aG docker deploy
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker deploy
 ```
 
 Log out and back in so the group change applies, then check:
@@ -191,15 +216,15 @@ docker compose version
 Enable Docker at boot (the installer normally does this):
 
 ```bash
-systemctl enable --now docker
+sudo systemctl enable --now docker
 ```
 
 ### 4.5 Optional host hardening
 
 ```bash
-apt install -y unattended-upgrades fail2ban
-dpkg-reconfigure --priority=low unattended-upgrades
-systemctl enable --now fail2ban
+sudo apt install -y unattended-upgrades fail2ban
+sudo dpkg-reconfigure --priority=low unattended-upgrades
+sudo systemctl enable --now fail2ban
 ```
 
 Keep the default fail2ban SSH jail or add one for repeated admin login failures.
@@ -273,7 +298,9 @@ docker compose ps
 ```
 
 The first build takes a few minutes. The admin image is a Next.js standalone
-runtime running as UID 1001, not as root.
+runtime running as UID 1001, not as root. The container health check waits for up
+to 30 seconds before its first probe, so `docker compose ps` may show
+`health: starting` briefly.
 
 Watch Caddy obtain the certificate:
 
@@ -317,7 +344,9 @@ Then:
    It must return JSON with a `revision` and an `access-control-allow-origin: *`
    header.
 
-If the health check returns `503`, see [Troubleshooting](#11-troubleshooting).
+If the health check returns `503`, wait 30 seconds and retry once; the admin
+container starts in a few seconds and the first Atlas connection can take a
+moment. If it still fails, see [Troubleshooting](#11-troubleshooting).
 
 ### 5.5 Container details
 
@@ -348,10 +377,10 @@ Where to set it:
 
 | Build path | Where |
 | --- | --- |
-| Local development | `bike_map/.env.local` |
-| GitHub Actions test APK | Repository variable `EXPO_PUBLIC_CATALOG_URL` (Settings → Secrets and variables → Actions → Variables) |
-| EAS production build | `eas secret:create` or the EAS environment for the build profile |
+| Local development | `.env.local` in the repository root |
+| GitHub Actions APK/AAB | Repository variable `EXPO_PUBLIC_CATALOG_URL` (Settings → Secrets and variables → Actions → Variables) |
 | Manual Gradle build | Export the variable in the shell before `./gradlew` |
+| EAS build (optional) | `eas secret:create` or the EAS environment for the build profile |
 
 The value must use `https://`. The app rejects a non-HTTPS catalog URL and keeps
 its bundled catalog.
@@ -374,6 +403,10 @@ Confirm:
 - a valid `revision`
 - no reader data, only public catalog fields
 
+When this returns `200`, keep this file open only for day-two operations. The
+app release that uses this feed is covered in
+[`PLAY_STORE_PUBLISHING.md`](PLAY_STORE_PUBLISHING.md).
+
 ---
 
 ## 7. Day-two operations
@@ -393,6 +426,7 @@ or the admin password. If you add logging, keep it that way.
 ### 7.2 Restart
 
 ```bash
+cd /opt/mira/admin
 docker compose restart admin
 ```
 
@@ -494,7 +528,13 @@ cd /opt/mira/admin
 docker compose up -d
 ```
 
-**Session secret:** change `ADMIN_SESSION_SECRET` and run `docker compose up -d`.
+**Session secret:** change `ADMIN_SESSION_SECRET` and run:
+
+```bash
+cd /opt/mira/admin
+docker compose up -d
+```
+
 Every browser session is invalidated immediately.
 
 **Atlas password:** rotate it in Atlas, update the URL-encoded value in
@@ -519,6 +559,7 @@ string or an error trace.
 Optional host checks:
 
 ```bash
+cd /opt/mira/admin
 docker compose ps
 df -h /
 free -m

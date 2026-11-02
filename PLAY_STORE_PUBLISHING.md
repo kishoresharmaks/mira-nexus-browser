@@ -1,5 +1,11 @@
 # Publishing Mira to Google Play
 
+This is the complete runbook for shipping Mira to Google Play: signing, the
+release build, every Play Console form, the listing copy, and the first rollout.
+Follow it in order. It assumes the catalog desk is already deployed and serving
+`https://<domain>/api/catalog` — if it is not, finish
+[`VPS_DEPLOYMENT.md`](VPS_DEPLOYMENT.md) first.
+
 Everything in this file is written for the app as it exists in this repository:
 package `com.mira.browser`, version `1.0.0`, Android-only release, Expo SDK 58
 (target API 36), no account, one optional home-screen banner served by Google
@@ -7,6 +13,23 @@ AdMob, no analytics.
 
 Play Console requirements change. Treat the "verify at submission" notes as part
 of the checklist, not as optional reading.
+
+## How to use this file
+
+| Phase | Section | Time |
+| --- | --- | --- |
+| Create the Play Console app | [8.1](#81-create-the-play-console-app) | 20 min + identity verification |
+| Create and store the upload key | [8.2](#82-create-the-upload-key), [8.3](#83-add-the-key-to-github-actions) | 20 min |
+| Build the bundle | [8.4](#84-build-the-bundle-in-ci) | 15 min in CI |
+| Store listing and graphics | [2](#2-store-listing-copy), [3](#3-graphics-checklist) | 30 min |
+| Host the privacy policy and connect the catalog | [7](#7-hosting-the-policy-and-catalog) | 30 min |
+| Data safety, content rating, audience | [4](#4-data-safety-form), [5](#5-content-rating-questionnaire-iarc), [6](#6-target-audience-and-families) | 20 min |
+| First upload and testing | [8.6](#86-upload-to-internal-testing), [8.7](#87-closed-testing-and-production) | 30 min + review |
+| Production rollout | [8.7](#87-closed-testing-and-production) | 10 min |
+
+Two placeholders must be replaced before you submit anything:
+`REPLACE_WITH_YOUR_EMAIL@example.com` and `REPLACE_WITH_YOUR_DOMAIN`. They appear
+in this file, `PRIVACY.md`, and `docs/privacy.html`.
 
 ---
 
@@ -16,7 +39,10 @@ of the checklist, not as optional reading.
 | --- | --- |
 | App name | **Mira — A Quieter Browser** (24 characters) |
 | Package | `com.mira.browser` |
-| Version | `1.0.0` (versionCode `1`, auto-incremented by EAS on production builds) |
+| Version | `1.0.0`; `versionCode` is set per build (see [8.4](#84-build-the-bundle-in-ci)) |
+| Format | Android App Bundle (`.aab`) for Play; APK for testers |
+| Target API | 36 (Android 16) |
+| Upload key | One keystore for the CI APK and the Play bundle (see [8.2](#82-create-the-upload-key)) |
 | Category | **Tools** |
 | Tags | Browser, Reading, Productivity |
 | Pricing | Free, no in-app purchases |
@@ -184,8 +210,10 @@ clean: 9:41, full battery, no notifications, no debug banner.
 
 ## 4. Data safety form
 
-Mira has no developer-operated server and the developer does not receive user
-data. Two features send data to third parties:
+Mira has no account system and the developer does not receive browsing data. The
+developer hosts one public catalog (search presets, Today pages, ad settings);
+the app fetches it without an account, device ID, search query, or browsing
+history. Two features send data to third parties:
 
 1. The optional discussion lookup sends the current page address to Hacker News
    and Lobsters.
@@ -241,9 +269,12 @@ change before that release ships.
 If the form requires a note, use:
 
 ```
-Mira has no account, no analytics SDK, and no developer-operated server. History,
-trails, shortcuts, and the theme are stored in Android app-private storage and
-never leave the device. Private tabs write no history or trails, bypass the page
+Mira has no account, no analytics SDK, and no server that receives browsing
+activity. The developer hosts one public catalog of search presets, Today pages,
+and ad settings; the request carries no account, device ID, query, or browsing
+history, and the host's standard request logs are not used for analytics or
+profiling. History, trails, shortcuts, and the theme are stored in Android
+app-private storage and never leave the device. Private tabs write no history or trails, bypass the page
 cache, block screen capture, and never run the discussion lookup or show an ad.
 Android's WebView shares cookies and site storage with normal tabs, so a site may
 recognize the reader; closing private tabs does not clear those cookies. As a
@@ -371,8 +402,7 @@ in `admin/`, a Next.js app that deploys independently of the mobile build.
 
 The recommended production path is Docker Compose + Caddy on a VPS with
 automatic HTTPS. The complete guide, including Atlas, DNS, backups, upgrades,
-rollback, and monitoring, is in
-[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+rollback, and monitoring, is in [`VPS_DEPLOYMENT.md`](VPS_DEPLOYMENT.md).
 
 1. Create a MongoDB Atlas database (the free tier is enough) and add a database
    user with `readWrite` access to `mira`. Allow only the admin host's address.
@@ -426,107 +456,217 @@ it.
 
 ## 8. Build and submit
 
-### One-time setup
+Play accepts an Android App Bundle (`.aab`). The GitHub Actions workflow builds
+both the APK (testers) and the `.aab` (Play) with the same upload key, so you do
+not need an EAS account or a local Android SDK. The first release takes about an
+hour of Console work; later releases are a tag and an upload.
+
+### 8.1 Create the Play Console app
+
+1. Register a Google Play developer account at
+   <https://play.google.com/console>. The one-time fee is $25. Complete identity
+   verification; it can take a day or two.
+2. **Create app** → name `Mira — A Quieter Browser`, default language English,
+   **App**, **Free**.
+3. Accept the developer distribution agreement and the US export declarations.
+4. Under **App content**, work through privacy policy, ads, content rating,
+   target audience, data safety, and app access. Sections [4](#4-data-safety-form)
+   through [7](#7-hosting-the-policy-and-catalog) give the exact answers.
+5. Leave the app in **Draft** until the first `.aab` is uploaded. The package
+   name `com.mira.browser` is fixed at the first upload and cannot be changed
+   afterwards.
+
+Do not create a second app with the same package. If you ever lose the upload
+key, Play App Signing can reset it, but the listing and package stay the same.
+
+### 8.2 Create the upload key
+
+Use one keystore for the CI APK and the Play bundle. Do not reuse a debug key and
+do not create a second key later for the same listing.
 
 ```bash
-npx eas-cli@latest login
-npx eas-cli@latest init          # links this directory to an EAS project
+keytool -genkeypair -v \
+  -keystore mira-upload.keystore \
+  -alias mira-upload \
+  -keyalg RSA -keysize 4096 -validity 10000
 ```
 
-`eas init` writes `extra.eas.projectId` into `app.json`. Commit that change.
+`keytool` ships with the JDK. It asks for a store password, your name and
+organisation, and a key password (press Enter to reuse the store password).
+Choose strong, unique passwords and keep both in a password manager.
 
-### Test APK from GitHub Actions (no EAS account)
+Back up `mira-upload.keystore` and both passwords offline. Losing the file means
+you cannot upload updates under the same listing until Google resets the upload
+key.
 
-For tester builds, `.github/workflows/android-release.yml` builds a release APK
-with Java 17 and the Android SDK, verifies its signature, and attaches it to a
-GitHub Release when you push a tag:
+On the first upload, Play Console offers **Play App Signing**. Accept it: Google
+holds the app-signing key, and your keystore becomes the upload key. You never
+ship the app-signing key.
+
+Never commit the keystore. The repository ignores `*.jks` and `*.keystore`;
+keep the file outside the repository if you prefer.
+
+### 8.3 Add the key to GitHub Actions
+
+Base64-encode the keystore as a single line.
+
+Linux/macOS:
+
+```bash
+base64 -w0 mira-upload.keystore > mira-upload.keystore.b64
+```
+
+Windows PowerShell:
+
+```powershell
+[Convert]::ToBase64String(
+  [IO.File]::ReadAllBytes("mira-upload.keystore")
+) | Set-Content -NoNewline mira-upload.keystore.b64
+```
+
+Add four repository secrets in **Settings → Secrets and variables → Actions →
+Secrets**:
+
+| Secret | Value |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | Contents of `mira-upload.keystore.b64` |
+| `ANDROID_KEYSTORE_PASSWORD` | Store password |
+| `ANDROID_KEY_ALIAS` | `mira-upload` |
+| `ANDROID_KEY_PASSWORD` | Key password |
+
+On Windows PowerShell, `<` is not supported; pipe the file instead:
+
+```powershell
+Get-Content -Raw mira-upload.keystore.b64 | gh secret set ANDROID_KEYSTORE_BASE64
+```
+
+The last three prompt for their value with `gh secret set NAME`.
+
+Also add the **variable** `EXPO_PUBLIC_CATALOG_URL` (same screen, **Variables**
+tab) with `https://<domain>/api/catalog`. Without it, the app ships with the
+bundled catalog only and never reads the desk. The value must use `https://`.
+
+Delete `mira-upload.keystore.b64` after uploading the secret.
+
+### 8.4 Build the bundle in CI
+
+Push a tag:
 
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-Without signing secrets it uses Expo's debug key and is labeled sideload-only.
-With `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
-`ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD` it uses your upload key. Set the
-repository variable `EXPO_PUBLIC_CATALOG_URL` so the test build reads the
-production catalog. Full setup and troubleshooting:
-[`docs/RELEASING.md`](docs/RELEASING.md).
+The **Android release builds** workflow checks out the tag, runs `expo prebuild`,
+builds `:app:assembleRelease` and `:app:bundleRelease`, verifies both signatures,
+and publishes a GitHub Release with:
 
-The workflow produces `mira-<version>-<versionCode>.apk` plus a SHA-256 file. It
-does not upload to Play.
+- `mira-1.0.0-<run>.apk` — sideload for testers
+- `mira-1.0.0-<run>.aab` — upload to Play
+- `SHA256SUMS.txt`
 
-### Development build (share extension, widget, capture shield, and AdMob)
+Open the release and confirm the notes say **Signing: upload key**. If they say
+**debug key (sideload only)**, the four secrets are missing or incomplete; do not
+upload that `.aab`.
 
-Expo Go cannot load `expo-share-intent`, `react-native-android-widget`, or
-`react-native-google-mobile-ads`, and the widget task handler is skipped there.
-Use a development build:
+For a manual run: **Actions → Android release builds → Run workflow**. Set
+`version`, `version_code`, and optionally `catalog_url`, then download the
+artifact from the run. Manual runs do not create a GitHub Release.
+
+The first CI run builds all four ABIs and takes 20–35 minutes. Later runs reuse
+the Gradle cache.
+
+### 8.5 Build the bundle locally (optional)
+
+The CI path above is the recommended one and avoids the Windows 260-character
+path limit in the native build. If you still want a local bundle:
 
 ```bash
-npx eas-cli@latest build --profile development --platform android
+node scripts/ci/apply-version.mjs --version 1.2.0 --code 42
+npx expo prebuild --platform android --clean
+
+export ANDROID_KEYSTORE_BASE64="$(base64 -w0 mira-upload.keystore)"
+export ANDROID_KEYSTORE_PASSWORD='your-store-password'
+export ANDROID_KEY_ALIAS='mira-upload'
+export ANDROID_KEY_PASSWORD='your-key-password'
+node scripts/ci/configure-signing.mjs
+
+cd android
+./gradlew :app:bundleRelease --no-daemon
 ```
 
-Install the APK on a physical Android device. Then verify:
+Windows PowerShell equivalents for the environment variables are in
+[`docs/RELEASING.md`](docs/RELEASING.md#53-add-the-keystore); use
+`.\gradlew.bat :app:bundleRelease --no-daemon` for the last step and run it from
+a short path such as `C:\mira`.
 
-- Share a link from Chrome → Mira appears in the sheet → opens in a new tab.
-- Share plain text → Mira opens the address overlay with the text prefilled.
-- Long-press the home screen → Widgets → Mira → place the 4×2 widget.
-- Resize the widget taller → shortcuts appear.
-- Tap the widget's Today title → Mira opens the page.
-- Switch system theme → widget redraws in dark mode.
-- Open a private tab, try a screenshot and a screen recording → both are blocked,
-  and the app-switcher preview is blank.
-- Close all private tabs → screenshots work again and no private entry remains in
-  history or trails.
-- Enable ads in the admin with test mode on, publish, and refresh the app
-  catalog → a label-marked Google test banner appears on Home.
-- Open a page, a sheet, a private tab, and Settings → no banner appears.
-- Return Home → the banner is requested again.
-- In an EEA test locale, confirm the UMP form appears once, refusing consent
-  suppresses the banner, and Settings → Advertising → Choices reopens the form.
-- Replace the test app IDs and units only when you are ready to test live fill.
+The output is `android/app/build/outputs/bundle/release/app-release.aab`.
 
-### Production build
+### 8.6 Upload to internal testing
+
+1. Play Console → **Testing → Internal testing → Create new release**.
+2. Accept **Play App Signing** when prompted.
+3. Upload `mira-1.0.0-<run>.aab`.
+4. Add release notes. The **What's new** text in [section 2](#2-store-listing-copy)
+   is already under the 500-character limit.
+5. Fix any errors Play reports. Version code reuse and target API are the two
+   common blockers.
+6. **Save → Review release → Start rollout to internal testing**.
+7. Add testers under the **Testers** tab (email addresses or a Google Group) and
+   share the opt-in link.
+8. Install from the Play link on a physical device and run the device checklist
+   in [section 9](#9-release-checklist).
+
+Internal testing is available within minutes and does not require the closed
+test below.
+
+### 8.7 Closed testing and production
+
+- New **personal** developer accounts created after 13 November 2023 must run a
+  closed test with at least 12 testers for 14 continuous days before production
+  access is granted. Organization accounts are exempt. Check the requirement
+  shown in your Play Console; Google changes it.
+- Create a closed track, upload a build with a **new versionCode**, add testers,
+  and collect feedback for the required period.
+- Then **Production → Create new release**, upload (or promote) the bundle, and
+  start with a staged rollout of 10–20%.
+- Watch the pre-launch report and the crash rate for a day, then increase the
+  rollout to 100%.
+- The first review usually takes a few days and can take up to seven. Updates are
+  often faster.
+
+Keep the internal track; it is the quickest way to verify a new versionCode
+before promoting it.
+
+### 8.8 Versioning rules
+
+Play rejects a `versionCode` that was already uploaded, on any track.
+
+- CI uses the workflow run number by default (`1`, `2`, `3`, …). It is monotonic
+  per repository.
+- Pass `version_code` on a manual run when you need a specific number.
+- The user-visible `version` comes from the tag (`v1.2.0` → `1.2.0`), the manual
+  input, or `package.json`.
+- Bump `expo.version` deliberately when the listing should show a new number.
+- Never reuse a number after a failed upload; Play records attempted bundles.
+
+Pick one source of version codes (CI run numbers, or a manual Play counter) and
+keep using it. Do not mix the two.
+
+### 8.9 EAS alternative (optional)
+
+If you prefer Expo's cloud build, `eas.json` has a production profile:
 
 ```bash
+npx eas-cli@latest login
+npx eas-cli@latest init
 npx eas-cli@latest build --profile production --platform android
-```
-
-This produces an `.aab`. EAS manages the upload keystore; back it up from the EAS
-dashboard. Losing it means you cannot update the app under the same listing. If
-you use Play App Signing, this is the upload key, not the app-signing key.
-
-To build the `.aab` locally with the same upload key as the GitHub Actions APK,
-use the Gradle path in
-[`docs/RELEASING.md`](docs/RELEASING.md#5-build-the-play-bundle). Do not mix two
-different upload keys under the same Play listing.
-
-### Submit
-
-```bash
 npx eas-cli@latest submit --profile production --platform android
 ```
 
-The `submit.production.android.track` is set to `internal` in `eas.json`. Promote
-to closed testing, then production, from Play Console.
-
-### Versioning
-
-`eas.json` sets `"autoIncrement": true` for production, so EAS increments
-`versionCode` on every production build. Bump `expo.version` (the user-visible
-version) deliberately when the listing should show a new number.
-
-The GitHub Actions APK uses the workflow run number as `versionCode` for
-sideloaded test builds. That number is not a Play versioning strategy. For a
-local Play bundle, set both values explicitly:
-
-```bash
-node scripts/ci/apply-version.mjs --version 1.2.0 --code 12
-```
-
-Play rejects a `versionCode` that was already uploaded, including on internal
-and closed tracks. Keep the Play counter monotonic and independent of CI run
-numbers.
+Use the same upload key in EAS (`eas credentials`) as the CI APK. Do not mix
+EAS-managed and CI keys under one listing. Everything else in this file applies
+unchanged.
 
 ---
 
@@ -561,7 +701,9 @@ numbers.
       query, or browsing history.
 - [x] `PRIVACY.md` and `docs/privacy.html` describe the shipped behaviour,
       including search-engine choice, the catalog request, and advertising.
-- [x] `app.json` uses Google test app IDs until real AdMob apps are created.
+- [ ] Replace the Google test AdMob app IDs in `app.json` with the real Android
+      app ID, and publish real banner unit IDs from the admin Advertising tab.
+- [ ] `app.json` has the production `versionCode` for the release being uploaded.
 
 ### Store setup
 
@@ -586,16 +728,16 @@ numbers.
       and set `EXPO_PUBLIC_CATALOG_URL` for the production build.
 - [ ] Confirm the admin's `/api/health` returns `200` with `"storage": "ok"`, and
       that backups and uptime monitoring are configured
-      ([`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)).
-- [ ] Set the GitHub Actions variable `EXPO_PUBLIC_CATALOG_URL` and, if testers
-      should receive stable updates, the four Android signing secrets. Push a
-      test tag and install the resulting GitHub Release APK
-      ([`docs/RELEASING.md`](docs/RELEASING.md)).
+      ([`VPS_DEPLOYMENT.md`](VPS_DEPLOYMENT.md)).
+- [ ] Create the upload keystore and add the four Android signing secrets.
+- [ ] Set the GitHub Actions variable `EXPO_PUBLIC_CATALOG_URL`.
+- [ ] Push a tag, confirm the release notes say **Signing: upload key**, and
+      download the `.aab` plus `SHA256SUMS.txt`.
 - [ ] Add a support email and (optionally) a website.
 - [ ] Complete the "Government apps" and "Financial features" declarations.
-- [ ] Upload the production `.aab` to internal testing.
+- [ ] Upload the `.aab` to internal testing and fix any Play validation errors.
 - [ ] Add internal testers and install from the Play link.
-- [ ] Promote to closed testing, then production.
+- [ ] Promote to closed testing for the required period, then production.
 
 ### Device verification before production
 

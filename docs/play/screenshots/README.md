@@ -24,6 +24,6 @@ Eight captures for the Google Play listing, in upload order.
   The discussion sheet in `08-discussions.png` shows a real, public Hacker News
   thread for the article behind it.
 
-`PLAY_STORE.md` has the listing order and the upload checklist. The older
-`09-address.png` remains as reference artwork but is not part of the eight-image
-upload set.
+`PLAY_STORE_PUBLISHING.md` has the listing order and the upload checklist. The
+older `09-address.png` remains as reference artwork but is not part of the
+eight-image upload set.

@@ -1,8 +1,9 @@
-name: Android test APK
+name: Android release builds
 
-# Tag a commit (`git tag v1.0.0 && git push origin v1.0.0`) to build an APK and
-# attach it to a GitHub Release. Manual runs produce a downloadable artifact
-# without creating a release.
+# Tag a commit (`git tag v1.0.0 && git push origin v1.0.0`) to build a release
+# APK and an Android App Bundle, then attach both to a GitHub Release. Manual
+# runs produce downloadable artifacts without creating a release. Upload the
+# `.aab` to Play Console; the `.apk` is for testers and sideloading.
 on:
   push:
     tags:
@@ -31,9 +32,9 @@ permissions:
 
 jobs:
   apk:
-    name: Build release APK
+    name: Build release APK and AAB
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     env:
       CI: '1'
@@ -103,6 +104,7 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
           echo "apk=mira-${VERSION}-${CODE}.apk" >> "$GITHUB_OUTPUT"
+          echo "aab=mira-${VERSION}-${CODE}.aab" >> "$GITHUB_OUTPUT"
 
       - name: Generate the native project
         run: npx expo prebuild --platform android --no-install --clean
@@ -130,26 +132,32 @@ jobs:
             echo "mode=debug key (sideload only)" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build release APK
+      - name: Build release APK and Play bundle
         working-directory: android
         env:
           EXPO_PUBLIC_CATALOG_URL: ${{ inputs.catalog_url || vars.EXPO_PUBLIC_CATALOG_URL }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew :app:assembleRelease --no-daemon --console=plain
+        run: ./gradlew :app:assembleRelease :app:bundleRelease --no-daemon --console=plain
 
-      - name: Verify and collect the APK
+      - name: Verify and collect the builds
         shell: bash
         run: |
           set -euo pipefail
           APK="android/app/build/outputs/apk/release/app-release.apk"
+          AAB="android/app/build/outputs/bundle/release/app-release.aab"
           test -f "$APK"
+          test -f "$AAB"
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
           "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$APK"
+          # apksigner only reads APKs; an AAB is a signed JAR. This fails if the
+          # bundle is unsigned, which Play would reject on upload.
+          keytool -printcert -jarfile "$AAB" > /dev/null
           mkdir -p artifacts
           cp "$APK" "artifacts/${{ steps.version.outputs.apk }}"
-          (cd artifacts && sha256sum "${{ steps.version.outputs.apk }}" > "${{ steps.version.outputs.apk }}.sha256")
+          cp "$AAB" "artifacts/${{ steps.version.outputs.aab }}"
+          (cd artifacts && sha256sum "${{ steps.version.outputs.apk }}" "${{ steps.version.outputs.aab }}" > SHA256SUMS.txt)
           ls -lh artifacts
 
       - name: Upload artifact
@@ -172,11 +180,16 @@ jobs:
           - **Signing:** ${{ steps.signing.outputs.mode }}
           - **Catalog:** ${EXPO_PUBLIC_CATALOG_URL:-bundled catalog only}
 
-          Install the APK on an Android device. This is a release build with
-          Hermes and R8 enabled. If it was signed with a different key than a
-          previously installed copy, uninstall the old app first.
+          **Assets**
 
-          SHA-256 is in the attached \`.sha256\` file.
+          - \`${{ steps.version.outputs.apk }}\` — install on a device (sideload).
+          - \`${{ steps.version.outputs.aab }}\` — upload to Play Console.
+
+          This is a release build with Hermes and R8 enabled. If the APK is signed
+          with a different key than a previously installed copy, uninstall the old
+          app first. Play validates the bundle on upload.
+
+          SHA-256 checksums are in \`SHA256SUMS.txt\`.
           EOF
 
       - name: Publish GitHub Release

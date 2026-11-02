@@ -1,11 +1,11 @@
 # Building and releasing Mira
 
-There are two independent release paths:
+There are two release paths:
 
 | Path | Output | Use |
 | --- | --- | --- |
-| GitHub Actions | Signed release APK + SHA-256 | Testers, sideloading, device QA |
-| EAS or local Gradle | Signed `.aab` | Google Play upload |
+| GitHub Actions | Signed release APK, `.aab`, and SHA-256 checksums | Testers, sideloading, device QA, Play upload |
+| EAS or local Gradle | Signed `.aab` | Google Play upload (optional) |
 
 Both read the same Expo config. The app version, Android `versionCode`, catalog
 URL, and signing key must be chosen deliberately for each path.
@@ -22,18 +22,18 @@ URL, and signing key must be chosen deliberately for each path.
 
 The CI workflow overrides both values in its own checkout; it does not commit
 them back. A tag such as `v1.2.0` produces version `1.2.0`. The default
-`versionCode` is the GitHub Actions run number. That is fine for sideloaded test
-APKs, but it is not a Play versioning strategy.
+`versionCode` is the GitHub Actions run number, which is monotonic for the
+repository, so it works for Play uploads. You can also pass an explicit
+`version_code` on a manual run.
 
-For Play, set the values explicitly before building the AAB:
+Pick one source of version codes and keep using it. For Play, every upload —
+internal, closed, and production — needs a `versionCode` higher than every
+previous upload, and a failed upload still counts. If you would rather manage
+the counter by hand, pass it on every manual run:
 
 ```bash
-node scripts/ci/apply-version.mjs --version 1.2.0 --code 12
+gh workflow run android-release.yml -f version=1.2.0 -f version_code=12
 ```
-
-Then commit the `app.json` change, or run the command immediately before the
-build. Keep a simple rule: every Play upload gets a higher `versionCode` than
-every previous upload, including internal and closed tracks.
 
 Tag releases for testers:
 
@@ -213,7 +213,7 @@ rather than silently producing a debug-signed build.
 
 ---
 
-## 4. Build the test APK
+## 4. Build the APK and AAB
 
 ### 4.1 Tag build
 
@@ -230,21 +230,23 @@ The workflow:
 4. Resolves the version from the tag (or the manual input).
 5. Runs `expo prebuild --platform android --clean`.
 6. Applies the optional signing key.
-7. Runs `./gradlew :app:assembleRelease`.
-8. Verifies the APK signature with `apksigner`.
-9. Uploads the APK and `.sha256` as a workflow artifact.
-10. Creates a GitHub Release named after the tag and attaches both files.
+7. Runs `./gradlew :app:assembleRelease :app:bundleRelease`.
+8. Verifies the APK with `apksigner` and the AAB's signature with `keytool`.
+9. Uploads the APK, AAB, and `SHA256SUMS.txt` as a workflow artifact.
+10. Creates a GitHub Release named after the tag and attaches all three files.
 
-Open **Actions → Android test APK → the run → Artifacts**, or the **Releases**
-page. The APK is named:
+Open **Actions → Android release builds → the run → Artifacts**, or the
+**Releases** page. The assets are named:
 
 ```text
 mira-1.0.0-<run-number>.apk
+mira-1.0.0-<run-number>.aab
+SHA256SUMS.txt
 ```
 
 ### 4.2 Manual build
 
-Use **Actions → Android test APK → Run workflow** and optionally set:
+Use **Actions → Android release builds → Run workflow** and optionally set:
 
 | Input | Meaning |
 | --- | --- |
@@ -278,33 +280,39 @@ cached catalog. It does not affect the catalog server.
 
 ```bash
 apksigner verify --verbose --print-certs mira-1.0.0-42.apk
+keytool -printcert -jarfile mira-1.0.0-42.aab
 ```
 
 The certificate should say `CN=Android Debug` only when you deliberately built
 without signing secrets. Otherwise it should show your upload key's distinguished
-name.
+name. Do not upload an AAB signed with the debug key to Play.
 
 Compare the checksum:
 
 ```bash
-sha256sum -c mira-1.0.0-42.apk.sha256
+sha256sum -c SHA256SUMS.txt
 ```
 
 On Windows PowerShell:
 
 ```powershell
 Get-FileHash .\mira-1.0.0-42.apk -Algorithm SHA256
+Get-FileHash .\mira-1.0.0-42.aab -Algorithm SHA256
 ```
 
 ---
 
 ## 5. Build the Play bundle
 
-The Play Store needs an Android App Bundle (`.aab`), not an APK. The existing
-[`eas.json`](../eas.json) production profile builds an `.aab` and submits to the
-internal track. That path is documented in [PLAY_STORE.md](../PLAY_STORE.md).
+The Play Store needs an Android App Bundle (`.aab`), not an APK. The
+`Android release builds` workflow produces both from the same upload key: push a
+tag and download the `.aab` from the GitHub Release. That is the recommended
+path, because it avoids the 260-character path limit in local Windows builds.
 
-If you want the same upload key as the CI APK, build the bundle locally:
+The complete Play Console walkthrough is in
+[`PLAY_STORE_PUBLISHING.md`](../PLAY_STORE_PUBLISHING.md).
+
+If you want to build the bundle locally, use the same upload key as the CI APK:
 
 ### 5.1 Set the version
 
@@ -373,7 +381,7 @@ android/app/build/outputs/bundle/release/app-release.aab
 In Play Console, create or open the app, go to **Testing → Internal testing**,
 and upload the `.aab`. Play validates the version code and signing certificate.
 Promote through closed testing to production when the release checklist in
-[PLAY_STORE.md](../PLAY_STORE.md) is complete.
+[`PLAY_STORE_PUBLISHING.md`](../PLAY_STORE_PUBLISHING.md) is complete.
 
 > If you use EAS-managed credentials for Play, do not use the locally built
 > `.aab` with the CI keystore for the same listing. Choose one key and keep it.
@@ -391,8 +399,9 @@ Promote through closed testing to production when the release checklist in
 | Java | 17 (Temurin) |
 | Android | SDK platform 37.0 and build tools 37.0.0 installed explicitly; NDK resolved by Gradle |
 | Gradle | Wrapper in the generated `android/` project, Gradle cache via `gradle/actions/setup-gradle` |
-| Build | `:app:assembleRelease` |
+| Build | `:app:assembleRelease` and `:app:bundleRelease` |
 | APK | `android/app/build/outputs/apk/release/app-release.apk` |
+| AAB | `android/app/build/outputs/bundle/release/app-release.aab` |
 | Artifact retention | 30 days |
 | Release permissions | `contents: write` |
 | Catalog URL | `inputs.catalog_url` → `vars.EXPO_PUBLIC_CATALOG_URL` → bundled |
@@ -528,10 +537,10 @@ the new build. Confirm the endpoint with `curl` first.
 
 | File | Purpose |
 | --- | --- |
-| `.github/workflows/android-release.yml` | Tag/manual APK build, signature check, artifact, GitHub Release |
+| `.github/workflows/android-release.yml` | Tag/manual APK + AAB build, signature check, artifact, GitHub Release |
 | `scripts/ci/apply-version.mjs` | Writes version and versionCode into `app.json` |
 | `scripts/ci/configure-signing.mjs` | Decodes the upload keystore and patches the release build type |
-| `eas.json` | EAS development/preview/production profiles |
+| `eas.json` | EAS development/preview/production profiles (optional path) |
 | `app.json` | Expo name, package, version, versionCode, plugins, AdMob IDs |
-| `docs/DEPLOYMENT.md` | VPS admin deployment and catalog URL setup |
-| `PLAY_STORE.md` | Listing copy, declarations, Play checklist |
+| `VPS_DEPLOYMENT.md` | VPS admin deployment and catalog URL setup |
+| `PLAY_STORE_PUBLISHING.md` | Listing copy, declarations, signing, Play checklist |

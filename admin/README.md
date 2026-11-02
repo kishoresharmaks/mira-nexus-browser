@@ -182,7 +182,7 @@ the missing variable names instead of the login form.
 
 The production path is Docker Compose + Caddy on a VPS, with automatic HTTPS.
 The complete guide, including Atlas, DNS, backups, upgrades, and rollback, is in
-[`../docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md).
+[`../VPS_DEPLOYMENT.md`](../VPS_DEPLOYMENT.md).
 
 Quick version on the VPS:
 
