@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  // The VPS image runs `.next/standalone/server.js`; it contains the traced
+  // server dependencies and no development packages.
+  output: 'standalone',
   poweredByHeader: false,
   devIndicators: false,
   serverExternalPackages: ['mongodb'],

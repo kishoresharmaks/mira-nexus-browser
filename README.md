@@ -251,7 +251,7 @@ The app reads `EXPO_PUBLIC_CATALOG_URL` at build time and treats an empty value
 as "use the bundled catalog":
 
 ```
-EXPO_PUBLIC_CATALOG_URL=https://<project>.vercel.app/api/catalog
+EXPO_PUBLIC_CATALOG_URL=https://catalog.example.com/api/catalog
 ```
 
 A published change reaches the app on its next hourly check, foreground refresh,
@@ -397,6 +397,24 @@ public/demo.html            web-preview reading page
 
 Native projects are generated (CNG). Never hand-edit `android/` or `ios/`.
 
+### Test APK from GitHub Actions
+
+Push a tag and the workflow builds a release APK, verifies its signature, and
+attaches it to a GitHub Release:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+The APK is `mira-<version>-<versionCode>.apk` with a matching `.sha256`. The
+workflow can sign with an uploaded keystore; without one it uses Expo's debug
+key and labels the build as sideload-only. Manual runs produce an artifact
+without creating a release. Setup, signing, installation, and troubleshooting
+are in [docs/RELEASING.md](docs/RELEASING.md).
+
+### Play Store bundle
+
 ```bash
 npx eas-cli@latest build --profile development --platform android
 npx eas-cli@latest build --profile production --platform android
@@ -405,30 +423,36 @@ npx eas-cli@latest submit --profile production --platform android
 
 `eas.json` defines development, preview, and production profiles. Production
 builds an `.aab`, auto-increments `versionCode`, and submits to the internal
-track by default.
+track by default. To build the bundle locally with the same upload key as the CI
+APK, follow [docs/RELEASING.md](docs/RELEASING.md#5-build-the-play-bundle).
 
 Before publishing:
 
 1. Replace `REPLACE_WITH_YOUR_EMAIL@example.com` in `PRIVACY.md` and
    `docs/privacy.html`.
 2. Host `docs/privacy.html` at a public HTTPS URL.
-3. Deploy `admin/` to Vercel with a MongoDB Atlas connection, set
-   `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, and `MONGODB_URI`, publish the
-   catalog, and point `EXPO_PUBLIC_CATALOG_URL` at its `/api/catalog` route
-   before building the app.
-4. Create the AdMob apps and adaptive banner units, replace the Google test app
+3. Deploy `admin/` with MongoDB Atlas. The recommended path is Docker Compose +
+   Caddy on a VPS: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Publish the
+   catalog, then point `EXPO_PUBLIC_CATALOG_URL` at
+   `https://<domain>/api/catalog` before building the app.
+4. Set the GitHub Actions repository variable `EXPO_PUBLIC_CATALOG_URL` and, for
+   stable tester updates, the four signing secrets described in
+   [docs/RELEASING.md](docs/RELEASING.md).
+5. Create the AdMob apps and adaptive banner units, replace the Google test app
    IDs in `app.json`, enter the unit IDs in the admin Advertising tab, turn test
    mode off, enable the banner, and publish.
-5. Follow [PLAY_STORE.md](PLAY_STORE.md) for listing copy, screenshots, Data
+6. Follow [PLAY_STORE.md](PLAY_STORE.md) for listing copy, screenshots, Data
    safety, content rating, the "Contains ads" declaration, and the review
    checklist.
-6. On a physical Android device, open a private tab and confirm that
+7. On a physical Android device, open a private tab and confirm that
    screenshots are blocked and the app-switcher thumbnail is blank.
-7. With ads enabled, confirm one labeled banner appears on Home and none appears
+8. With ads enabled, confirm one labeled banner appears on Home and none appears
    in the browser, private tabs, sheets, or Settings. Refuse UMP consent in a
    regulated test locale and confirm no ad is requested.
-8. With the device offline, confirm the app still opens with its bundled search
+9. With the device offline, confirm the app still opens with its bundled search
    presets, Today list, and ad settings.
+10. On a clean install, watch the native splash hand off to the branded launch
+    screen, then to Home, with no flash of the wrong theme or empty content.
 
 Play Console requirements change; the guide calls out what to verify at
 submission.
@@ -467,9 +491,10 @@ submission.
 - **Discussion matching is by address.** A thread posted with a substantially
   different URL will not match, and the sheet is read-only: it shows the first
   120 comments to six levels and links out for the rest.
-- **Build-time audit noise.** `npm audit --omit=dev` reports high findings in
-  `node-forge` and `zod` pulled in by `@expo/cli`; they are build tooling, not
-  shipped runtime code, and Expo does not yet offer a patched line.
+- **Build-time audit noise.** `npm audit --omit=dev` reports moderate findings
+  in transitive build tooling pulled in by `@expo/cli`; there are no high or
+  critical findings in the production tree. The suggested fixes downgrade Expo
+  across major versions, so they are not applied.
 
 ---
 

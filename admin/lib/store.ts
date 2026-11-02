@@ -221,6 +221,29 @@ export async function readState(): Promise<StoreState> {
   );
 }
 
+/**
+ * The container healthcheck needs to prove the process can reach its store.
+ * This reads only `_id`, so it neither seeds an empty database nor depends on
+ * a catalog document being valid. It throws on an unreachable store.
+ */
+export async function pingStore(): Promise<StorageMode> {
+  const mode = storageMode();
+  if (mode === 'file') {
+    await readFileState();
+    return mode;
+  }
+  if (mode === 'none') {
+    throw new Error('No catalog store is configured.');
+  }
+
+  const collection = await mongoCollection();
+  await collection.findOne(
+    { _id: MONGO_DOCUMENT_ID },
+    { projection: { _id: 1 } },
+  );
+  return mode;
+}
+
 async function writeFileState(state: StoreState): Promise<void> {
   const payload = `${JSON.stringify(state, null, 2)}\n`;
   await mkdir(dirname(LOCAL_PATH), { recursive: true });

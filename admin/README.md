@@ -174,10 +174,33 @@ the missing variable names instead of the login form.
 | `GET /api/catalog` | Public | Published feed, CORS-enabled, ETag, five-minute edge cache. |
 | `PUT /api/catalog/draft` | Session | Save the draft without publishing. |
 | `POST /api/catalog/publish` | Session | Validate and publish a new revision. Returns `409` on a revision conflict. |
+| `GET /api/health` | Public | Docker/uptime check. Reports `auth` and `storage` status; no secrets or error text. |
 | `POST /api/auth/login` | Public | Rate-limited password login. |
 | `POST /api/auth/logout` | Session | Clear the session cookie. |
 
-## Deploy to Vercel
+## Deploy
+
+The production path is Docker Compose + Caddy on a VPS, with automatic HTTPS.
+The complete guide, including Atlas, DNS, backups, upgrades, and rollback, is in
+[`../docs/DEPLOYMENT.md`](../docs/DEPLOYMENT.md).
+
+Quick version on the VPS:
+
+```bash
+cd /opt/mira/admin
+cp .env.docker.example .env
+chmod 600 .env
+# fill in ADMIN_DOMAIN, ADMIN_PASSWORD, ADMIN_SESSION_SECRET, MONGODB_URI
+docker compose build
+docker compose up -d
+curl -fsS https://catalog.example.com/api/health
+```
+
+The image uses `output: "standalone"` from `next.config.ts`, runs as a non-root
+user, and has no writable host mount. Caddy owns ports 80/443 and proxies to the
+admin on the private Compose network.
+
+### Deploy to Vercel instead
 
 1. Push this repository to a Git host Vercel can read.
 2. Import the repository and set **Root Directory** to `admin`.
@@ -187,7 +210,9 @@ the missing variable names instead of the login form.
    `MONGODB_COLLECTION` only if you changed the defaults.
 5. Confirm Atlas **Network Access** allows Vercel's egress, and that the
    database user can read and write `mira`.
-6. Deploy. Open the production URL, sign in, edit the draft, and publish.
+6. Deploy. Verify `https://<project>/api/health` returns `200` with
+   `"storage": "ok"`. Then open the production URL, sign in, edit the draft, and
+   publish.
 7. Check `https://<project>/api/catalog` in a private window. It must return the
    published catalog with `"revision"` set.
 8. In the Expo build environment, set:
@@ -267,6 +292,8 @@ revision.
   `no-referrer` plus a restrictive permissions policy.
 - The public feed carries no reader data. Keep it that way: no names, emails,
   account IDs, or notes about individual readers in the catalog.
+- `/api/health` names only the failed component. It never returns the MongoDB
+  URI, driver error, or environment values.
 
 ## Commands
 
@@ -275,4 +302,15 @@ npm run dev        # local desk on :3100
 npm run typecheck  # tsc --noEmit
 npm run build      # production build
 npm run start      # serve the production build on :3100
+```
+
+Container deployment (from `admin/`):
+
+```bash
+cp .env.docker.example .env  # once, then edit
+docker compose build
+docker compose up -d
+docker compose ps
+docker compose logs -f admin
+curl -fsS https://catalog.example.com/api/health
 ```

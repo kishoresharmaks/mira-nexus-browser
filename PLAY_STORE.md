@@ -369,17 +369,25 @@ URL stable; changing it later requires a Play Console update.
 The search presets, Today pages, and the home-screen ad configuration are edited
 in `admin/`, a Next.js app that deploys independently of the mobile build.
 
-1. Create a Vercel project from `admin/`.
-2. Create a MongoDB Atlas database (the free tier is enough) and add a database
-   user with `readWrite` access to `mira`.
-3. Set `ADMIN_PASSWORD` (8+ characters), `ADMIN_SESSION_SECRET` (32+
-   characters, random), and `MONGODB_URI` (the Atlas SRV string) as Production
-   environment variables.
-4. Deploy. Open `/`, sign in with the password, edit the draft, and publish.
-5. Copy the public feed URL, normally
-   `https://<project>.vercel.app/api/catalog`.
+The recommended production path is Docker Compose + Caddy on a VPS with
+automatic HTTPS. The complete guide, including Atlas, DNS, backups, upgrades,
+rollback, and monitoring, is in
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
+1. Create a MongoDB Atlas database (the free tier is enough) and add a database
+   user with `readWrite` access to `mira`. Allow only the admin host's address.
+2. On the VPS, copy `admin/.env.docker.example` to `admin/.env` and set
+   `ADMIN_DOMAIN`, `ADMIN_PASSWORD` (8+ characters), `ADMIN_SESSION_SECRET`
+   (32+ random characters), and `MONGODB_URI` (the Atlas SRV string).
+3. Run `docker compose up -d --build` from `admin/`.
+4. Verify `https://<domain>/api/health` returns `200` with `"storage": "ok"`.
+5. Open `/`, sign in, edit the draft, and publish. The public feed is
+   `https://<domain>/api/catalog`.
 6. Put that URL in the Expo build environment as `EXPO_PUBLIC_CATALOG_URL`, then
    rebuild the app. An empty value keeps the app on its bundled catalog.
+
+Vercel remains a supported alternative; see the deployment guide's Vercel
+section.
 
 The public feed is read-only, CORS-enabled, and cached for five minutes at the
 edge. The admin stores the draft and published catalog in MongoDB Atlas; drafts
@@ -427,6 +435,27 @@ npx eas-cli@latest init          # links this directory to an EAS project
 
 `eas init` writes `extra.eas.projectId` into `app.json`. Commit that change.
 
+### Test APK from GitHub Actions (no EAS account)
+
+For tester builds, `.github/workflows/android-release.yml` builds a release APK
+with Java 17 and the Android SDK, verifies its signature, and attaches it to a
+GitHub Release when you push a tag:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Without signing secrets it uses Expo's debug key and is labeled sideload-only.
+With `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`,
+`ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD` it uses your upload key. Set the
+repository variable `EXPO_PUBLIC_CATALOG_URL` so the test build reads the
+production catalog. Full setup and troubleshooting:
+[`docs/RELEASING.md`](docs/RELEASING.md).
+
+The workflow produces `mira-<version>-<versionCode>.apk` plus a SHA-256 file. It
+does not upload to Play.
+
 ### Development build (share extension, widget, capture shield, and AdMob)
 
 Expo Go cannot load `expo-share-intent`, `react-native-android-widget`, or
@@ -464,7 +493,13 @@ npx eas-cli@latest build --profile production --platform android
 ```
 
 This produces an `.aab`. EAS manages the upload keystore; back it up from the EAS
-dashboard. Losing it means you cannot update the app under the same listing.
+dashboard. Losing it means you cannot update the app under the same listing. If
+you use Play App Signing, this is the upload key, not the app-signing key.
+
+To build the `.aab` locally with the same upload key as the GitHub Actions APK,
+use the Gradle path in
+[`docs/RELEASING.md`](docs/RELEASING.md#5-build-the-play-bundle). Do not mix two
+different upload keys under the same Play listing.
 
 ### Submit
 
@@ -480,6 +515,18 @@ to closed testing, then production, from Play Console.
 `eas.json` sets `"autoIncrement": true` for production, so EAS increments
 `versionCode` on every production build. Bump `expo.version` (the user-visible
 version) deliberately when the listing should show a new number.
+
+The GitHub Actions APK uses the workflow run number as `versionCode` for
+sideloaded test builds. That number is not a Play versioning strategy. For a
+local Play bundle, set both values explicitly:
+
+```bash
+node scripts/ci/apply-version.mjs --version 1.2.0 --code 12
+```
+
+Play rejects a `versionCode` that was already uploaded, including on internal
+and closed tracks. Keep the Play counter monotonic and independent of CI run
+numbers.
 
 ---
 
@@ -537,6 +584,13 @@ version) deliberately when the listing should show a new number.
 - [ ] Provide the app-access note (no login).
 - [ ] Deploy the catalog admin, publish a revision with the production ad unit IDs,
       and set `EXPO_PUBLIC_CATALOG_URL` for the production build.
+- [ ] Confirm the admin's `/api/health` returns `200` with `"storage": "ok"`, and
+      that backups and uptime monitoring are configured
+      ([`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)).
+- [ ] Set the GitHub Actions variable `EXPO_PUBLIC_CATALOG_URL` and, if testers
+      should receive stable updates, the four Android signing secrets. Push a
+      test tag and install the resulting GitHub Release APK
+      ([`docs/RELEASING.md`](docs/RELEASING.md)).
 - [ ] Add a support email and (optionally) a website.
 - [ ] Complete the "Government apps" and "Financial features" declarations.
 - [ ] Upload the production `.aab` to internal testing.
@@ -546,6 +600,8 @@ version) deliberately when the listing should show a new number.
 ### Device verification before production
 
 - [ ] Cold start on a clean install, no dev menu, no red box.
+- [ ] The native splash fades into the branded launch screen, then to Home, with
+      no flash of the opposite theme and no blank content frame.
 - [ ] Browse an HTTPS article; back/forward/reload work.
 - [ ] Type an HTTP address; it upgrades to HTTPS.
 - [ ] Try `file:///sdcard/` and `javascript:`; both are refused.

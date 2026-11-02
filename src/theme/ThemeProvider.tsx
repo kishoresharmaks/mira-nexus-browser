@@ -18,6 +18,8 @@ const THEME_KEY = STORAGE_KEYS.theme;
 type ThemeContextValue = {
   theme: Theme;
   mode: ThemeMode;
+  /** The saved appearance has been read; the first paint is the real one. */
+  hydrated: boolean;
   setMode: (mode: ThemeMode) => void;
   toggleMode: () => void;
 };
@@ -29,6 +31,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>(
     systemScheme === 'dark' ? 'dark' : 'light',
   );
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -37,7 +40,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         if (!alive) return;
         if (stored === 'light' || stored === 'dark') setModeState(stored);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (alive) setHydrated(true);
+      });
     return () => {
       alive = false;
     };
@@ -54,8 +60,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [mode, setMode]);
 
   const value = useMemo<ThemeContextValue>(
-    () => ({ theme: themes[mode], mode, setMode, toggleMode }),
-    [mode, setMode, toggleMode],
+    () => ({ theme: themes[mode], mode, hydrated, setMode, toggleMode }),
+    [hydrated, mode, setMode, toggleMode],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
@@ -80,10 +86,10 @@ export function ThemeScope({
   children: ReactNode;
 }) {
   const parent = useTheme();
-  const { setMode, toggleMode } = parent;
+  const { hydrated, setMode, toggleMode } = parent;
   const value = useMemo<ThemeContextValue>(
-    () => ({ theme, mode: theme.mode, setMode, toggleMode }),
-    [theme, setMode, toggleMode],
+    () => ({ theme, mode: theme.mode, hydrated, setMode, toggleMode }),
+    [theme, hydrated, setMode, toggleMode],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

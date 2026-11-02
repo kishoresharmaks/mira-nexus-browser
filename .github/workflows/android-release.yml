@@ -1,0 +1,196 @@
+name: Android test APK
+
+# Tag a commit (`git tag v1.0.0 && git push origin v1.0.0`) to build an APK and
+# attach it to a GitHub Release. Manual runs produce a downloadable artifact
+# without creating a release.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version name (defaults to the tag, then package.json)'
+        required: false
+        type: string
+      version_code:
+        description: 'Android versionCode (defaults to the workflow run number)'
+        required: false
+        type: string
+      catalog_url:
+        description: 'HTTPS catalog URL (defaults to the EXPO_PUBLIC_CATALOG_URL repository variable)'
+        required: false
+        type: string
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: Build release APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+      EXPO_PUBLIC_CATALOG_URL: ${{ inputs.catalog_url || vars.EXPO_PUBLIC_CATALOG_URL }}
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK platform and build tools
+        shell: bash
+        run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install JavaScript dependencies
+        run: npm ci
+
+      - name: Check catalog URL
+        shell: bash
+        run: |
+          if [ -n "$EXPO_PUBLIC_CATALOG_URL" ] && [[ ! "$EXPO_PUBLIC_CATALOG_URL" =~ ^https:// ]]; then
+            echo "::error::EXPO_PUBLIC_CATALOG_URL must use https://"
+            exit 1
+          fi
+          if [ -z "$EXPO_PUBLIC_CATALOG_URL" ]; then
+            echo "::warning::No catalog URL set. This APK will use the bundled catalog only."
+          fi
+
+      - name: Resolve version
+        id: version
+        shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          set -euo pipefail
+          VERSION="${INPUT_VERSION:-}"
+          VERSION="${VERSION#v}"
+          if [ -z "$VERSION" ] && [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          if [ -z "$VERSION" ]; then
+            VERSION="$(node -p "require('./package.json').version")"
+          fi
+          CODE="${INPUT_VERSION_CODE:-$GITHUB_RUN_NUMBER}"
+
+          node scripts/ci/apply-version.mjs --version "$VERSION" --code "$CODE"
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "apk=mira-${VERSION}-${CODE}.apk" >> "$GITHUB_OUTPUT"
+
+      - name: Generate the native project
+        run: npx expo prebuild --platform android --no-install --clean
+
+      - name: Configure Gradle memory
+        shell: bash
+        run: |
+          # The template uses 2 GB, which is tight for R8 and four ABIs.
+          printf '\norg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g\n' >> android/gradle.properties
+
+      - name: Configure signing
+        id: signing
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          node scripts/ci/configure-signing.mjs
+          if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+            echo "mode=upload key" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=debug key (sideload only)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build release APK
+        working-directory: android
+        env:
+          EXPO_PUBLIC_CATALOG_URL: ${{ inputs.catalog_url || vars.EXPO_PUBLIC_CATALOG_URL }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease --no-daemon --console=plain
+
+      - name: Verify and collect the APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          test -f "$APK"
+          BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n 1)"
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs "$APK"
+          mkdir -p artifacts
+          cp "$APK" "artifacts/${{ steps.version.outputs.apk }}"
+          (cd artifacts && sha256sum "${{ steps.version.outputs.apk }}" > "${{ steps.version.outputs.apk }}.sha256")
+          ls -lh artifacts
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mira-${{ steps.version.outputs.version }}-${{ steps.version.outputs.code }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Write release notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          cat > release-notes.md <<EOF
+          Test build of Mira ${{ steps.version.outputs.version }}.
+
+          - **versionCode:** ${{ steps.version.outputs.code }}
+          - **Commit:** \`${{ github.sha }}\`
+          - **Signing:** ${{ steps.signing.outputs.mode }}
+          - **Catalog:** ${EXPO_PUBLIC_CATALOG_URL:-bundled catalog only}
+
+          Install the APK on an Android device. This is a release build with
+          Hermes and R8 enabled. If it was signed with a different key than a
+          previously installed copy, uninstall the old app first.
+
+          SHA-256 is in the attached \`.sha256\` file.
+          EOF
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" > /dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" artifacts/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" artifacts/* \
+              --title "Mira ${GITHUB_REF_NAME#v}" \
+              --notes-file release-notes.md \
+              --verify-tag
+          fi

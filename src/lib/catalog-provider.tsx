@@ -47,6 +47,8 @@ type CatalogContextValue = {
   activeEngine: SearchEngine;
   todayPages: Catalog['pages'];
   ads: AdsConfig;
+  /** The cached catalog and saved search choice have been read. */
+  hydrated: boolean;
   selectEngine: (id: string) => void;
   addCustomEngine: (engine: SearchEngine) => void;
   removeCustomEngine: (id: string) => void;
@@ -117,7 +119,7 @@ async function writeCachedCatalog(value: CachedCatalog): Promise<void> {
 }
 
 export function CatalogProvider({ children }: { children: ReactNode }) {
-  const [search, setSearch] = usePersistentState<SearchState>(
+  const [search, setSearch, searchHydrated] = usePersistentState<SearchState>(
     STORAGE_KEYS.search,
     EMPTY_SEARCH_STATE,
     normalizeSearchState,
@@ -125,6 +127,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
   const [catalog, setCatalog] = useState<Catalog>(BUNDLED_CATALOG);
   const [source, setSource] = useState<CatalogSource>('bundled');
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
+  const [cacheHydrated, setCacheHydrated] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState(false);
   const mounted = useRef(true);
@@ -186,11 +189,15 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
         setUpdatedAt(cached.fetchedAt);
       }
 
+      if (!alive) return;
+      setCacheHydrated(true);
+
       if (!CATALOG_URL) return;
       const stale = !cached || Date.now() - cached.fetchedAt > CACHE_MAX_AGE_MS;
       if (stale) await loadRemote(false);
     })().catch(() => {
       // The bundled catalog is already active; a cache read failure is quiet.
+      if (alive) setCacheHydrated(true);
     });
 
     return () => {
@@ -277,6 +284,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       activeEngine,
       todayPages: catalog.pages,
       ads: catalog.ads,
+      hydrated: cacheHydrated && searchHydrated,
       selectEngine,
       addCustomEngine,
       removeCustomEngine,
@@ -293,11 +301,13 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       catalog.engines,
       catalog.pages,
       catalog.ads,
+      cacheHydrated,
       engines,
       refreshCatalog,
       refreshError,
       refreshing,
       search.customEngines,
+      searchHydrated,
       selectEngine,
       source,
       updatedAt,

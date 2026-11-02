@@ -1,4 +1,10 @@
-import { useEffect } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { isRunningInExpoGo } from 'expo';
 import { useFonts } from 'expo-font';
@@ -13,9 +19,10 @@ import { InstrumentSans_600SemiBold } from '@expo-google-fonts/instrument-sans/6
 import { InstrumentSans_700Bold } from '@expo-google-fonts/instrument-sans/700Bold';
 import { InstrumentSerif_400Regular } from '@expo-google-fonts/instrument-serif/400Regular';
 import { InstrumentSerif_400Regular_Italic } from '@expo-google-fonts/instrument-serif/400Regular_Italic';
+import { LaunchScreen } from '@/components/LaunchScreen';
 import { ToastProvider } from '@/components/Toast';
 import { AdsProvider } from '@/lib/ads-provider';
-import { CatalogProvider } from '@/lib/catalog-provider';
+import { CatalogProvider, useCatalogConfig } from '@/lib/catalog-provider';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -35,14 +42,6 @@ export default function RootLayout() {
     InstrumentSansBold: InstrumentSans_700Bold,
   });
 
-  useEffect(() => {
-    if (!fontsLoaded && !fontError) return;
-    const frame = requestAnimationFrame(() => {
-      SplashScreen.hideAsync().catch(() => {});
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [fontsLoaded, fontError]);
-
   if (!fontsLoaded && !fontError) return null;
 
   return (
@@ -51,12 +50,74 @@ export default function RootLayout() {
         <CatalogProvider>
           <AdsProvider>
             <ToastProvider>
-              <Navigator />
+              <Startup>
+                <Navigator />
+              </Startup>
             </ToastProvider>
           </AdsProvider>
         </CatalogProvider>
       </ThemeProvider>
     </SafeAreaProvider>
+  );
+}
+
+function Startup({ children }: { children: ReactNode }) {
+  const { hydrated: themeReady } = useTheme();
+  const { hydrated: catalogReady } = useCatalogConfig();
+  const [splashHidden, setSplashHidden] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [launchDone, setLaunchDone] = useState(false);
+  const shownAt = useRef<number | null>(null);
+  const hiding = useRef(false);
+
+  // Hold the native splash until the saved theme is known. Hiding it first can
+  // flash the system palette for a frame before the custom screen repaints.
+  useEffect(() => {
+    if (!themeReady) {
+      const fallback = setTimeout(() => {
+        if (hiding.current) return;
+        hiding.current = true;
+        shownAt.current = Date.now();
+        SplashScreen.hideAsync()
+          .catch(() => {})
+          .finally(() => setSplashHidden(true));
+      }, 1_200);
+      return () => clearTimeout(fallback);
+    }
+
+    if (hiding.current) return;
+    hiding.current = true;
+    shownAt.current = Date.now();
+    SplashScreen.hideAsync()
+      .catch(() => {})
+      .finally(() => setSplashHidden(true));
+  }, [themeReady]);
+
+  useEffect(() => {
+    if (!splashHidden || !themeReady || !catalogReady) return;
+    const elapsed = Date.now() - (shownAt.current ?? Date.now());
+    const timer = setTimeout(
+      () => setReady(true),
+      Math.max(0, 780 - elapsed),
+    );
+    return () => clearTimeout(timer);
+  }, [catalogReady, splashHidden, themeReady]);
+
+  // A corrupt or wedged storage read must never trap someone on this screen.
+  useEffect(() => {
+    const fallback = setTimeout(() => setReady(true), 3_000);
+    return () => clearTimeout(fallback);
+  }, []);
+
+  const finish = useCallback(() => setLaunchDone(true), []);
+
+  return (
+    <View style={styles.root}>
+      {children}
+      {!launchDone ? (
+        <LaunchScreen ready={ready} onFinish={finish} />
+      ) : null}
+    </View>
   );
 }
 
