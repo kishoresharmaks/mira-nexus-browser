@@ -4,7 +4,7 @@ import {
   type Filter,
   type MongoClientOptions,
 } from 'mongodb';
-import { setServers as setDnsServers } from 'node:dns';
+import { promises as dnsPromises, setServers as setDnsServers } from 'node:dns';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import {
@@ -84,6 +84,30 @@ function applyDnsServers(): void {
 }
 
 /**
+ * The first SRV query after setServers can still fail on Windows while c-ares
+ * reopens its sockets. Resolve once before the driver connects, retrying once,
+ * so a cold first request does not report a false storage outage.
+ */
+async function warmUpDns(uri: string): Promise<void> {
+  if (dnsServers.length === 0 || !/^mongodb\+srv:\/\//i.test(uri)) return;
+  const host = new URL(uri).hostname;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    applyDnsServers();
+    try {
+      await dnsPromises.resolveSrv(`_mongodb._tcp.${host}`);
+      return;
+    } catch (error) {
+      if (attempt === 1) {
+        console.warn(
+          'MONGODB_DNS_SERVERS could not resolve the SRV record:',
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    }
+  }
+}
+
+/**
  * The file store is a local preview path only. Production must use MongoDB;
  * requiring an explicit flag keeps a missing MONGODB_URI visible instead of
  * silently writing to a serverless filesystem that disappears on redeploy.
@@ -147,7 +171,7 @@ async function mongoCollection(): Promise<Collection<CatalogDocument>> {
     if (cached) {
       await cached.client.close().catch(() => undefined);
     }
-    applyDnsServers();
+    await warmUpDns(uri);
     const client = new MongoClient(uri, mongoOptions());
     cached = { uri, client, ready: client.connect() };
     globalForMongo.__nexusCatalogMongo = cached;
