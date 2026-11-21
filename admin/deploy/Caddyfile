@@ -3,7 +3,7 @@
 	admin off
 }
 
-{$ADMIN_DOMAIN} {
+:80 {
 	encode zstd gzip
 
 	header {
@@ -15,9 +15,13 @@
 		-Server
 	}
 
-	# The app reads the public catalog from this origin. Everything else is the
-	# password-protected desk.
-	reverse_proxy admin:3000
+	# Forward the original Host header and the X-Forwarded-Host that instabox
+	# sets (the public host the client used). The app's same-origin CSRF check
+	# compares Origin against X-Forwarded-Host behind this reverse proxy.
+	reverse_proxy admin:3000 {
+		header_up Host {http.request.host}
+		header_up X-Forwarded-Host {http.request.header.X-Forwarded-Host}
+	}
 
 	log {
 		output stdout

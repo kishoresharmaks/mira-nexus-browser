@@ -134,11 +134,16 @@ export function clearLoginFailures(key: string): void {
 /**
  * Browsers send Origin on state-changing requests. Reject a mismatch rather
  * than relying on the cookie alone, even though the cookie is SameSite=Lax.
+ *
+ * Behind a reverse proxy (InstaBox + Caddy), the `Host` header is rewritten to
+ * the internal upstream address, while `X-Forwarded-Host` holds the host the
+ * client actually used — which is what the `Origin` header reflects. Prefer
+ * `X-Forwarded-Host` so the check works correctly behind a proxy.
  */
 export function sameOrigin(request: Request): boolean {
   const origin = request.headers.get('origin');
   if (!origin) return true;
-  const host = request.headers.get('host');
+  const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
   if (!host) return false;
   try {
     return new URL(origin).host === host;
