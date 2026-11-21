@@ -77,7 +77,7 @@ export function PageEditor({ page, busy, onUpdate, onDelete }: Props) {
               aria-describedby="page-title-hint page-title-error"
             />
             <span className="field-hint" id="page-title-hint">
-              Up to 100 characters. This is the headline in Mira.
+              Up to 100 characters. This is the headline in Nexus.
             </span>
             <span className="field-error" id="page-title-error">
               {titleError}

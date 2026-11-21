@@ -1,4 +1,4 @@
-export function MiraMark({ className }: { className?: string }) {
+export function NexusMark({ className }: { className?: string }) {
   return (
     <svg
       className={className}

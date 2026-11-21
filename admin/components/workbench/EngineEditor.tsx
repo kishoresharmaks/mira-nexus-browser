@@ -88,7 +88,7 @@ export function EngineEditor({
               aria-describedby="engine-name-hint engine-name-error"
             />
             <span className="field-hint" id="engine-name-hint">
-              Up to 28 characters. Shown in Mira&rsquo;s search settings.
+              Up to 28 characters. Shown in Nexus&rsquo;s search settings.
             </span>
             <span className="field-error" id="engine-name-error">
               {nameError}
@@ -170,7 +170,7 @@ export function EngineEditor({
             <span>
               {isDefault
                 ? 'This is the default engine.'
-                : 'The default is the first choice in Mira.'}
+                : 'The default is the first choice in Nexus.'}
             </span>
             {isDefault ? (
               <span className="row-default">Default</span>

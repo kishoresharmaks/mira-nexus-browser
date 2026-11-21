@@ -39,12 +39,12 @@ function AdPreview({ ads }: { ads: AdsConfig }) {
     <div className="ad-preview-frame" data-layout={ads.layout}>
       <div className="ad-preview-status">
         <span>9:41</span>
-        <span className="ad-preview-status-right">Mira</span>
+        <span className="ad-preview-status-right">Nexus</span>
       </div>
       <div className="ad-preview-body">
         <div className="ad-preview-brand">
           <span className="ad-preview-mark" aria-hidden="true" />
-          <span className="ad-preview-wordmark">Mira</span>
+          <span className="ad-preview-wordmark">Nexus</span>
         </div>
         <p className="ad-preview-headline">
           The web,
@@ -174,7 +174,7 @@ export function AdsEditor({ ads, busy, onUpdate }: Props) {
               </p>
             ) : (
               <p className="ad-note ad-note--warn">
-                Live mode. Use real AdMob unit IDs below. Mira asks for UMP
+                Live mode. Use real AdMob unit IDs below. Nexus asks for UMP
                 consent, then iOS tracking permission, before the SDK
                 initializes.
               </p>
@@ -200,7 +200,7 @@ export function AdsEditor({ ads, busy, onUpdate }: Props) {
                 aria-describedby="ads-android-hint ads-android-error"
               />
               <span className="field-hint" id="ads-android-hint">
-                AdMob → Apps → Mira → Ad units. One adaptive banner unit is
+                AdMob → Apps → Nexus → Ad units. One adaptive banner unit is
                 enough.
               </span>
               <span className="field-error" id="ads-android-error">
@@ -226,7 +226,7 @@ export function AdsEditor({ ads, busy, onUpdate }: Props) {
                 aria-describedby="ads-ios-hint ads-ios-error"
               />
               <span className="field-hint" id="ads-ios-hint">
-                Leave blank if Mira is not shipping on iOS yet.
+                Leave blank if Nexus is not shipping on iOS yet.
               </span>
               <span className="field-error" id="ads-ios-error">
                 {iosError}

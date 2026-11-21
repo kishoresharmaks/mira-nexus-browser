@@ -3,11 +3,11 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: {
-    default: 'Mira Catalog Desk',
-    template: '%s · Mira Catalog Desk',
+    default: 'Nexus Catalog Desk',
+    template: '%s · Nexus Catalog Desk',
   },
   description:
-    'Private admin for the Mira browser catalog: search engine presets and the Today rotation.',
+    'Private admin for the Nexus browser catalog: search engine presets and the Today rotation.',
   robots: {
     index: false,
     follow: false,

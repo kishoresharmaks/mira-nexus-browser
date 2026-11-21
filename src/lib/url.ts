@@ -95,7 +95,7 @@ export function isWebUrl(url: string): boolean {
 }
 
 /**
- * Mira is HTTPS-only in production: Android cleartext traffic and iOS ATS are
+ * Nexus is HTTPS-only in production: Android cleartext traffic and iOS ATS are
  * both disabled. Upgrade a public http URL so a pasted or shared link still
  * has a path to load. Private hosts keep their explicit scheme because the
  * local development server will never have a valid certificate.

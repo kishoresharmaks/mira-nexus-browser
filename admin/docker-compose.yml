@@ -1,10 +1,10 @@
-name: mira-admin
+name: nexus-admin
 
 services:
   admin:
     build:
       context: .
-    image: mira-admin:local
+    image: nexus-admin:local
     restart: unless-stopped
     init: true
     env_file:

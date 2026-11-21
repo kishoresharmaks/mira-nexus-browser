@@ -3,7 +3,7 @@
 /* Hallmark · waive 65 · the app already ships Instrument Sans, warm paper and orange signal · the desk inherits the product's existing system rather than a default cream-and-serif treatment */
 
 @font-face {
-  font-family: "Mira Sans";
+  font-family: "Nexus Sans";
   src: url("/fonts/InstrumentSans-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
@@ -11,7 +11,7 @@
 }
 
 @font-face {
-  font-family: "Mira Sans";
+  font-family: "Nexus Sans";
   src: url("/fonts/InstrumentSans-Medium.ttf") format("truetype");
   font-weight: 500;
   font-style: normal;
@@ -19,7 +19,7 @@
 }
 
 @font-face {
-  font-family: "Mira Sans";
+  font-family: "Nexus Sans";
   src: url("/fonts/InstrumentSans-SemiBold.ttf") format("truetype");
   font-weight: 600;
   font-style: normal;
@@ -27,7 +27,7 @@
 }
 
 @font-face {
-  font-family: "Mira Serif";
+  font-family: "Nexus Serif";
   src: url("/fonts/InstrumentSerif-Regular.ttf") format("truetype");
   font-weight: 400;
   font-style: normal;
@@ -35,7 +35,7 @@
 }
 
 @font-face {
-  font-family: "Mira Serif";
+  font-family: "Nexus Serif";
   src: url("/fonts/InstrumentSerif-Italic.ttf") format("truetype");
   font-weight: 400;
   font-style: italic;
@@ -63,8 +63,8 @@
   --color-focus: #9e3516;
   --color-selection: #ffd9c8;
 
-  --font-display: "Mira Serif", "Iowan Old Style", Georgia, serif;
-  --font-sans: "Mira Sans", "Segoe UI", sans-serif;
+  --font-display: "Nexus Serif", "Iowan Old Style", Georgia, serif;
+  --font-sans: "Nexus Sans", "Segoe UI", sans-serif;
   --font-figure: ui-monospace, "Cascadia Mono", "SFMono-Regular", Menlo,
     Consolas, monospace;
 

@@ -1,8 +1,8 @@
 /**
- * Mira receives two kinds of system links:
+ * Nexus receives two kinds of system links:
  *
- *   mira://open?url=…        widget shortcut / today's page
- *   mira://dataUrl=…         the share extension's internal hand-off
+ *   nexus://open?url=…        widget shortcut / today's page
+ *   nexus://dataUrl=…         the share extension's internal hand-off
  *
  * Both carry their payload in the URL itself, which the app reads with
  * `Linking.getInitialURL()` and the share-intent hook. Expo Router has no
@@ -23,7 +23,7 @@ export function redirectSystemPath({
 
   try {
     const absolute = /^[a-z][a-z0-9+.-]*:\/\//i.test(path);
-    const parsed = new URL(absolute ? path : `mira://${path}`);
+    const parsed = new URL(absolute ? path : `nexus://${path}`);
 
     const devClient =
       parsed.hostname.includes('expo-development-client') ||

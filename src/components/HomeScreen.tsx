@@ -124,7 +124,7 @@ export function HomeScreen({
                   accent={theme.accent}
                   strokeWidth={1.65}
                 />
-                <Text style={[styles.wordmark, { color: theme.ink }]}>Mira</Text>
+                <Text style={[styles.wordmark, { color: theme.ink }]}>Nexus</Text>
               </View>
               <View style={styles.headerActions}>
                 <IconButton

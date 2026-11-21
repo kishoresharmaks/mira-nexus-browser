@@ -168,7 +168,7 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
           ref: frameRef,
           key: `${url}-${nonce}`,
           src: url,
-          title: 'Mira web preview',
+          title: 'Nexus web preview',
           onLoad: handleLoad,
           allow: 'clipboard-write; fullscreen; autoplay',
           style: {

@@ -32,7 +32,7 @@ type Props = {
 };
 
 /**
- * The first page of a private tab. Mira owns this room completely: no network
+ * The first page of a private tab. Nexus owns this room completely: no network
  * request is made until the reader chooses an address, so opening a private tab
  * tells nobody anything.
  */
@@ -112,7 +112,7 @@ export function PrivateStart({ onSearch, onOpenInfo }: Props) {
             <Text style={{ color: T.accent }}>.</Text>
           </Text>
           <Text style={styles.subline}>
-            Search, read, close the tab. Mira keeps no record of where you went.
+            Search, read, close the tab. Nexus keeps no record of where you went.
           </Text>
 
           <PressableScale
@@ -180,7 +180,7 @@ export function PrivateStart({ onSearch, onOpenInfo }: Props) {
 
           <Text style={styles.footnote}>
             Sites still see your IP address. Private tabs protect your trail in
-            Mira, not your identity on the web.
+            Nexus, not your identity on the web.
           </Text>
         </Animated.View>
       </ScrollView>

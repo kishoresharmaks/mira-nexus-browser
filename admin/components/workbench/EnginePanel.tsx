@@ -51,7 +51,7 @@ export function EnginePanel({
         <div className="empty">
           <p className="empty-title">No engines on the shelf.</p>
           <p className="empty-copy">
-            Mira cannot publish an empty engine list. Add one to begin.
+            Nexus cannot publish an empty engine list. Add one to begin.
           </p>
           <button
             type="button"

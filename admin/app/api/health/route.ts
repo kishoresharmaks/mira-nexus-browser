@@ -30,7 +30,7 @@ export async function GET() {
   return new Response(
     JSON.stringify({
       ok,
-      service: 'mira-catalog-admin',
+      service: 'nexus-catalog-admin',
       checks: {
         auth: auth ? 'ok' : 'missing',
         storage: storage ? 'ok' : 'unavailable',

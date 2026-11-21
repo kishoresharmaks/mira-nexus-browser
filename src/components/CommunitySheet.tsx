@@ -79,7 +79,7 @@ function platformTint(
 /**
  * The conversation around a page, without leaving the page. The thread header
  * stays fixed, comments scroll, and the privacy toggle stays visible so it is
- * always clear when Mira is talking to HN or Lobsters.
+ * always clear when Nexus is talking to HN or Lobsters.
  */
 export function CommunitySheet({
   visible,
@@ -408,7 +408,7 @@ export function CommunitySheet({
             <NoticeBlock
               icon="message"
               title="No public discussion found"
-              body="Nobody has posted this page to Hacker News or Lobsters yet. Mira checks the address when a page opens."
+              body="Nobody has posted this page to Hacker News or Lobsters yet. Nexus checks the address when a page opens."
               actionLabel="Check again"
               onAction={onRetryLookup}
             />
@@ -424,7 +424,7 @@ export function CommunitySheet({
           <Text style={[styles.footerBody, { color: theme.muted }]}>
             {enabled
               ? "Sends this page's address to Hacker News and Lobsters. No account, no stored history, no analytics."
-              : 'Off. Mira will not contact Hacker News or Lobsters for this page.'}
+              : 'Off. Nexus will not contact Hacker News or Lobsters for this page.'}
           </Text>
         </View>
         <DiscussionToggle value={enabled} onChange={onToggleEnabled} />

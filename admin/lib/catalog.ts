@@ -79,7 +79,7 @@ export type Issue = {
 export const MAX_ENGINES = 40;
 export const MAX_PAGES = 250;
 const MAX_URL = 2_048;
-const MARKER = 'miraquerytoken';
+const MARKER = 'nexusquerytoken';
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const AD_UNIT_ID = /^ca-app-pub-\d{16}\/\d{10}$/;
 

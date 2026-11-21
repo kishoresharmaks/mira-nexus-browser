@@ -38,7 +38,7 @@ const PROMISES: { icon: IconName; title: string; body: string }[] = [
 ];
 
 /**
- * The privacy contract, stated plainly. This sheet is the one place where Mira
+ * The privacy contract, stated plainly. This sheet is the one place where Nexus
  * explains what it can and cannot protect, so it deliberately avoids absolutes.
  */
 export function PrivateSheet({
@@ -66,7 +66,7 @@ export function PrivateSheet({
               PRIVATE BROWSING
             </Text>
             <Text style={[styles.title, { color: theme.ink }]}>
-              A room Mira forgets
+              A room Nexus forgets
             </Text>
           </View>
           <IconButton
@@ -83,8 +83,8 @@ export function PrivateSheet({
           {privateCount > 0
             ? `${privateCount} private ${
                 privateCount === 1 ? 'tab is' : 'tabs are'
-              } open. Closing one leaves no history in Mira.`
-            : 'Private tabs leave no history in Mira.'}
+              } open. Closing one leaves no history in Nexus.`
+            : 'Private tabs leave no history in Nexus.'}
         </Text>
 
         <View style={styles.rows}>
@@ -131,9 +131,9 @@ export function PrivateSheet({
         >
           <Icon name="shield" size={14} color={theme.faint} strokeWidth={1.7} />
           <Text style={[styles.noteText, { color: theme.muted }]}>
-            Mira keeps no record of the visit, but a site still sees your IP
+            Nexus keeps no record of the visit, but a site still sees your IP
             address and knows that someone visited. Private tabs hide your trail
-            in Mira, not your identity on the web.
+            in Nexus, not your identity on the web.
           </Text>
         </View>
 

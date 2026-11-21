@@ -5,7 +5,7 @@ const { withAndroidManifest } = require('expo/config-plugins');
  *
  * - EnableSafeBrowsing: keep Google's malware and phishing interstitial on.
  * - MetricsOptOut: tell WebView not to report anonymous usage metrics to
- *   Google. Mira promises no analytics, and that promise includes the engine.
+ *   Google. Nexus promises no analytics, and that promise includes the engine.
  *
  * Both are explicit rather than relying on platform defaults, which vary by
  * Android version and OEM.

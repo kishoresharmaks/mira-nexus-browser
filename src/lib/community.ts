@@ -9,7 +9,7 @@ import { isPrivateHostname } from './url';
 /**
  * Community discussion lookup.
  *
- * Mira asks two public, login-free services whether the page you are reading
+ * Nexus asks two public, login-free services whether the page you are reading
  * has been discussed: Hacker News (through Algolia's read-only HN Search API)
  * and Lobsters. Only the page address is sent. There is no developer server,
  * no account, and no analytics. Results live in memory for fifteen minutes and

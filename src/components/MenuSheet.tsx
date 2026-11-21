@@ -382,7 +382,7 @@ export function MenuSheet({
         </PressableScale>
 
         <Text style={[styles.footer, { color: theme.faint }]}>
-          {privateTab ? 'Mira 1.0 · Private tab' : 'Mira 1.0 · A quieter web'}
+          {privateTab ? 'Nexus 1.0 · Private tab' : 'Nexus 1.0 · A quieter web'}
         </Text>
       </ScrollView>
     </BottomSheet>

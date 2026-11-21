@@ -30,7 +30,7 @@ import { fonts, layout, softShadow } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
 
 /**
- * Search is the one part of Mira that talks to a third party on purpose. Keep
+ * Search is the one part of Nexus that talks to a third party on purpose. Keep
  * the choice legible: what is active, where it came from, and exactly what the
  * catalog request does — and does not — contain.
  */
@@ -84,7 +84,7 @@ export default function SearchSettings() {
       ? `Checked ${relativeTime(updatedAt)}`
       : hasRemoteConfig
         ? 'Not checked yet'
-        : 'Bundled with Mira';
+        : 'Bundled with Nexus';
 
   const handleAdd = () => {
     const result = validateCustomEngine({ name, searchUrl });
@@ -181,7 +181,7 @@ export default function SearchSettings() {
               <Text style={{ color: theme.accent }}>.</Text>
             </Text>
             <Text style={[styles.lede, { color: theme.muted }]}>
-              Mira ships with a small set of private presets. Choose one, or add
+              Nexus ships with a small set of private presets. Choose one, or add
               a search site you trust. Your choice stays on this device.
             </Text>
 
@@ -358,7 +358,7 @@ export default function SearchSettings() {
                 ]}
               >
                 <Text style={[styles.formIntro, { color: theme.muted }]}>
-                  Paste a results URL with a query in it. Mira swaps the query
+                  Paste a results URL with a query in it. Nexus swaps the query
                   for %s, so the same engine works for any search.
                 </Text>
 
@@ -571,7 +571,7 @@ export default function SearchSettings() {
                     style={[styles.catalogNoteText, { color: theme.muted }]}
                   >
                     The catalog request carries no account, device ID, or
-                    browsing data. If it cannot be reached, Mira keeps the list
+                    browsing data. If it cannot be reached, Nexus keeps the list
                     it already has.
                   </Text>
                 </View>

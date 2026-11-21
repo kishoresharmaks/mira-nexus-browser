@@ -1,4 +1,4 @@
-# Building and releasing Mira
+# Building and releasing Nexus
 
 There are two release paths:
 
@@ -117,8 +117,8 @@ Run this once, on a trusted machine, and keep the file out of the repository:
 keytool -genkeypair \
   -v \
   -storetype PKCS12 \
-  -keystore mira-upload.keystore \
-  -alias mira-upload \
+  -keystore nexus-upload.keystore \
+  -alias nexus-upload \
   -keyalg RSA \
   -keysize 2048 \
   -validity 10000
@@ -126,7 +126,7 @@ keytool -genkeypair \
 
 Use a long, unique store password. Back up:
 
-- `mira-upload.keystore`
+- `nexus-upload.keystore`
 - the store password
 - the key alias
 - the key password
@@ -137,7 +137,7 @@ in a build artifact is a leaked keystore.
 Check it:
 
 ```bash
-keytool -list -v -keystore mira-upload.keystore -alias mira-upload
+keytool -list -v -keystore nexus-upload.keystore -alias nexus-upload
 ```
 
 ### 3.3 Add the secrets to GitHub
@@ -147,27 +147,27 @@ Base64-encode the keystore without line breaks.
 Linux:
 
 ```bash
-base64 -w0 mira-upload.keystore > mira-upload.keystore.b64
+base64 -w0 nexus-upload.keystore > nexus-upload.keystore.b64
 ```
 
 macOS:
 
 ```bash
-base64 -i mira-upload.keystore | tr -d '\n' > mira-upload.keystore.b64
+base64 -i nexus-upload.keystore | tr -d '\n' > nexus-upload.keystore.b64
 ```
 
 Windows PowerShell:
 
 ```powershell
 [Convert]::ToBase64String(
-  [IO.File]::ReadAllBytes("mira-upload.keystore")
-) | Set-Content -NoNewline mira-upload.keystore.b64
+  [IO.File]::ReadAllBytes("nexus-upload.keystore")
+) | Set-Content -NoNewline nexus-upload.keystore.b64
 ```
 
 Add four repository secrets:
 
 ```bash
-gh secret set ANDROID_KEYSTORE_BASE64 < mira-upload.keystore.b64
+gh secret set ANDROID_KEYSTORE_BASE64 < nexus-upload.keystore.b64
 gh secret set ANDROID_KEYSTORE_PASSWORD
 gh secret set ANDROID_KEY_ALIAS
 gh secret set ANDROID_KEY_PASSWORD
@@ -176,7 +176,7 @@ gh secret set ANDROID_KEY_PASSWORD
 On Windows PowerShell, `<` is not supported; pipe the file instead:
 
 ```powershell
-Get-Content -Raw mira-upload.keystore.b64 | gh secret set ANDROID_KEYSTORE_BASE64
+Get-Content -Raw nexus-upload.keystore.b64 | gh secret set ANDROID_KEYSTORE_BASE64
 ```
 
 `gh secret set` prompts for the value for the last three. Or use **Settings →
@@ -191,7 +191,7 @@ gh secret list
 Delete the temporary `.b64` file after uploading:
 
 ```bash
-rm mira-upload.keystore.b64
+rm nexus-upload.keystore.b64
 ```
 
 > The workflow passes the passwords to Gradle through environment variables.
@@ -239,8 +239,8 @@ Open **Actions → Android release builds → the run → Artifacts**, or the
 **Releases** page. The assets are named:
 
 ```text
-mira-1.0.0-<run-number>.apk
-mira-1.0.0-<run-number>.aab
+nexus-1.0.0-<run-number>.apk
+nexus-1.0.0-<run-number>.aab
 SHA256SUMS.txt
 ```
 
@@ -263,14 +263,14 @@ Download it on the Android device and open it, allowing installs from the
 browser or file manager when prompted. Or use `adb`:
 
 ```bash
-adb install -r mira-1.0.0-42.apk
+adb install -r nexus-1.0.0-42.apk
 ```
 
 If Android reports a signature mismatch:
 
 ```bash
-adb uninstall com.mira.browser
-adb install mira-1.0.0-42.apk
+adb uninstall com.nexus.browser
+adb install nexus-1.0.0-42.apk
 ```
 
 Uninstalling removes local history, trails, shortcuts, theme choice, and the
@@ -279,8 +279,8 @@ cached catalog. It does not affect the catalog server.
 ### 4.4 Verify the build
 
 ```bash
-apksigner verify --verbose --print-certs mira-1.0.0-42.apk
-keytool -printcert -jarfile mira-1.0.0-42.aab
+apksigner verify --verbose --print-certs nexus-1.0.0-42.apk
+keytool -printcert -jarfile nexus-1.0.0-42.aab
 ```
 
 The certificate should say `CN=Android Debug` only when you deliberately built
@@ -296,8 +296,8 @@ sha256sum -c SHA256SUMS.txt
 On Windows PowerShell:
 
 ```powershell
-Get-FileHash .\mira-1.0.0-42.apk -Algorithm SHA256
-Get-FileHash .\mira-1.0.0-42.aab -Algorithm SHA256
+Get-FileHash .\nexus-1.0.0-42.apk -Algorithm SHA256
+Get-FileHash .\nexus-1.0.0-42.aab -Algorithm SHA256
 ```
 
 ---
@@ -333,9 +333,9 @@ npx expo prebuild --platform android --clean
 Set the four signing variables in the shell. Linux/macOS:
 
 ```bash
-export ANDROID_KEYSTORE_BASE64="$(base64 -w0 mira-upload.keystore)"
+export ANDROID_KEYSTORE_BASE64="$(base64 -w0 nexus-upload.keystore)"
 export ANDROID_KEYSTORE_PASSWORD='your-store-password'
-export ANDROID_KEY_ALIAS='mira-upload'
+export ANDROID_KEY_ALIAS='nexus-upload'
 export ANDROID_KEY_PASSWORD='your-key-password'
 
 node scripts/ci/configure-signing.mjs
@@ -345,10 +345,10 @@ Windows PowerShell:
 
 ```powershell
 $env:ANDROID_KEYSTORE_BASE64 = [Convert]::ToBase64String(
-  [IO.File]::ReadAllBytes("mira-upload.keystore")
+  [IO.File]::ReadAllBytes("nexus-upload.keystore")
 )
 $env:ANDROID_KEYSTORE_PASSWORD = 'your-store-password'
-$env:ANDROID_KEY_ALIAS = 'mira-upload'
+$env:ANDROID_KEY_ALIAS = 'nexus-upload'
 $env:ANDROID_KEY_PASSWORD = 'your-key-password'
 
 node scripts/ci/configure-signing.mjs
@@ -470,13 +470,13 @@ Filename longer than 260 characters
 
 The generated object path under `android/app/.cxx` is longer than the Win32
 limit. Linux runners in CI use paths well under it, so this is local only. Build
-from a short root such as `C:\mira`, or use the CI workflow. Enabling Windows
+from a short root such as `C:\nexus`, or use the CI workflow. Enabling Windows
 long paths does not reliably help because the failing tool is `ninja`. A short
 clone also avoids editing generated files:
 
 ```powershell
-git clone <repository> C:\mira
-cd C:\mira
+git clone <repository> C:\nexus
+cd C:\nexus
 npm ci
 npx expo prebuild --platform android --no-install --clean
 ```
@@ -487,7 +487,7 @@ npx expo prebuild --platform android --no-install --clean
 - Decode the base64 locally and inspect it:
 
   ```bash
-  base64 -d mira-upload.keystore.b64 > check.keystore
+  base64 -d nexus-upload.keystore.b64 > check.keystore
   keytool -list -keystore check.keystore
   ```
 

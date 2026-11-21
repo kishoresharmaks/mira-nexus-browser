@@ -34,7 +34,7 @@ const COLORS = {
  * executed by the launcher, so the click never depends on a headless render.
  */
 function openLink(url: string, title: string): string {
-  return `mira://open?url=${encodeURIComponent(url)}&title=${encodeURIComponent(
+  return `nexus://open?url=${encodeURIComponent(url)}&title=${encodeURIComponent(
     title.slice(0, 120),
   )}`;
 }
@@ -44,7 +44,7 @@ function openLink(url: string, title: string): string {
  * RemoteViews only: text, rules, and rounded blocks — no web content, no
  * network images, no remote code.
  */
-export function MiraWidget({ page, dateLabel, shortcuts, theme, height }: Props) {
+export function NexusWidget({ page, dateLabel, shortcuts, theme, height }: Props) {
   const color = COLORS[theme];
   const compact = height < 130;
   const roomy = height >= 180 && shortcuts.length > 0;
@@ -55,7 +55,7 @@ export function MiraWidget({ page, dateLabel, shortcuts, theme, height }: Props)
   return (
     <FlexWidget
       clickAction="OPEN_APP"
-      accessibilityLabel={`Mira. Today's page: ${page.title} on ${page.host}`}
+      accessibilityLabel={`Nexus. Today's page: ${page.title} on ${page.host}`}
       style={{
         height: 'match_parent',
         width: 'match_parent',
@@ -193,7 +193,7 @@ export function MiraWidget({ page, dateLabel, shortcuts, theme, height }: Props)
           }}
         />
         <TextWidget
-          text="MIRA"
+          text="NEXUS"
           style={{
             fontSize: compact ? 7.5 : 8,
             letterSpacing: 1.4,

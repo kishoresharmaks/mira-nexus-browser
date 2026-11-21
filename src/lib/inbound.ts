@@ -117,8 +117,8 @@ export function targetFromShare(
 
 /**
  * Handles widget and deep links of the form:
- *   mira:///?url=https%3A%2F%2Fexample.com
- *   mira://open?url=https%3A%2F%2Fexample.com
+ *   nexus:///?url=https%3A%2F%2Fexample.com
+ *   nexus://open?url=https%3A%2F%2Fexample.com
  * The share extension's own `dataUrl=` link is intentionally ignored.
  */
 export function targetFromDeepLink(raw: string | null | undefined): InboundTarget | null {
@@ -126,7 +126,7 @@ export function targetFromDeepLink(raw: string | null | undefined): InboundTarge
 
   try {
     const link = new URL(raw);
-    if (link.protocol.toLowerCase() !== 'mira:') return null;
+    if (link.protocol.toLowerCase() !== 'nexus:') return null;
     if (link.hostname && link.hostname !== 'open') return null;
 
     const candidate = link.searchParams.get('url');

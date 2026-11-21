@@ -37,7 +37,7 @@ export type SearchMatch = {
 const MAX_ENGINES = 40;
 const MAX_PAGES = 250;
 const MAX_URL = 2_048;
-const MARKER = 'miraquerytoken';
+const MARKER = 'nexusquerytoken';
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const AD_UNIT_ID = /^ca-app-pub-\d{16}\/\d{10}$/;
 const PRIVATE_HOSTNAME =
@@ -223,7 +223,7 @@ export function normalizeCatalog(value: unknown): Catalog | null {
 
 const bundled = normalizeCatalog(bundledJson);
 if (!bundled) {
-  throw new Error('The bundled Mira catalog is invalid');
+  throw new Error('The bundled Nexus catalog is invalid');
 }
 
 export const BUNDLED_CATALOG: Catalog = bundled;

@@ -18,7 +18,7 @@ $root = (Get-Location).Path.Replace('\', '/')
   --headless=new --disable-gpu --hide-scrollbars `
   --force-device-scale-factor=1 --window-size=1024,500 `
   --virtual-time-budget=3000 --run-all-compositor-stages-before-draw `
-  --screenshot="docs/play/feature-graphic.png" `
+  --screenshot="$root/docs/play/feature-graphic.png" `
   "file:///$root/docs/play/feature-graphic.html"
 ```
 

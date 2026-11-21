@@ -1,7 +1,7 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
 
-export const SESSION_COOKIE = 'mira_catalog_session';
+export const SESSION_COOKIE = 'nexus_catalog_session';
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;

@@ -1,6 +1,6 @@
 /**
  * Custom entry point. Expo Router normally boots from `expo-router/entry`;
- * Mira needs one extra registration so the Android launcher can ask the app
+ * Nexus needs one extra registration so the Android launcher can ask the app
  * to draw its home-screen widget.
  *
  * The widget task runs headless (no React tree), and the native module is not

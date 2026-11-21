@@ -17,7 +17,7 @@ export function ScreenBackdrop({ mode }: { mode?: ThemeMode }) {
       />
       <Svg width="100%" height="100%" style={StyleSheet.absoluteFill}>
         <Defs>
-          <RadialGradient id="miraGlow" cx="82%" cy="4%" r="70%">
+          <RadialGradient id="nexusGlow" cx="82%" cy="4%" r="70%">
             <Stop
               offset="0"
               stopColor={theme.accent}
@@ -25,7 +25,7 @@ export function ScreenBackdrop({ mode }: { mode?: ThemeMode }) {
             />
             <Stop offset="1" stopColor={theme.accent} stopOpacity="0" />
           </RadialGradient>
-          <RadialGradient id="miraCool" cx="8%" cy="88%" r="60%">
+          <RadialGradient id="nexusCool" cx="8%" cy="88%" r="60%">
             <Stop
               offset="0"
               stopColor={theme.ink}
@@ -34,8 +34,8 @@ export function ScreenBackdrop({ mode }: { mode?: ThemeMode }) {
             <Stop offset="1" stopColor={theme.ink} stopOpacity="0" />
           </RadialGradient>
         </Defs>
-        <Rect width="100%" height="100%" fill="url(#miraGlow)" />
-        <Rect width="100%" height="100%" fill="url(#miraCool)" />
+        <Rect width="100%" height="100%" fill="url(#nexusGlow)" />
+        <Rect width="100%" height="100%" fill="url(#nexusCool)" />
       </Svg>
     </View>
   );

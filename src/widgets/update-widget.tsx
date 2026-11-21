@@ -1,13 +1,13 @@
 import { Platform } from 'react-native';
 import { requestWidgetUpdate } from 'react-native-android-widget';
 import type { Shortcut } from '@/types';
-import { MiraWidget } from './MiraWidget';
+import { NexusWidget } from './NexusWidget';
 import { loadWidgetSnapshot } from './widget-data';
 
-export const WIDGET_NAME = 'Mira';
+export const WIDGET_NAME = 'Nexus';
 
 /**
- * Ask Android to redraw every placed Mira widget. Called when shortcuts change
+ * Ask Android to redraw every placed Nexus widget. Called when shortcuts change
  * and when the app returns to the foreground, so the calendar day can roll
  * over without waiting for the 30-minute platform tick.
  *
@@ -15,7 +15,7 @@ export const WIDGET_NAME = 'Mira';
  * launcher that has no widgets (or a platform without the module) must never
  * interrupt browsing.
  */
-export async function refreshMiraWidget(
+export async function refreshNexusWidget(
   shortcuts?: Shortcut[],
 ): Promise<void> {
   if (Platform.OS !== 'android') return;
@@ -28,7 +28,7 @@ export async function refreshMiraWidget(
       widgetName: WIDGET_NAME,
       renderWidget: (info) => ({
         light: (
-          <MiraWidget
+          <NexusWidget
             page={snapshot.page}
             dateLabel={snapshot.dateLabel}
             shortcuts={snapshot.shortcuts}
@@ -37,7 +37,7 @@ export async function refreshMiraWidget(
           />
         ),
         dark: (
-          <MiraWidget
+          <NexusWidget
             page={snapshot.page}
             dateLabel={snapshot.dateLabel}
             shortcuts={snapshot.shortcuts}

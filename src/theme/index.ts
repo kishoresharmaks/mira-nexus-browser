@@ -75,7 +75,7 @@ export const themes: Record<ThemeMode, Theme> = {
 
 /**
  * Private tabs use a separate night palette no matter which theme the rest of
- * Mira is wearing. The room should feel unmistakably different from the shelf:
+ * Nexus is wearing. The room should feel unmistakably different from the shelf:
  * cooler, quieter, and clearly temporary.
  */
 export const privateTheme: Theme = {

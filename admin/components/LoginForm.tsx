@@ -2,7 +2,7 @@
 
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { MiraMark } from './MiraMark';
+import { NexusMark } from './NexusMark';
 
 export function LoginForm() {
   const router = useRouter();
@@ -56,8 +56,8 @@ export function LoginForm() {
       <div className="login-grid">
         <section aria-labelledby="login-title">
           <div className="login-brand">
-            <MiraMark className="brand-mark" />
-            <span className="brand-word">Mira</span>
+            <NexusMark className="brand-mark" />
+            <span className="brand-word">Nexus</span>
             <span className="brand-sub">Catalog desk</span>
           </div>
           <h1 className="login-title" id="login-title">

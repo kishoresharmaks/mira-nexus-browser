@@ -1,6 +1,6 @@
-# Mira — Unique Feature Plan (Anti-Feed Browser Differentiators)
+# Nexus — Unique Feature Plan (Anti-Feed Browser Differentiators)
 
-This document maps out 12 novel features designed specifically for **Mira**. None of these exist as native, default experiences in mainstream mobile browsers (Chrome, Safari, Firefox, Edge, Brave, Opera, Arc Mobile, SigmaOS).
+This document maps out 12 novel features designed specifically for **Nexus**. None of these exist as native, default experiences in mainstream mobile browsers (Chrome, Safari, Firefox, Edge, Brave, Opera, Arc Mobile, SigmaOS).
 
 ---
 

@@ -1,10 +1,10 @@
 import type { WidgetTaskHandlerProps } from 'react-native-android-widget';
-import { MiraWidget } from './MiraWidget';
+import { NexusWidget } from './NexusWidget';
 import { loadWidgetSnapshot } from './widget-data';
 
 /**
  * Runs in a headless JS context when the launcher adds, resizes, or ticks a
- * Mira widget. It must not touch React state, navigation, or the theme
+ * Nexus widget. It must not touch React state, navigation, or the theme
  * provider; everything it draws comes from validated local storage.
  */
 export async function widgetTaskHandler(
@@ -13,7 +13,7 @@ export async function widgetTaskHandler(
   const { widgetAction, widgetInfo, renderWidget } = props;
 
   if (widgetAction === 'WIDGET_DELETED') return;
-  if (widgetInfo.widgetName !== 'Mira') return;
+  if (widgetInfo.widgetName !== 'Nexus') return;
 
   if (
     widgetAction !== 'WIDGET_ADDED' &&
@@ -28,7 +28,7 @@ export async function widgetTaskHandler(
 
   renderWidget({
     light: (
-      <MiraWidget
+      <NexusWidget
         page={snapshot.page}
         dateLabel={snapshot.dateLabel}
         shortcuts={snapshot.shortcuts}
@@ -37,7 +37,7 @@ export async function widgetTaskHandler(
       />
     ),
     dark: (
-      <MiraWidget
+      <NexusWidget
         page={snapshot.page}
         dateLabel={snapshot.dateLabel}
         shortcuts={snapshot.shortcuts}

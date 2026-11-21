@@ -1,17 +1,17 @@
-# Mira Privacy Policy
+# Nexus Privacy Policy
 
 **Effective date:** 31 October 2026
-**App:** Mira — a quieter browser (`com.mira.browser`)
+**App:** Nexus — A Quieter Browser (`com.nexus.browser`)
 **Platform:** Android
 
-Mira is built to browse the web without building a profile of the person
+Nexus is built to browse the web without building a profile of the person
 browsing. This policy explains, in plain language, what the app stores, what it
 sends over the network, and what it deliberately does not do, including the one
 optional home-screen banner served by Google AdMob.
 
 ## The short version
 
-- Mira has no account, no analytics, and no crash-reporting SDK. It can show one
+- Nexus has no account, no analytics, and no crash-reporting SDK. It can show one
   small banner on the home screen, served by Google AdMob.
 - Ads never appear in the browser, in private tabs, in sheets, or in Settings.
   Google may use your advertising ID and ad interactions to serve and measure
@@ -19,24 +19,24 @@ optional home-screen banner served by Google AdMob.
   your region requires it.
 - Your history, shortcuts, trails, search-engine choice, and appearance choice
   are stored only on your device.
-- Mira does not operate a server that receives your browsing activity. It hosts
+- Nexus does not operate a server that receives your browsing activity. It hosts
   one public catalog of search presets and Today pages; the app fetches that
   catalog without an account, device ID, search query, or browsing history.
 - When you open a website, your device talks directly to that website, exactly
   as a browser does.
-- When discussion lookup is on (the default), Mira sends the address of the
+- When discussion lookup is on (the default), Nexus sends the address of the
   page you are reading to Hacker News and Lobsters to find public threads. You
   can turn this off in the Discussions sheet. Private tabs never trigger this
   lookup.
 - Private tabs leave no history or trails, bypass WebView's page cache, and
   block screen capture. Android's WebView shares cookies and site storage with
   normal tabs, so a site may still recognize you.
-- Nothing is backed up to a cloud by Mira. Android backup is disabled for the
+- Nothing is backed up to a cloud by Nexus. Android backup is disabled for the
   app.
 
-## What Mira stores on your device
+## What Nexus stores on your device
 
-Mira uses Android's app-private storage. Other apps cannot read it. The data is
+Nexus uses Android's app-private storage. Other apps cannot read it. The data is
 not sent to the developer or to any third party.
 
 | Data | Purpose | Retention |
@@ -45,14 +45,14 @@ not sent to the developer or to any third party.
 | Trails (groups of pages visited within about 25 minutes) | The Trails shelf and the home-screen trail card | Up to 30 trails, 40 pages each, until you delete them or clear history |
 | Shortcuts (title, address) | The home screen grid and the Android widget | Up to 12, until you remove them |
 | Appearance preference (light/dark) | Keeps your chosen theme | Until you change it or uninstall |
-| Discussion lookup preference (on/off) | Remembers whether Mira asks Hacker News and Lobsters about the current page | Until you change it or uninstall |
+| Discussion lookup preference (on/off) | Remembers whether Nexus asks Hacker News and Lobsters about the current page | Until you change it or uninstall |
 | Search choice and custom engines (name, search URL) | Remembers which engine handles typed searches; engines you add stay on this device | Until you change the choice, remove the engine, or uninstall |
-| Ad consent choices (UMP) | Google's consent SDK stores your advertising consent on the device so Mira does not ask on every launch | Until you change your choice, clear app storage, or uninstall |
-| Cached catalog (search presets, Today pages, and ad settings) | Lets Mira open with the last published lists and ad configuration when the catalog endpoint is unreachable | Until a newer catalog replaces it or you clear app storage |
-| Open tabs | In-memory only while the app is running | Cleared when Mira is closed |
+| Ad consent choices (UMP) | Google's consent SDK stores your advertising consent on the device so Nexus does not ask on every launch | Until you change your choice, clear app storage, or uninstall |
+| Cached catalog (search presets, Today pages, and ad settings) | Lets Nexus open with the last published lists and ad configuration when the catalog endpoint is unreachable | Until a newer catalog replaces it or you clear app storage |
+| Open tabs | In-memory only while the app is running | Cleared when Nexus is closed |
 | Private tab cookies and site storage | Keeps sites working while you browse; Android's WebView shares one store across all tabs | Until the site expires them or you clear app storage |
 
-There is no account to delete, and Mira does not store your browsing data in
+There is no account to delete, and Nexus does not store your browsing data in
 the cloud. The hosted catalog database contains only public editorial and
 configuration data: engine names, search URLs, page titles, links, categories,
 notes, reading times, whether the home banner is enabled, its layout, and its
@@ -71,13 +71,13 @@ storage are not isolated from normal tabs.
 - **Private tabs:** close each tab, or use Close all private tabs in the tab
   sheet. This closes the pages and drops their in-memory state. Cookies set by
   sites remain in Android's shared WebView store until they expire; to remove
-  them, use Clear storage below. All private tabs also disappear when Mira
+  them, use Clear storage below. All private tabs also disappear when Nexus
   closes.
-- **Everything:** Android Settings → Apps → Mira → Storage → Clear storage, or
+- **Everything:** Android Settings → Apps → Nexus → Storage → Clear storage, or
   uninstall the app. Because Android backup is disabled, no copy remains in a
   Google backup.
 
-## What Mira does not collect
+## What Nexus does not collect
 
 The developer does not collect, receive, sell, or share:
 
@@ -85,7 +85,7 @@ The developer does not collect, receive, sell, or share:
 - your precise or approximate location;
 - your advertising ID, app set ID, or other persistent device identifiers —
   Google's ad SDK can access these on your device for the home-screen banner, as
-  described under Advertising, but Mira itself does not read or transmit them;
+  described under Advertising, but Nexus itself does not read or transmit them;
 - your browsing history, search terms, or a log of the pages you open (the
   optional, per-page discussion lookup is described under Network requests);
 - crash logs, diagnostics, or usage analytics;
@@ -100,49 +100,49 @@ over other apps" permissions are explicitly removed from the Android manifest.
 
 The catalog request does not identify you: it carries no account, device ID,
 search terms, or history. The hosting provider may process standard request logs
-such as an IP address and user agent to serve and protect the endpoint; Mira
+such as an IP address and user agent to serve and protect the endpoint; Nexus
 does not use those logs to build a profile or to personalise the catalog.
 
-## Network requests Mira makes
+## Network requests Nexus makes
 
-Mira is a browser, so it makes network requests as part of ordinary use.
+Nexus is a browser, so it makes network requests as part of ordinary use.
 
 1. **Websites you open.** The page is requested directly by your device from the
    site's server. That server receives the same information any browser would
    send: your IP address, the requested address, your user agent (which includes
    the app name and version), and cookies set by that site. The developer of
-   Mira does not receive a copy.
-2. **Search.** If you type words instead of an address, Mira opens a results
+   Nexus does not receive a copy.
+2. **Search.** If you type words instead of an address, Nexus opens a results
    page for the engine selected in Search settings. The default is DuckDuckGo
    (`https://duckduckgo.com/`); you can choose another preset or add a custom
    HTTPS search URL that contains `%s`. Your query is sent to that engine under
-   its own privacy policy. Mira does not send the query to its catalog server.
-   Search-result pages are not written to Mira's history.
-3. **Catalog.** Mira fetches a small, public catalog of search presets and
+   its own privacy policy. Nexus does not send the query to its catalog server.
+   Search-result pages are not written to Nexus's history.
+3. **Catalog.** Nexus fetches a small, public catalog of search presets and
    Today pages from a hosted HTTPS endpoint. The request is a plain read: it
    carries no account, device identifier, search query, or browsing history.
    Standard request logs at the hosting provider may include an IP address and
-   user agent for security and reliability; Mira does not use them to profile
-   readers. Mira validates the response, caches it for about an hour, and falls
+   user agent for security and reliability; Nexus does not use them to profile
+   readers. Nexus validates the response, caches it for about an hour, and falls
    back to the copy bundled inside the app if the endpoint is unreachable or
    malformed. You can trigger a check yourself in Search settings.
-4. **Favicons.** To show a site's own icon, Mira requests the icon directly from
+4. **Favicons.** To show a site's own icon, Nexus requests the icon directly from
    that site (for example `https://example.com/favicon.ico`). It does not use a
    third-party icon service, so the list of sites you visit is not sent to an
    icon provider.
 5. **Today's page.** The daily reading list comes from the same public catalog
-   described above. Mira does not contact a server to choose a day's page beyond
+   described above. Nexus does not contact a server to choose a day's page beyond
    that catalog fetch, and does not fetch the page itself until you tap it. If
    the catalog has never been downloaded, the bundled list is used.
 6. **Safe Browsing.** Android's WebView checks addresses against Google's Safe
    Browsing service so it can warn you about malware and phishing. That check is
-   performed by the Android system and may send the address to Google; Mira does
+   performed by the Android system and may send the address to Google; Nexus does
    not receive, store, or transmit the result.
 7. **Public discussions.** When "Look up discussions" is on (the default) and
-   you open a page in a normal tab, Mira sends that page's address to two
+   you open a page in a normal tab, Nexus sends that page's address to two
    independent public services: Hacker News through the Algolia HN Search API
    (`https://hn.algolia.com/`) and Lobsters (`https://lobste.rs/`). They return
-   public story scores, comment counts, and comments for that address. Mira
+   public story scores, comment counts, and comments for that address. Nexus
    sends no account, device identifier, search terms, or history of other
    pages. The answer is kept in memory for 15 minutes and is never written to
    history or trails. Private tabs never make this request. Turn the setting off
@@ -153,12 +153,12 @@ Mira is a browser, so it makes network requests as part of ordinary use.
    developer. See Advertising below for what it can include and how consent
    works.
 
-Mira contains no analytics SDK and no social login. The only third-party SDK
+Nexus contains no analytics SDK and no social login. The only third-party SDK
 that can transmit data is the Google Mobile Ads SDK described under Advertising.
 
 ## Advertising
 
-Mira can show one adaptive banner on the home screen, served by Google AdMob. It
+Nexus can show one adaptive banner on the home screen, served by Google AdMob. It
 is the only advertising in the app, and it is off unless the published catalog
 enables it.
 
@@ -166,24 +166,24 @@ enables it.
   bottom safe area, depending on the published layout. It never appears in the
   browser, in a private tab, in a sheet, in Settings, or on the private start
   page. Leaving the home screen unmounts the banner and stops its request.
-- **What is requested.** Mira asks Google for one banner using a unit ID from
+- **What is requested.** Nexus asks Google for one banner using a unit ID from
   the published catalog. The request can include the advertising ID, app set
   ID, IP address, device and app information, and ad interaction information
   such as app launches and taps. Google may use the IP address to estimate
-  general location. Mira does not send your history, trails, search terms, open
+  general location. Nexus does not send your history, trails, search terms, open
   tabs, or the address of the page you are reading to the ad SDK.
-- **Consent.** Before the SDK initializes, Mira runs Google's User Messaging
+- **Consent.** Before the SDK initializes, Nexus runs Google's User Messaging
   Platform (UMP) consent flow and, on iOS, asks for App Tracking Transparency
-  permission. If you do not consent, Mira does not request ads. Where Google
+  permission. If you do not consent, Nexus does not request ads. Where Google
   requires it, Settings → Advertising shows a Choices button that reopens the
   consent form so you can change or withdraw your choice at any time.
 - **Your advertising ID.** The Google Mobile Ads SDK can access Android's
   advertising ID and app set ID for ad delivery, measurement, and fraud
   prevention. You can reset or delete the advertising ID in Android Settings →
-  Privacy → Ads. Mira itself does not read, store, or transmit it.
-- **Content rating.** Mira configures the SDK with a maximum ad content rating
+  Privacy → Ads. Nexus itself does not read, store, or transmit it.
+- **Content rating.** Nexus configures the SDK with a maximum ad content rating
   of Teen (`MaxAdContentRating.T`).
-- **Test mode.** While test mode is on, or in any development build, Mira
+- **Test mode.** While test mode is on, or in any development build, Nexus
   requests Google's test banner instead of paid inventory.
 - **Not a sale by the developer.** The developer does not sell personal
   information. Google handles ad data under its own privacy policy:
@@ -191,7 +191,7 @@ enables it.
 
 ## Cookies and site storage
 
-Websites may set cookies and use local storage inside Mira's WebView, just as
+Websites may set cookies and use local storage inside Nexus's WebView, just as
 they do in any browser. Those records belong to the website, are stored by
 Android's WebView, and are not readable by the developer.
 
@@ -205,42 +205,42 @@ Android's WebView, and are not readable by the developer.
   cookies.
 - Private tabs still write no history or trails, bypass the page cache, and skip
   discussion lookup.
-- Clearing history inside Mira clears Mira's lists. It does not clear
+- Clearing history inside Nexus clears Nexus's lists. It does not clear
   normal-tab website cookies. To remove those, use Android Settings → Apps →
-  Mira → Storage → Clear storage.
+  Nexus → Storage → Clear storage.
 
 ## Private tabs
 
-A private tab is a temporary browsing room. It leaves no record in Mira, but on
+A private tab is a temporary browsing room. It leaves no record in Nexus, but on
 Android it is not a separate cookie jar.
 
 - **No history or trails.** Pages opened in a private tab are never written to
-  Mira's history, Recent list, or Trails. The omnibox hides stored history while
+  Nexus's history, Recent list, or Trails. The omnibox hides stored history while
   you are in a private tab.
 - **No page cache.** Private requests are made with WebView's page cache
-  bypassed, so Mira does not reuse saved copies of pages.
+  bypassed, so Nexus does not reuse saved copies of pages.
 - **Cookies are shared on Android.** Android's WebView keeps one cookie and
   site-storage store for every tab. A private tab does not isolate that store:
   a site can recognize you from a normal tab, signing in here can sign you in
   there, and closing the tab does not clear those cookies. Use Android Settings
-  → Apps → Mira → Storage → Clear storage to remove them.
-- **No discussion lookup.** Mira does not send a private tab's address to Hacker
+  → Apps → Nexus → Storage → Clear storage to remove them.
+- **No discussion lookup.** Nexus does not send a private tab's address to Hacker
   News or Lobsters.
-- **No screen capture.** While a private tab is open, Mira asks Android to block
+- **No screen capture.** While a private tab is open, Nexus asks Android to block
   screenshots and screen recordings and to blank the app-switcher preview. On
-  devices or builds where the native shield is unavailable, Mira covers the app
+  devices or builds where the native shield is unavailable, Nexus covers the app
   with a quiet screen instead.
 - **Still a browser.** A website you open still receives your IP address, the
   requested address, and your user agent, and can set cookies in the shared
   store. Private tabs do not encrypt, proxy, or anonymise traffic, and they are
   not a VPN or Tor.
 - **Closing all private tabs closes their pages.** Private tabs are held in
-  memory only and do not survive closing Mira. Closing them does not clear
+  memory only and do not survive closing Nexus. Closing them does not clear
   cookies or site storage, because Android shares those with normal tabs.
 
-## Sharing into Mira
+## Sharing into Nexus
 
-Mira can receive a link or plain text from another app's share sheet. The shared
+Nexus can receive a link or plain text from another app's share sheet. The shared
 content is read on the device, validated, and opened or placed in the address
 field. It is not uploaded anywhere. If the shared item is not a web link or
 text, it is ignored. The share extension requests no access to photos, videos,
@@ -249,8 +249,8 @@ or files.
 ## Android home-screen widget
 
 The widget shows Today's page and up to three of your shortcuts. It reads them
-from Mira's local storage on the device. Tapping a widget item opens Mira through
-a private `mira://` link. The widget does not contain an analytics SDK and does
+from Nexus's local storage on the device. Tapping a widget item opens Nexus through
+a private `nexus://` link. The widget does not contain an analytics SDK and does
 not send data anywhere.
 
 ## Security measures
@@ -268,10 +268,10 @@ not send data anywhere.
 - Discussion lookup is limited to the address of the page being read, can be
   turned off at any time, and never runs in a private tab.
 - Ads initialize only after Google's UMP consent flow resolves; if consent does
-  not permit ad requests, Mira requests none. The banner exists only on the home
+  not permit ad requests, Nexus requests none. The banner exists only on the home
   screen, unmounts while you browse, and is never placed in a private tab, a
   sheet, or Settings. Ad content is capped at a Teen rating.
-- The catalog feed is public, read-only, and fetched over HTTPS. Mira validates
+- The catalog feed is public, read-only, and fetched over HTTPS. Nexus validates
   it, caches it, and falls back to the bundled copy when it is missing, malformed,
   or unreachable.
 - Private tabs write no history or trails, bypass the page cache, and never run
@@ -287,10 +287,10 @@ not send data anywhere.
 
 ## Children
 
-Mira is a general-purpose browser and is not directed to children under 13. It
+Nexus is a general-purpose browser and is not directed to children under 13. It
 does not knowingly collect personal information from anyone, including
-children. Ad content is capped at a Teen rating, and Mira does not ask the ad SDK
-to treat the app as child-directed. Because Mira can open ordinary websites,
+children. Ad content is capped at a Teen rating, and Nexus does not ask the ad SDK
+to treat the app as child-directed. Because Nexus can open ordinary websites,
 parents and guardians should supervise use in the same way they would with any
 browser.
 
@@ -302,7 +302,7 @@ notes.
 
 ## Contact
 
-Questions about this policy or about data in Mira:
+Questions about this policy or about data in Nexus:
 
 **REPLACE_WITH_YOUR_EMAIL@example.com**
 

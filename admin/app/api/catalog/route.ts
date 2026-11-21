@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const etag = `"mira-catalog-${catalog.revision}"`;
+    const etag = `"nexus-catalog-${catalog.revision}"`;
     if (request.headers.get('if-none-match') === etag) {
       return new Response(null, {
         status: 304,

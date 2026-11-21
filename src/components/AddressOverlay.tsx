@@ -370,7 +370,7 @@ export function AddressOverlay({
               <Text style={[styles.emptyBody, { color: theme.muted }]}>
                 {privateTab
                   ? 'Type a link, a domain, or a question. Nothing here enters history.'
-                  : 'Type a link, a domain, or a question. Mira takes you straight there.'}
+                  : 'Type a link, a domain, or a question. Nexus takes you straight there.'}
               </Text>
             </View>
           ) : null}

@@ -136,7 +136,7 @@ export function LaunchScreen({ ready, onFinish }: Props) {
           }),
         },
       ]}
-      accessibilityLabel="Mira is loading"
+      accessibilityLabel="Nexus is loading"
       accessibilityViewIsModal
       pointerEvents="auto"
     >
@@ -153,7 +153,7 @@ export function LaunchScreen({ ready, onFinish }: Props) {
         <Animated.Text
           style={[styles.wordmark, { color: theme.ink }, entranceStyle]}
         >
-          Mira
+          Nexus
         </Animated.Text>
         <Animated.Text
           style={[styles.tagline, { color: theme.faint }, entranceStyle]}

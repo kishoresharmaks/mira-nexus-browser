@@ -142,7 +142,7 @@ export function TrailsSheet({
               No trail yet
             </Text>
             <Text style={[styles.emptyBody, { color: theme.muted }]}>
-              Start reading. Mira groups pages into trails whenever you take a
+              Start reading. Nexus groups pages into trails whenever you take a
               pause of about half an hour.
             </Text>
           </View>

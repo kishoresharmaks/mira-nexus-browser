@@ -1,13 +1,13 @@
-# Publishing Mira to Google Play
+# Publishing Nexus to Google Play
 
-This is the complete runbook for shipping Mira to Google Play: signing, the
+This is the complete runbook for shipping Nexus to Google Play: signing, the
 release build, every Play Console form, the listing copy, and the first rollout.
 Follow it in order. It assumes the catalog desk is already deployed and serving
 `https://<domain>/api/catalog` — if it is not, finish
 [`VPS_DEPLOYMENT.md`](VPS_DEPLOYMENT.md) first.
 
 Everything in this file is written for the app as it exists in this repository:
-package `com.mira.browser`, version `1.0.0`, Android-only release, Expo SDK 58
+package `com.nexus.browser`, version `1.0.0`, Android-only release, Expo SDK 58
 (target API 36), no account, one optional home-screen banner served by Google
 AdMob, no analytics.
 
@@ -37,8 +37,8 @@ in this file, `PRIVACY.md`, and `docs/privacy.html`.
 
 | Field | Value |
 | --- | --- |
-| App name | **Mira — A Quieter Browser** (24 characters) |
-| Package | `com.mira.browser` |
+| App name | **Nexus — A Quieter Browser** (25 characters) |
+| Package | `com.nexus.browser` |
 | Version | `1.0.0`; `versionCode` is set per build (see [8.4](#84-build-the-bundle-in-ci)) |
 | Format | Android App Bundle (`.aab`) for Play; APK for testers |
 | Target API | 36 (Android 16) |
@@ -52,16 +52,16 @@ in this file, `PRIVACY.md`, and `docs/privacy.html`.
 | Privacy policy | `https://REPLACE_WITH_YOUR_DOMAIN/privacy.html` |
 | Support email | `REPLACE_WITH_YOUR_EMAIL@example.com` |
 
-Mira is a general-purpose browser. It does not require a login and does not send
+Nexus is a general-purpose browser. It does not require a login and does not send
 browsing data to the developer. One optional adaptive banner on the home screen
 is served by Google AdMob; it never appears in the browser, private tabs, sheets,
 or Settings. The Google Mobile Ads SDK can receive an advertising ID, IP address,
 app interactions, and diagnostics for ad delivery, measurement, and fraud
 prevention, so the Data safety form declares those types as shared with Google.
-Where required, Mira gathers UMP consent before initializing the SDK, and the app
+Where required, Nexus gathers UMP consent before initializing the SDK, and the app
 offers a privacy-choices button in Settings. The optional discussion lookup sends
 the current page address to two public discussion services, so the Data safety
-form declares that share as well; the developer collects nothing. Mira also
+form declares that share as well; the developer collects nothing. Nexus also
 fetches a small public catalog of search presets, Today pages, and ad settings;
 that request carries no account, device ID, query, or browsing history, and the
 app keeps a bundled fallback. Private tabs write no history, bypass the page
@@ -77,7 +77,7 @@ review.
 ### App name (max 30 characters)
 
 ```
-Mira — A Quieter Browser
+Nexus — A Quieter Browser
 ```
 
 ### Short description (max 80 characters)
@@ -89,18 +89,18 @@ A quieter browser: trails, five tabs, private rooms, and one page a day.
 ### Full description (max 4,000 characters)
 
 ```
-Mira is a browser for reading, not scrolling.
+Nexus is a browser for reading, not scrolling.
 
 It opens ordinary websites in a clean, full-screen view with only the controls you need. No feed, no account, no analytics, and only one small home-screen banner. Your history, trails, shortcuts, search choice, and theme stay on your device.
 
 TRAILS
-Mira groups the pages you visit into trails. Read for a while, wander through a few links, then put the phone down. When you come back, the trail is waiting: a row of dots showing where you were. Resume it, rename it, or delete it.
+Nexus groups the pages you visit into trails. Read for a while, wander through a few links, then put the phone down. When you come back, the trail is waiting: a row of dots showing where you were. Resume it, rename it, or delete it.
 
 FIVE TABS, KEPT ALIVE
 Open up to five pages and move between them without losing your place. Tap the tab count to see every open page as a grid. Close one to release it. Tabs live in memory and clear when the app closes.
 
 SEARCH, YOUR WAY
-Mira ships with a small set of private search presets, and you can add any HTTPS search site you trust. The choice lives on your device; your query goes to the engine you picked, not to Mira.
+Nexus ships with a small set of private search presets, and you can add any HTTPS search site you trust. The choice lives on your device; your query goes to the engine you picked, not to Nexus.
 
 PRIVATE TABS
 Private tabs never write history or trails, hide stored history in the address field, bypass the page cache, and skip discussion lookup. They open on a quiet local page, so no request is made until you choose an address. Android's WebView shares cookies and site storage with normal tabs, so a site may remember you. While one is open, Android blocks screenshots and recordings and blanks the app-switcher preview. Close the tab, or the whole group, and its pages are gone.
@@ -109,16 +109,16 @@ TODAY'S PAGE
 One hand-picked, independent page each day: an essay, a garden, a small corner of the web worth an unhurried minute. It rotates with your local calendar. The list comes from a small public catalog and is cached on your device, so it works offline; a copy is bundled in the app. The catalog request carries no account, device ID, or browsing history. The page is fetched only when you tap it; the last ten days stay in an archive.
 
 PUBLIC DISCUSSIONS
-When you open an article, Mira can quietly check whether it has been posted to Hacker News or Lobsters. If a public thread exists, a small chip appears above the toolbar with its score and comment count. Tap it for the conversation in a native sheet, with points, nested replies, and a path to the original thread. Only the current page address is sent to those services. The setting is on by default and can be turned off in the Discussions sheet; results stay in memory and are never written to history.
+When you open an article, Nexus can quietly check whether it has been posted to Hacker News or Lobsters. If a public thread exists, a small chip appears above the toolbar with its score and comment count. Tap it for the conversation in a native sheet, with points, nested replies, and a path to the original thread. Only the current page address is sent to those services. The setting is on by default and can be turned off in the Discussions sheet; results stay in memory and are never written to history.
 
-SHARE INTO MIRA
-Send a link from any app's share sheet and it opens in a new tab. Share plain text and Mira places it in the address field, ready to search.
+SHARE INTO NEXUS
+Send a link from any app's share sheet and it opens in a new tab. Share plain text and Nexus places it in the address field, ready to search.
 
 ANDROID HOME-SCREEN WIDGET
-Put Today's page on your home screen. The widget also shows up to three shortcuts when there is room. Tap any to open Mira. It updates through the day and follows your theme.
+Put Today's page on your home screen. The widget also shows up to three shortcuts when there is room. Tap any to open Nexus. It updates through the day and follows your theme.
 
 ONE QUIET HOME-SCREEN BANNER
-Mira can show a single adaptive banner on the home screen, served by Google AdMob. It never appears while you browse, in private tabs, in sheets, or in Settings. Where required, Mira asks for consent before requesting an ad, and Settings offers a button to review or withdraw your ad choices. Google may use your advertising ID, IP address, app interactions, and diagnostics to serve, measure, and protect that ad. The developer does not receive that data.
+Nexus can show a single adaptive banner on the home screen, served by Google AdMob. It never appears while you browse, in private tabs, in sheets, or in Settings. Where required, Nexus asks for consent before requesting an ad, and Settings offers a button to review or withdraw your ad choices. Google may use your advertising ID, IP address, app interactions, and diagnostics to serve, measure, and protect that ad. The developer does not receive that data.
 
 PRIVATE BY CONSTRUCTION
 • No account, sign-in, analytics, or crash-reporting SDK.
@@ -137,7 +137,7 @@ PRIVATE BY CONSTRUCTION
 A SMALL, CONSIDERED INTERFACE
 Warm paper, ink, a single orange accent. Instrument Serif for headlines, Instrument Sans for everything else. Light and dark themes follow your system and remember your choice.
 
-The web is as open as the web is. Mira does not filter what you can read, and it does not pretend every site is safe.
+The web is as open as the web is. Nexus does not filter what you can read, and it does not pretend every site is safe.
 
 No account. No feed. No noise.
 ```
@@ -153,7 +153,7 @@ First release.
 • Search your way: private presets or your own HTTPS engine
 • Today's page, hand-picked daily, with a ten-day archive
 • Hacker News and Lobsters discussions, in a native overlay
-• Share links and text into Mira
+• Share links and text into Nexus
 • Android home-screen widget
 • HTTPS-only browsing, third-party cookies off, no analytics
 • One quiet home-screen banner, clearly marked
@@ -202,7 +202,7 @@ produces 780 × 1520 px, which is accepted. Avoid 20:9 phone captures
 (390 × 844 → 2.16:1); Play can reject them as too tall.
 
 Do not put device frames, marketing headlines, or fake UI into screenshots.
-Google allows captioned screenshots, but Mira's design is the pitch; let it be
+Google allows captioned screenshots, but Nexus's design is the pitch; let it be
 legible at thumbnail size. If you re-capture on a device, keep the status bar
 clean: 9:41, full battery, no notifications, no debug banner.
 
@@ -210,7 +210,7 @@ clean: 9:41, full battery, no notifications, no debug banner.
 
 ## 4. Data safety form
 
-Mira has no account system and the developer does not receive browsing data. The
+Nexus has no account system and the developer does not receive browsing data. The
 developer hosts one public catalog (search presets, Today pages, ad settings);
 the app fetches it without an account, device ID, search query, or browsing
 history. Two features send data to third parties:
@@ -231,7 +231,7 @@ being collected by the developer, which is how the discussion lookup is declared
 | --- | --- |
 | Does your app collect or share any of the required user data types? | **Yes** — the optional discussion lookup shares the current page address with Hacker News and Lobsters; the Google Mobile Ads SDK collects and shares ad data with Google. The developer receives neither. |
 | Is all of the user data collected by your app encrypted in transit? | **Yes** — HTTPS/TLS only; cleartext traffic is disabled |
-| Do you provide a way for users to request that their data be deleted? | **Yes** — in-app History → Clear history removes Mira's lists; Android Settings → Apps → Mira → Storage → Clear storage removes cookies, site storage, and the UMP consent record; Android Settings → Privacy → Ads lets users reset or delete the advertising ID; the discussion lookup stores nothing on a server |
+| Do you provide a way for users to request that their data be deleted? | **Yes** — in-app History → Clear history removes Nexus's lists; Android Settings → Apps → Nexus → Storage → Clear storage removes cookies, site storage, and the UMP consent record; Android Settings → Privacy → Ads lets users reset or delete the advertising ID; the discussion lookup stores nothing on a server |
 
 Data-type rows:
 
@@ -249,7 +249,7 @@ Advertising. The developer can also disable the placement entirely in the
 published catalog.
 
 The public catalog request is a plain HTTPS GET for a small configuration file.
-It carries no account, device ID, search query, or browsing history, and Mira
+It carries no account, device ID, search query, or browsing history, and Nexus
 does not use it to identify or profile anyone. Do not declare it as browsing
 history. Like any HTTPS request, the hosting provider may keep standard request
 logs (IP address, user agent) for security and reliability; those logs are not
@@ -257,19 +257,19 @@ used for analytics or personalisation. If the app later adds accounts, sync, or
 analytics, this form must change before that release ships.
 
 Do **not** declare the sites the user visits in the browser itself: those are
-user-initiated requests to the sites, not collection by Mira. Do **not** declare
-history, trails, shortcuts, private-tab history, or the theme as collected; Mira
+user-initiated requests to the sites, not collection by Nexus. Do **not** declare
+history, trails, shortcuts, private-tab history, or the theme as collected; Nexus
 never sends them to the developer. Private tabs also skip the discussion lookup
 and unmount the ad banner, so neither their addresses nor their content reach
 Hacker News, Lobsters, or the ad SDK. Cookies and site storage are set by the
-sites the user visits and stay in Android's WebView; Mira does not collect them.
+sites the user visits and stay in Android's WebView; Nexus does not collect them.
 If a future release adds sync, crash reporting, or analytics, this form must
 change before that release ships.
 
 If the form requires a note, use:
 
 ```
-Mira has no account, no analytics SDK, and no server that receives browsing
+Nexus has no account, no analytics SDK, and no server that receives browsing
 activity. The developer hosts one public catalog of search presets, Today pages,
 and ad settings; the request carries no account, device ID, query, or browsing
 history, and the host's standard request logs are not used for analytics or
@@ -278,7 +278,7 @@ app-private storage and never leave the device. Private tabs write no history or
 cache, block screen capture, and never run the discussion lookup or show an ad.
 Android's WebView shares cookies and site storage with normal tabs, so a site may
 recognize the reader; closing private tabs does not clear those cookies. As a
-browser, Mira requests the sites the user opens directly, as any browser does.
+browser, Nexus requests the sites the user opens directly, as any browser does.
 The optional discussion lookup sends only the current page address to the public
 Hacker News (Algolia) and Lobsters APIs; it sends no account, device identifier,
 search terms, or browsing history, holds the response in memory for 15 minutes,
@@ -286,14 +286,14 @@ and never runs in a private tab. One adaptive banner on the home screen is serve
 by Google AdMob using the Google Mobile Ads SDK. The SDK may collect the
 advertising ID, app set ID, IP address (used to estimate general location), app
 interactions, and diagnostics for advertising, analytics, and fraud prevention.
-Mira gathers UMP consent before initializing the SDK where required and offers a
+Nexus gathers UMP consent before initializing the SDK where required and offers a
 privacy-choices button in Settings. Ads never appear in the browser, private
 tabs, sheets, or Settings. Android backup is disabled.
 ```
 
 ### Section: Ads
 
-**Yes.** Turn on the "Contains ads" label. Mira shows one adaptive banner on the
+**Yes.** Turn on the "Contains ads" label. Nexus shows one adaptive banner on the
 home screen, served by Google AdMob. It is not an ad-free app and must not be
 labelled as one, even if the published catalog currently has the placement
 switched off.
@@ -337,14 +337,14 @@ No login, account, invite code, or location restriction. Open the app and browse
 
 Category: **Utility, Productivity, Communication, or Other**.
 
-Mira is a browser, so answer the "unrestricted web access" question truthfully:
+Nexus is a browser, so answer the "unrestricted web access" question truthfully:
 
 | Question | Suggested answer | Why |
 | --- | --- | --- |
 | Does the app allow users to access the internet? | **Yes** | It is a browser |
 | Does the app contain user-generated content? | **Yes** | Pages can contain comments, forums, and uploads; the app itself hosts none |
-| Does the app allow users to interact or share information with other users? | **Yes** | Websites may offer this; Mira adds no social features of its own |
-| Violence, sexuality, language, controlled substances | **No** for app-provided content | Mira ships no content of its own beyond curated links |
+| Does the app allow users to interact or share information with other users? | **Yes** | Websites may offer this; Nexus adds no social features of its own |
+| Violence, sexuality, language, controlled substances | **No** for app-provided content | Nexus ships no content of its own beyond curated links |
 | Gambling, contests, or real-money purchases | **No** | No purchases, no gambling features |
 | Does the app share the user's current location? | **No** | Location is blocked in the WebView and not requested |
 | Does the app allow users to purchase digital goods? | **No** | No billing integration |
@@ -364,7 +364,7 @@ that is the fastest route to a policy rejection.
 - **Teacher-approved:** No.
 
 A general browser is not a child-directed product. Selecting an under-13 audience
-would trigger Families policy requirements that Mira does not meet (content
+would trigger Families policy requirements that Nexus does not meet (content
 filtering, verified parental consent, and a child-safe web experience). Keep the
 audience at 13+.
 
@@ -405,7 +405,7 @@ automatic HTTPS. The complete guide, including Atlas, DNS, backups, upgrades,
 rollback, and monitoring, is in [`VPS_DEPLOYMENT.md`](VPS_DEPLOYMENT.md).
 
 1. Create a MongoDB Atlas database (the free tier is enough) and add a database
-   user with `readWrite` access to `mira`. Allow only the admin host's address.
+   user with `readWrite` access to `nexusbrowser`. Allow only the admin host's address.
 2. On the VPS, copy `admin/.env.docker.example` to `admin/.env` and set
    `ADMIN_DOMAIN`, `ADMIN_PASSWORD` (8+ characters), `ADMIN_SESSION_SECRET`
    (32+ random characters), and `MONGODB_URI` (the Atlas SRV string).
@@ -422,7 +422,7 @@ section.
 The public feed is read-only, CORS-enabled, and cached for five minutes at the
 edge. The admin stores the draft and published catalog in MongoDB Atlas; drafts
 never reach the public feed until you press Publish. Local preview can use
-`MIRA_DEV_FILE_STORE=1`; production requires `MONGODB_URI`. See
+`NEXUS_DEV_FILE_STORE=1`; production requires `MONGODB_URI`. See
 `admin/README.md`.
 
 The catalog carries only public editorial and configuration data: engine names,
@@ -466,14 +466,14 @@ hour of Console work; later releases are a tag and an upload.
 1. Register a Google Play developer account at
    <https://play.google.com/console>. The one-time fee is $25. Complete identity
    verification; it can take a day or two.
-2. **Create app** → name `Mira — A Quieter Browser`, default language English,
+2. **Create app** → name `Nexus — A Quieter Browser`, default language English,
    **App**, **Free**.
 3. Accept the developer distribution agreement and the US export declarations.
 4. Under **App content**, work through privacy policy, ads, content rating,
    target audience, data safety, and app access. Sections [4](#4-data-safety-form)
    through [7](#7-hosting-the-policy-and-catalog) give the exact answers.
 5. Leave the app in **Draft** until the first `.aab` is uploaded. The package
-   name `com.mira.browser` is fixed at the first upload and cannot be changed
+   name `com.nexus.browser` is fixed at the first upload and cannot be changed
    afterwards.
 
 Do not create a second app with the same package. If you ever lose the upload
@@ -486,8 +486,8 @@ do not create a second key later for the same listing.
 
 ```bash
 keytool -genkeypair -v \
-  -keystore mira-upload.keystore \
-  -alias mira-upload \
+  -keystore nexus-upload.keystore \
+  -alias nexus-upload \
   -keyalg RSA -keysize 4096 -validity 10000
 ```
 
@@ -495,7 +495,7 @@ keytool -genkeypair -v \
 organisation, and a key password (press Enter to reuse the store password).
 Choose strong, unique passwords and keep both in a password manager.
 
-Back up `mira-upload.keystore` and both passwords offline. Losing the file means
+Back up `nexus-upload.keystore` and both passwords offline. Losing the file means
 you cannot upload updates under the same listing until Google resets the upload
 key.
 
@@ -513,15 +513,15 @@ Base64-encode the keystore as a single line.
 Linux/macOS:
 
 ```bash
-base64 -w0 mira-upload.keystore > mira-upload.keystore.b64
+base64 -w0 nexus-upload.keystore > nexus-upload.keystore.b64
 ```
 
 Windows PowerShell:
 
 ```powershell
 [Convert]::ToBase64String(
-  [IO.File]::ReadAllBytes("mira-upload.keystore")
-) | Set-Content -NoNewline mira-upload.keystore.b64
+  [IO.File]::ReadAllBytes("nexus-upload.keystore")
+) | Set-Content -NoNewline nexus-upload.keystore.b64
 ```
 
 Add four repository secrets in **Settings → Secrets and variables → Actions →
@@ -529,15 +529,15 @@ Secrets**:
 
 | Secret | Value |
 | --- | --- |
-| `ANDROID_KEYSTORE_BASE64` | Contents of `mira-upload.keystore.b64` |
+| `ANDROID_KEYSTORE_BASE64` | Contents of `nexus-upload.keystore.b64` |
 | `ANDROID_KEYSTORE_PASSWORD` | Store password |
-| `ANDROID_KEY_ALIAS` | `mira-upload` |
+| `ANDROID_KEY_ALIAS` | `nexus-upload` |
 | `ANDROID_KEY_PASSWORD` | Key password |
 
 On Windows PowerShell, `<` is not supported; pipe the file instead:
 
 ```powershell
-Get-Content -Raw mira-upload.keystore.b64 | gh secret set ANDROID_KEYSTORE_BASE64
+Get-Content -Raw nexus-upload.keystore.b64 | gh secret set ANDROID_KEYSTORE_BASE64
 ```
 
 The last three prompt for their value with `gh secret set NAME`.
@@ -546,7 +546,7 @@ Also add the **variable** `EXPO_PUBLIC_CATALOG_URL` (same screen, **Variables**
 tab) with `https://<domain>/api/catalog`. Without it, the app ships with the
 bundled catalog only and never reads the desk. The value must use `https://`.
 
-Delete `mira-upload.keystore.b64` after uploading the secret.
+Delete `nexus-upload.keystore.b64` after uploading the secret.
 
 ### 8.4 Build the bundle in CI
 
@@ -561,8 +561,8 @@ The **Android release builds** workflow checks out the tag, runs `expo prebuild`
 builds `:app:assembleRelease` and `:app:bundleRelease`, verifies both signatures,
 and publishes a GitHub Release with:
 
-- `mira-1.0.0-<run>.apk` — sideload for testers
-- `mira-1.0.0-<run>.aab` — upload to Play
+- `nexus-1.0.0-<run>.apk` — sideload for testers
+- `nexus-1.0.0-<run>.aab` — upload to Play
 - `SHA256SUMS.txt`
 
 Open the release and confirm the notes say **Signing: upload key**. If they say
@@ -585,9 +585,9 @@ path limit in the native build. If you still want a local bundle:
 node scripts/ci/apply-version.mjs --version 1.2.0 --code 42
 npx expo prebuild --platform android --clean
 
-export ANDROID_KEYSTORE_BASE64="$(base64 -w0 mira-upload.keystore)"
+export ANDROID_KEYSTORE_BASE64="$(base64 -w0 nexus-upload.keystore)"
 export ANDROID_KEYSTORE_PASSWORD='your-store-password'
-export ANDROID_KEY_ALIAS='mira-upload'
+export ANDROID_KEY_ALIAS='nexus-upload'
 export ANDROID_KEY_PASSWORD='your-key-password'
 node scripts/ci/configure-signing.mjs
 
@@ -598,7 +598,7 @@ cd android
 Windows PowerShell equivalents for the environment variables are in
 [`docs/RELEASING.md`](docs/RELEASING.md#53-add-the-keystore); use
 `.\gradlew.bat :app:bundleRelease --no-daemon` for the last step and run it from
-a short path such as `C:\mira`.
+a short path such as `C:\nexus`.
 
 The output is `android/app/build/outputs/bundle/release/app-release.aab`.
 
@@ -606,7 +606,7 @@ The output is `android/app/build/outputs/bundle/release/app-release.aab`.
 
 1. Play Console → **Testing → Internal testing → Create new release**.
 2. Accept **Play App Signing** when prompted.
-3. Upload `mira-1.0.0-<run>.aab`.
+3. Upload `nexus-1.0.0-<run>.aab`.
 4. Add release notes. The **What's new** text in [section 2](#2-store-listing-copy)
    is already under the 500-character limit.
 5. Fix any errors Play reports. Version code reuse and target API are the two
@@ -709,7 +709,7 @@ unchanged.
 
 - [ ] Replace the privacy contact placeholder.
 - [ ] Host the privacy policy at a public HTTPS URL.
-- [ ] Create the app in Play Console with package `com.mira.browser`.
+- [ ] Create the app in Play Console with package `com.nexus.browser`.
 - [ ] Upload the 512 × 512 icon.
 - [ ] Upload the 1024 × 500 feature graphic.
 - [ ] Upload the eight captures in `docs/play/screenshots/` in the listed order.
@@ -763,7 +763,7 @@ unchanged.
       tab is open; all three are covered.
 - [ ] Close all private tabs; the shield releases and normal screenshots work.
 - [ ] Rename a trail, delete a trail, clear history.
-- [ ] Share a link and plain text into Mira.
+- [ ] Share a link and plain text into Nexus.
 - [ ] Add, resize, tap, and theme-test the widget.
 - [ ] With ads enabled and test mode on, confirm one labeled test banner on Home.
 - [ ] Browse, open a sheet, open a private tab, and open Settings; confirm no
@@ -774,7 +774,7 @@ unchanged.
 - [ ] With ads disabled in the published catalog, refresh and confirm the slot
       disappears without leaving an empty gap.
 - [ ] Toggle light/dark; both are legible.
-- [ ] Rotate? Mira is portrait-only by design; confirm the listing says so.
+- [ ] Rotate? Nexus is portrait-only by design; confirm the listing says so.
 - [ ] Verify the app launches with no network (offline error state is designed).
 
 ---
@@ -784,14 +784,14 @@ unchanged.
 Paste this into "Notes for the reviewer" when submitting:
 
 ```
-Mira is a general-purpose web browser. No account is required; every feature is
+Nexus is a general-purpose web browser. No account is required; every feature is
 available on first launch.
 
 To test browsing: tap the address field on the home screen, type "example.com",
 and press Go. Use the toolbar for back, forward, reload, and the page menu.
 
 To test tabs: open a page, tap the tab count in the toolbar, then "New tab".
-Mira keeps up to five pages in memory.
+Nexus keeps up to five pages in memory.
 
 To test private tabs: tap the mask icon on the home screen. The tab starts
 empty. Type "example.com" and press Go. Private pages never enter history or
@@ -820,10 +820,10 @@ loads, a small chip appears above the toolbar. Tap it to read the thread in the
 sheet, switch platforms if a Lobsters thread exists, or tap "Open thread". The
 feature is on by default and can be turned off at the bottom of the sheet.
 
-To test the Android widget: long-press the home screen, choose Widgets, find Mira,
+To test the Android widget: long-press the home screen, choose Widgets, find Nexus,
 and place the widget. Tap the headline to open the page.
 
-To test share intake: share a link from Chrome to Mira. The link opens in a new
+To test share intake: share a link from Chrome to Nexus. The link opens in a new
 tab.
 
 Advertising: when the published catalog enables it, one adaptive banner appears
@@ -841,7 +841,7 @@ ID, query, or browsing history.
 ```
 
 If review asks about "unrestricted web access" or the content rating, point to the
-browser use case and the Safe Browsing setting. Do not describe Mira as a
+browser use case and the Safe Browsing setting. Do not describe Nexus as a
 child-safe browser; it is not.
 
 ---
@@ -851,9 +851,9 @@ child-safe browser; it is not.
 - **Android only.** The iOS widget is not implemented; the iOS share extension is
   configured but has not been verified on a Mac.
 - **Five tabs.** This is a deliberate memory bound, not a bug.
-- **Private tabs hide Mira's traces, not network identity.** A private tab writes
+- **Private tabs hide Nexus's traces, not network identity.** A private tab writes
   no history, bypasses the cache, and blocks capture, but Android shares cookies
-  with normal tabs and the site still receives your IP address. Mira does not
+  with normal tabs and the site still receives your IP address. Nexus does not
   proxy or anonymise traffic.
 - **The capture shield needs a native build.** Expo Go and the web preview show
   the app-switcher veil only; the OS-level block is active once
@@ -862,7 +862,7 @@ child-safe browser; it is not.
   persist.
 - **No built-in ad blocker.** Third-party cookies are off, but requests are not
   filtered.
-- **One banner, home only.** Mira does not use interstitials, rewarded ads, or
+- **One banner, home only.** Nexus does not use interstitials, rewarded ads, or
   native ad units. The banner never appears in the browser, private tabs, sheets,
   or Settings, and a failed request leaves no empty slot.
 - **The banner is remotely configured.** Whether it appears, its layout, and its
@@ -872,16 +872,16 @@ child-safe browser; it is not.
   SDK, so they show no banner at all.
 - **No sync.** There is no account and no cloud.
 - **Some sites refuse to load in a WebView** or require a custom tab / installed
-  app. That is a site decision, not something Mira can override.
+  app. That is a site decision, not something Nexus can override.
 - **Web preview is not the product.** `BrowserPane.web.tsx` is an iframe fallback
   for design QA; many sites block framing.
 - **The curated list is editorial and small.** Today's page is chosen from a
   published list, not a personalised feed. A bundled copy keeps it working
   offline; it does not learn from your reading.
-- **Discussion matching is by address.** Mira canonicalises `http`/`https`,
+- **Discussion matching is by address.** Nexus canonicalises `http`/`https`,
   `www.`, trailing slashes, fragments, and common tracking parameters, but a
   thread posted with a substantially different URL will not match.
-- **Discussions are read-only.** Mira shows the first 120 comments to six levels
+- **Discussions are read-only.** Nexus shows the first 120 comments to six levels
   in a native sheet and opens the original thread for the rest; there is no
   voting or replying inside the app.
 - **Lobsters is native-only.** The Lobsters API does not send CORS headers, so
@@ -904,7 +904,7 @@ The most likely objections, and the fix:
    and fraud prevention; declare those as collected and shared with Google. The
    catalog request carries no user data; do not declare it as browsing history.
 3. **"Contains ads" or advertising ID mismatch.**
-   Mira is not ad-free. Enable "Contains ads", declare the advertising ID, and
+   Nexus is not ad-free. Enable "Contains ads", declare the advertising ID, and
    submit a build whose published catalog actually enables the banner. Do not
    hide the placement behind test mode in production.
 4. **Content rating understated.**

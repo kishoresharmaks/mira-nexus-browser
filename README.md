@@ -1,8 +1,8 @@
-# Mira
+# Nexus — A Quieter Browser
 
 A quieter browser for the web.
 
-Mira opens ordinary websites in a full-screen WebView with a small, considered
+Nexus opens ordinary websites in a full-screen WebView with a small, considered
 set of controls. It groups browsing into **Trails**, keeps up to **five tabs**
 alive while the app is open, offers **Today's page** — one hand-picked,
 independent page a day — and **Private tabs** that leave no history, bypass the
@@ -43,7 +43,7 @@ Built with Expo SDK 58, React Native 0.88, React 19, TypeScript, and Expo Router
   release. DuckDuckGo is the default; Brave, Startpage, Mojeek, Qwant, and Kagi
   ship alongside it.
 - Pick any preset, or add a custom engine by pasting an HTTPS results URL with
-  one `%s` where the query belongs. Mira normalises the template and validates
+  one `%s` where the query belongs. Nexus normalises the template and validates
   it before saving.
 - The active engine and custom engines are stored only on the device. Queries go
   to the chosen engine, never to the catalog endpoint.
@@ -91,7 +91,7 @@ Built with Expo SDK 58, React Native 0.88, React 19, TypeScript, and Expo Router
   appearance. The tab sheet keeps private pages in their own group with a
   one-tap close-all.
 - Private tabs are still WebViews: a site sees your IP address and knows someone
-  visited. Mira hides your trail in Mira, not your identity on the web.
+  visited. Nexus hides your trail in Nexus, not your identity on the web.
 
 ### Public discussions
 
@@ -136,7 +136,7 @@ Built with Expo SDK 58, React Native 0.88, React 19, TypeScript, and Expo Router
   requests App Tracking Transparency permission. If consent does not permit ad
   requests, none are made. Settings → Advertising reopens the consent form when
   the region requires it.
-- Ad content is capped at a Teen rating (`MaxAdContentRating.T`). Mira itself
+- Ad content is capped at a Teen rating (`MaxAdContentRating.T`). Nexus itself
   never reads or stores the advertising ID; Google's SDK handles ad delivery,
   measurement, and fraud prevention.
 - Expo Go and the web preview cannot load the native ad module, so they show no
@@ -144,8 +144,8 @@ Built with Expo SDK 58, React Native 0.88, React 19, TypeScript, and Expo Router
 
 ### Share intake
 
-- Share a link from any app into Mira: it opens in a new tab.
-- Share plain text: Mira opens the address overlay with the text prefilled.
+- Share a link from any app into Nexus: it opens in a new tab.
+- Share plain text: Nexus opens the address overlay with the text prefilled.
 - Strict validation: only `http(s)` is accepted, HTTP is upgraded, credentials
   in the URL are rejected, and other schemes are ignored.
 - Non-web files and images are not requested or read.
@@ -157,9 +157,11 @@ Built with Expo SDK 58, React Native 0.88, React 19, TypeScript, and Expo Router
 - Light and dark variants.
 - Updates every 30 minutes, when shortcuts change, and when the app returns to
   the foreground.
-- Widget clicks use `mira://open?url=…` deep links.
+- Widget clicks use `nexus://open?url=…` deep links.
 - Plain Android RemoteViews only: no web content, no network images, no remote
   code.
+- The picker preview is `assets/widget-preview/nexus.png` (1280 × 640, RGBA).
+  `docs/widget-preview.html` is its editable source.
 - iOS widgets are intentionally not implemented.
 
 ### Craft
@@ -243,7 +245,7 @@ MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/
 
 Open `http://localhost:3100`, sign in, edit the draft, and publish. The admin
 stores the draft and the last published revision in MongoDB Atlas. If Atlas is
-not set up yet, add `MIRA_DEV_FILE_STORE=1` for a local file preview; production
+not set up yet, add `NEXUS_DEV_FILE_STORE=1` for a local file preview; production
 ignores that flag and requires `MONGODB_URI`. Deployment details are in
 [admin/README.md](admin/README.md).
 
@@ -273,7 +275,7 @@ Run all four before declaring a change done.
 
 ## Security model
 
-Mira is a browser, so the threat model is "untrusted web content inside a native
+Nexus is a browser, so the threat model is "untrusted web content inside a native
 shell." The defaults are deliberately strict.
 
 | Area | Behaviour |
@@ -283,7 +285,7 @@ shell." The defaults are deliberately strict.
 | Local files | File access, file-URL access, and form-data saving are disabled. `file://` cannot become the top-level document. |
 | Cookies | First-party on; third-party off. Sign-ins work without cross-site tracking. |
 | Private tabs | No history or trails, cache bypassed, no discussion lookup, and screen capture blocked. Android shares cookies and site storage with normal tabs; see below. |
-| Screen capture | Blocked while a private tab is open on native builds. A quiet veil covers the app switcher, and sheets close when Mira backgrounds. |
+| Screen capture | Blocked while a private tab is open on native builds. A quiet veil covers the app switcher, and sheets close when Nexus backgrounds. |
 | JavaScript windows | `window.open` cannot spawn native windows. |
 | Geolocation | Denied. Location permission is not requested. |
 | Camera / microphone | Capture denied; permissions removed from the manifest. |
@@ -297,10 +299,10 @@ shell." The defaults are deliberately strict.
 | Release build | Minified and resource-shrunk; no analytics or crash SDK. Google Mobile Ads is the only ad SDK and is initialized only after consent. |
 | Share intake | Length-capped, control characters stripped, http(s) only, credentials rejected, plain text never auto-navigated. |
 | Widget | RemoteViews only; reads validated local storage; no network or remote code. |
-| Catalog feed | Public read-only HTTPS JSON for search presets, Today pages, and ad settings. The request carries no account, device ID, query, or browsing history; Mira validates and caches the response and falls back to its bundled copy. |
+| Catalog feed | Public read-only HTTPS JSON for search presets, Today pages, and ad settings. The request carries no account, device ID, query, or browsing history; Nexus validates and caches the response and falls back to its bundled copy. |
 
 Android's WebView exposes one cookie and DOM-storage store per app, so private
-tabs cannot be cookie-isolated without a native WebView profile. Mira does not
+tabs cannot be cookie-isolated without a native WebView profile. Nexus does not
 use `react-native-webview`'s `incognito` prop on Android because it calls
 `CookieManager.removeAllCookies` globally and would sign normal tabs out. The
 private start page and the private sheet state the shared store plainly. On
@@ -369,7 +371,7 @@ src/
     useLatest.ts            ref that never writes during render
     useAnimatedValue.ts     RN 0.88 animated value helper
   widgets/
-    MiraWidget.tsx          widget layout and typography
+    NexusWidget.tsx          widget layout and typography
     widget-data.ts          validated snapshot from AsyncStorage
     update-widget.tsx       requestWidgetUpdate wrapper
     widget-task-handler.tsx headless render handler
@@ -381,6 +383,7 @@ assets/
   widget-preview/           widget picker preview
 docs/
   privacy.html              hostable privacy policy
+  widget-preview.html       editable source for the widget picker preview
   play/feature-graphic.png  1024×500 Play feature graphic
   play/screenshots/         eight Play phone captures
 catalog/defaults.json       canonical search, Today, and ad configuration
@@ -407,8 +410,8 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-The assets are `mira-<version>-<versionCode>.apk` (sideload for testers),
-`mira-<version>-<versionCode>.aab` (upload to Play Console), and
+The assets are `nexus-<version>-<versionCode>.apk` (sideload for testers),
+`nexus-<version>-<versionCode>.aab` (upload to Play Console), and
 `SHA256SUMS.txt`. The workflow can sign with an uploaded keystore; without one it
 uses Expo's debug key and labels the build as sideload-only — do not upload that
 `.aab`. Manual runs produce an artifact without creating a release. Setup,
@@ -470,9 +473,9 @@ submission.
   least-recently-active one.
 - **Tabs do not survive a cold launch.** Only history, trails, shortcuts, and
   theme persist.
-- **Private tabs hide Mira's traces, not network identity.** A private tab writes
+- **Private tabs hide Nexus's traces, not network identity.** A private tab writes
   no history, bypasses the cache, and blocks capture, but Android shares cookies
-  with normal tabs and the site still receives your IP address. Mira does not
+  with normal tabs and the site still receives your IP address. Nexus does not
   proxy or anonymise traffic.
 - **The capture shield needs a native build.** Expo Go and the web preview show
   the app-switcher veil only; the OS-level block is active once

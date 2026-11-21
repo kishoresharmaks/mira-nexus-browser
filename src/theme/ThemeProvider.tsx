@@ -76,7 +76,7 @@ export function useTheme(): ThemeContextValue {
 /**
  * Paint a subtree with a different palette without changing the person's saved
  * appearance. Used by private tabs: the room is always night, but the rest of
- * Mira keeps the light or dark theme they chose.
+ * Nexus keeps the light or dark theme they chose.
  */
 export function ThemeScope({
   theme,

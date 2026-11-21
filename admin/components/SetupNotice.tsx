@@ -1,4 +1,4 @@
-import { MiraMark } from './MiraMark';
+import { NexusMark } from './NexusMark';
 
 export function SetupNotice({
   password,
@@ -14,8 +14,8 @@ export function SetupNotice({
       <div className="login-grid">
         <section aria-labelledby="setup-title">
           <div className="login-brand">
-            <MiraMark className="brand-mark" />
-            <span className="brand-word">Mira</span>
+            <NexusMark className="brand-mark" />
+            <span className="brand-word">Nexus</span>
             <span className="brand-sub">Catalog desk</span>
           </div>
           <h1 className="login-title" id="setup-title">
@@ -59,7 +59,7 @@ export function SetupNotice({
           <p className="login-note">
             Use the SRV connection string from MongoDB Atlas. For a local
             preview without Atlas, set{' '}
-            <span className="figure">MIRA_DEV_FILE_STORE=1</span>; production
+            <span className="figure">NEXUS_DEV_FILE_STORE=1</span>; production
             ignores it.
           </p>
         </section>

@@ -103,8 +103,8 @@ jobs:
 
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "code=$CODE" >> "$GITHUB_OUTPUT"
-          echo "apk=mira-${VERSION}-${CODE}.apk" >> "$GITHUB_OUTPUT"
-          echo "aab=mira-${VERSION}-${CODE}.aab" >> "$GITHUB_OUTPUT"
+          echo "apk=nexus-${VERSION}-${CODE}.apk" >> "$GITHUB_OUTPUT"
+          echo "aab=nexus-${VERSION}-${CODE}.aab" >> "$GITHUB_OUTPUT"
 
       - name: Generate the native project
         run: npx expo prebuild --platform android --no-install --clean
@@ -163,7 +163,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mira-${{ steps.version.outputs.version }}-${{ steps.version.outputs.code }}
+          name: nexus-${{ steps.version.outputs.version }}-${{ steps.version.outputs.code }}
           path: artifacts/
           if-no-files-found: error
           retention-days: 30
@@ -173,7 +173,7 @@ jobs:
         shell: bash
         run: |
           cat > release-notes.md <<EOF
-          Test build of Mira ${{ steps.version.outputs.version }}.
+          Test build of Nexus ${{ steps.version.outputs.version }}.
 
           - **versionCode:** ${{ steps.version.outputs.code }}
           - **Commit:** \`${{ github.sha }}\`
@@ -203,7 +203,7 @@ jobs:
             gh release upload "$GITHUB_REF_NAME" artifacts/* --clobber
           else
             gh release create "$GITHUB_REF_NAME" artifacts/* \
-              --title "Mira ${GITHUB_REF_NAME#v}" \
+              --title "Nexus ${GITHUB_REF_NAME#v}" \
               --notes-file release-notes.md \
               --verify-tag
           fi

@@ -4,6 +4,7 @@ import {
   type Filter,
   type MongoClientOptions,
 } from 'mongodb';
+import { setServers as setDnsServers } from 'node:dns';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import {
@@ -20,7 +21,7 @@ export type WriteResult =
   | { ok: false; reason: 'conflict' };
 
 const MONGO_DOCUMENT_ID = 'catalog';
-const MONGO_DEFAULT_DB = 'mira';
+const MONGO_DEFAULT_DB = 'nexusbrowser';
 const MONGO_DEFAULT_COLLECTION = 'catalog';
 const LOCAL_PATH = join(process.cwd(), '.data', 'catalog-state.json');
 
@@ -40,7 +41,7 @@ type MongoCache = {
 };
 
 const globalForMongo = globalThis as typeof globalThis & {
-  __miraCatalogMongo?: MongoCache;
+  __nexusCatalogMongo?: MongoCache;
 };
 
 function env(name: string): string {
@@ -56,6 +57,33 @@ function collectionName(): string {
 }
 
 /**
+ * Some networks (corporate proxies, WSL, some Windows resolvers) refuse the
+ * SRV lookup the driver needs for mongodb+srv://. Setting MONGODB_DNS_SERVERS
+ * to a comma-separated list of resolvers such as 1.1.1.1,8.8.8.8 lets the
+ * admin start without changing the host's DNS configuration. Ignored when
+ * unset, which keeps the default resolver in production.
+ *
+ * Applied immediately before a connection rather than at module load: the
+ * standalone server bootstraps its default resolver after route modules are
+ * evaluated, which otherwise discards the setting on some hosts.
+ */
+const dnsServers = env('MONGODB_DNS_SERVERS')
+  .split(',')
+  .map((server) => server.trim())
+  .filter(Boolean);
+
+function applyDnsServers(): void {
+  if (dnsServers.length === 0) return;
+  try {
+    setDnsServers(dnsServers);
+  } catch {
+    console.warn(
+      'MONGODB_DNS_SERVERS ignored: expected comma-separated IPv4 or IPv6 addresses.',
+    );
+  }
+}
+
+/**
  * The file store is a local preview path only. Production must use MongoDB;
  * requiring an explicit flag keeps a missing MONGODB_URI visible instead of
  * silently writing to a serverless filesystem that disappears on redeploy.
@@ -63,7 +91,7 @@ function collectionName(): string {
 function devFileEnabled(): boolean {
   return (
     process.env.NODE_ENV !== 'production' &&
-    env('MIRA_DEV_FILE_STORE') === '1'
+    env('NEXUS_DEV_FILE_STORE') === '1'
   );
 }
 
@@ -98,7 +126,7 @@ function mongoUri(): string {
 
 function mongoOptions(): MongoClientOptions {
   return {
-    appName: 'mira-catalog-admin',
+    appName: 'nexus-catalog-admin',
     connectTimeoutMS: 10_000,
     serverSelectionTimeoutMS: 10_000,
     maxPoolSize: 5,
@@ -113,15 +141,16 @@ function mongoOptions(): MongoClientOptions {
  */
 async function mongoCollection(): Promise<Collection<CatalogDocument>> {
   const uri = mongoUri();
-  let cached = globalForMongo.__miraCatalogMongo;
+  let cached = globalForMongo.__nexusCatalogMongo;
 
   if (!cached || cached.uri !== uri) {
     if (cached) {
       await cached.client.close().catch(() => undefined);
     }
+    applyDnsServers();
     const client = new MongoClient(uri, mongoOptions());
     cached = { uri, client, ready: client.connect() };
-    globalForMongo.__miraCatalogMongo = cached;
+    globalForMongo.__nexusCatalogMongo = cached;
   }
 
   try {
@@ -130,10 +159,14 @@ async function mongoCollection(): Promise<Collection<CatalogDocument>> {
       .db(databaseName())
       .collection<CatalogDocument>(collectionName());
   } catch (error) {
-    if (globalForMongo.__miraCatalogMongo === cached) {
-      delete globalForMongo.__miraCatalogMongo;
+    if (globalForMongo.__nexusCatalogMongo === cached) {
+      delete globalForMongo.__nexusCatalogMongo;
     }
     await cached.client.close().catch(() => undefined);
+    console.warn(
+      'MongoDB connection failed:',
+      error instanceof Error ? error.message : String(error),
+    );
     throw error;
   }
 }
@@ -186,7 +219,7 @@ async function readMongoState(): Promise<StoreState> {
 async function readFileState(): Promise<StoreState> {
   if (!devFileEnabled()) {
     throw new Error(
-      'The development file store is disabled. Set MONGODB_URI, or set MIRA_DEV_FILE_STORE=1 for a local preview.',
+      'The development file store is disabled. Set MONGODB_URI, or set NEXUS_DEV_FILE_STORE=1 for a local preview.',
     );
   }
 

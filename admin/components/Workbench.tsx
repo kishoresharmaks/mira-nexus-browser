@@ -22,7 +22,7 @@ import {
   type Page,
   type PublishedCatalog,
 } from '@/lib/catalog';
-import { MiraMark } from '@/components/MiraMark';
+import { NexusMark } from '@/components/NexusMark';
 import { AdsEditor } from './workbench/AdsEditor';
 import { EngineEditor } from './workbench/EngineEditor';
 import { EnginePanel } from './workbench/EnginePanel';
@@ -562,8 +562,8 @@ export function Workbench({
       <header className="site-head">
         <div className="site-head-inner">
           <div className="brand">
-            <MiraMark className="brand-mark" />
-            <span className="brand-word">Mira</span>
+            <NexusMark className="brand-mark" />
+            <span className="brand-word">Nexus</span>
             <span className="brand-sub">Catalog desk</span>
           </div>
           <div className="head-links">

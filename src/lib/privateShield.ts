@@ -4,7 +4,7 @@ import { requireOptionalNativeModule } from 'expo-modules-core';
  * Screen-capture shield for private tabs.
  *
  * On Android the native module sets FLAG_SECURE, which blocks screenshots and
- * screen recordings and blanks Mira's thumbnail in the app switcher. On iOS it
+ * screen recordings and blanks Nexus's thumbnail in the app switcher. On iOS it
  * installs the secure-capture layer that has the same effect. The module is
  * looked up optionally so a development build made before this feature existed
  * still runs; private tabs simply lose the shield until the next build.

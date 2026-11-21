@@ -49,7 +49,7 @@ export function PagePanel({
         <div className="empty">
           <p className="empty-title">The shelf is empty.</p>
           <p className="empty-copy">
-            Mira cannot publish a Today rotation with no pages. Add one to
+            Nexus cannot publish a Today rotation with no pages. Add one to
             begin.
           </p>
           <button

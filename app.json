@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Mira",
-    "slug": "mira-browser",
-    "scheme": "mira",
+    "name": "Nexus",
+    "slug": "nexus-browser",
+    "scheme": "nexus",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -10,7 +10,7 @@
     "backgroundColor": "#F5F1E8",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mira.browser",
+      "bundleIdentifier": "com.nexus.browser",
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
@@ -21,7 +21,7 @@
       }
     },
     "android": {
-      "package": "com.mira.browser",
+      "package": "com.nexus.browser",
       "versionCode": 1,
       "allowBackup": false,
       "permissions": ["android.permission.INTERNET"],
@@ -93,7 +93,7 @@
       [
         "expo-share-intent",
         {
-          "iosShareExtensionName": "Mira",
+          "iosShareExtensionName": "Nexus",
           "iosActivationRules": {
             "NSExtensionActivationSupportsWebURLWithMaxCount": 1,
             "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
@@ -111,8 +111,8 @@
           ],
           "widgets": [
             {
-              "name": "Mira",
-              "label": "Mira — Today's page",
+              "name": "Nexus",
+              "label": "Nexus — Today's page",
               "description": "Today's hand-picked page and your shortcuts.",
               "minWidth": "250dp",
               "minHeight": "110dp",
@@ -123,7 +123,7 @@
               "resizeMode": "horizontal|vertical",
               "updatePeriodMillis": 1800000,
               "widgetCategory": "home_screen",
-              "previewImage": "./assets/widget-preview/mira.png"
+              "previewImage": "./assets/widget-preview/nexus.png"
             }
           ]
         }
@@ -139,7 +139,7 @@
       [
         "expo-tracking-transparency",
         {
-          "userTrackingPermission": "Mira asks for this only to show and measure the single home-screen ad. You can change your choice at any time in Settings."
+          "userTrackingPermission": "Nexus asks for this only to show and measure the single home-screen ad. You can change your choice at any time in Settings."
         }
       ]
     ]

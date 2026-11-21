@@ -438,7 +438,7 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
           showsVerticalScrollIndicator={false}
           pullToRefreshEnabled={Platform.OS === 'ios'}
           refreshControlLightMode={mode === 'light'}
-          applicationNameForUserAgent="Mira/1.0"
+          applicationNameForUserAgent="Nexus/1.0"
           webviewDebuggingEnabled={__DEV__}
           onLoadStart={(event) => handleLoadStart(event.nativeEvent.url)}
           onLoadProgress={(event) =>
@@ -527,8 +527,8 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
                 This page went quiet
               </Text>
               <Text style={[styles.errorCopy, { color: theme.muted }]}>
-                Mira couldn&apos;t reach{' '}
-                <Text style={{ color: theme.inkSoft }}>{errorHost}</Text>. Mira
+                Nexus couldn&apos;t reach{' '}
+                <Text style={{ color: theme.inkSoft }}>{errorHost}</Text>. Nexus
                 only opens secure HTTPS pages, so check the address or your
                 connection, then try again.
               </Text>
@@ -561,10 +561,10 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
                 onPress={onGoHome}
                 scaleTo={0.98}
                 style={styles.homeLink}
-                accessibilityLabel="Return to the Mira home screen"
+                accessibilityLabel="Return to the Nexus home screen"
               >
                 <Text style={[styles.homeLinkText, { color: theme.muted }]}>
-                  Back to Mira
+                  Back to Nexus
                 </Text>
               </PressableScale>
             </View>

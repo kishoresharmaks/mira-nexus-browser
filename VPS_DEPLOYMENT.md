@@ -1,6 +1,6 @@
-# VPS deployment for Mira
+# VPS deployment for Nexus
 
-This is the complete production runbook for the Mira catalog desk: one Next.js
+This is the complete production runbook for the Nexus catalog desk: one Next.js
 container behind Caddy, with the catalog stored in MongoDB Atlas. Follow it from
 top to bottom on a fresh Ubuntu server. Nothing else in the repository has to be
 read to finish the deployment.
@@ -16,7 +16,7 @@ Internet
    ▼
 Caddy  ──HTTP :3000──►  admin (Next.js standalone, non-root)
                              │
-                             └──TLS──►  MongoDB Atlas (mira.catalog)
+                             └──TLS──►  MongoDB Atlas (nexusbrowser.catalog)
 ```
 
 What runs where:
@@ -62,9 +62,9 @@ Examples below assume:
 
 | Value | Example |
 | --- | --- |
-| Repository | `/opt/mira` |
+| Repository | `/opt/nexus` |
 | Domain | `catalog.example.com` |
-| Atlas database | `mira` |
+| Atlas database | `nexusbrowser` |
 | Atlas collection | `catalog` |
 | Admin user | `deploy` |
 
@@ -77,7 +77,7 @@ Replace every example value with your own.
 1. Create a cluster in the region closest to the VPS.
 2. Open **Database Access** → **Add New Database User**.
    - Authentication: password.
-   - Role: **Read and write to database** → `mira`. Do not give this user
+   - Role: **Read and write to database** → `nexusbrowser`. Do not give this user
      `atlasAdmin` or cluster-wide administrative roles.
 3. Open **Network Access** → **Add IP Address** and add the VPS public IPv4
    address as a `/32` entry. Do not use `0.0.0.0/0` for a production desk.
@@ -88,7 +88,7 @@ Replace every example value with your own.
 6. Keep the database name in the URI if Atlas includes it, for example:
 
    ```text
-   mongodb+srv://mira-admin:encoded-password@cluster0.example.mongodb.net/mira?retryWrites=true&w=majority&appName=mira-admin
+   mongodb+srv://nexus-admin:encoded-password@cluster0.example.mongodb.net/nexusbrowser?retryWrites=true&w=majority&appName=nexus-admin
    ```
 
 The admin creates the `catalog` document on first read if it does not exist. It
@@ -238,10 +238,10 @@ level backstop.
 ### 5.1 Clone the repository
 
 ```bash
-sudo mkdir -p /opt/mira
-sudo chown deploy:deploy /opt/mira
-git clone https://github.com/YOUR_ACCOUNT/YOUR_REPO.git /opt/mira
-cd /opt/mira
+sudo mkdir -p /opt/nexus
+sudo chown deploy:deploy /opt/nexus
+git clone https://github.com/YOUR_ACCOUNT/YOUR_REPO.git /opt/nexus
+cd /opt/nexus
 ```
 
 Use a deploy key or a read-only token if the repository is private. Never put a
@@ -250,7 +250,7 @@ personal access token in the remote URL on a shared host.
 ### 5.2 Create the production environment file
 
 ```bash
-cd /opt/mira/admin
+cd /opt/nexus/admin
 cp .env.docker.example .env
 chmod 600 .env
 ```
@@ -268,8 +268,8 @@ Edit `.env`:
 ADMIN_DOMAIN=catalog.example.com
 ADMIN_PASSWORD=<the first 64-character value>
 ADMIN_SESSION_SECRET=<the second 64-character value>
-MONGODB_URI=mongodb+srv://mira-admin:encoded-password@cluster0.example.mongodb.net/mira?retryWrites=true&w=majority&appName=mira-admin
-MONGODB_DB=mira
+MONGODB_URI=mongodb+srv://nexus-admin:encoded-password@cluster0.example.mongodb.net/nexusbrowser?retryWrites=true&w=majority&appName=nexus-admin
+MONGODB_DB=nexusbrowser
 MONGODB_COLLECTION=catalog
 ```
 
@@ -279,7 +279,7 @@ Rules:
 - `ADMIN_SESSION_SECRET` must be at least 32 characters. Rotating it signs out
   every existing session.
 - Do not add `NODE_ENV`; Compose sets it to `production`.
-- Do not add `MIRA_DEV_FILE_STORE`; the production container ignores it and
+- Do not add `NEXUS_DEV_FILE_STORE`; the production container ignores it and
   requires MongoDB.
 - Never commit `.env`. It is ignored by both Git and the Docker build context.
 
@@ -322,7 +322,7 @@ Expected:
 ```json
 {
   "ok": true,
-  "service": "mira-catalog-admin",
+  "service": "nexus-catalog-admin",
   "checks": { "auth": "ok", "storage": "ok" },
   "latencyMs": 42,
   "time": "..."
@@ -333,7 +333,7 @@ Then:
 
 1. Open `https://catalog.example.com/` in a private browser window.
 2. Sign in with `ADMIN_PASSWORD`.
-3. Confirm the storage badge says `mira.catalog` (not "not configured").
+3. Confirm the storage badge says `nexusbrowser.catalog` (not "not configured").
 4. Change a harmless draft field and press **Publish**.
 5. Fetch the public feed:
 
@@ -414,7 +414,7 @@ app release that uses this feed is covered in
 ### 7.1 Logs
 
 ```bash
-cd /opt/mira/admin
+cd /opt/nexus/admin
 docker compose logs -f admin
 docker compose logs -f caddy
 docker compose logs --tail=200 admin
@@ -426,7 +426,7 @@ or the admin password. If you add logging, keep it that way.
 ### 7.2 Restart
 
 ```bash
-cd /opt/mira/admin
+cd /opt/nexus/admin
 docker compose restart admin
 ```
 
@@ -435,7 +435,7 @@ Caddy keeps running and returns `502` for the few seconds the admin is down.
 ### 7.3 Update to a new release
 
 ```bash
-cd /opt/mira
+cd /opt/nexus
 git fetch --tags
 git checkout v1.0.1          # or: git pull --ff-only
 cd admin
@@ -451,7 +451,7 @@ release. If the health check fails, roll back.
 ### 7.4 Roll back
 
 ```bash
-cd /opt/mira
+cd /opt/nexus
 git checkout v1.0.0
 cd admin
 docker compose build
@@ -472,33 +472,33 @@ Atlas and set a retention window. Test a restore into a temporary cluster before
 you need it.
 
 **`mongodump` on the VPS.** Works on M0 and costs nothing. Create
-`/opt/mira/backup.sh`:
+`/opt/nexus/backup.sh`:
 
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /opt/mira
+cd /opt/nexus
 mkdir -p backups
 STAMP="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
 
 docker run --rm \
-  --env-file /opt/mira/admin/.env \
-  -v /opt/mira/backups:/backup \
+  --env-file /opt/nexus/admin/.env \
+  -v /opt/nexus/backups:/backup \
   mongo:8 \
-  sh -c 'mongodump --uri="$MONGODB_URI" --archive="/backup/mira-'"$STAMP"'.archive" --gzip'
+  sh -c 'mongodump --uri="$MONGODB_URI" --archive="/backup/nexus-'"$STAMP"'.archive" --gzip'
 
-find /opt/mira/backups -type f -name 'mira-*.archive' -mtime +14 -delete
+find /opt/nexus/backups -type f -name 'nexus-*.archive' -mtime +14 -delete
 ```
 
 ```bash
-chmod 700 /opt/mira/backup.sh
+chmod 700 /opt/nexus/backup.sh
 ```
 
 Run it once manually, then add a cron entry:
 
 ```cron
-0 3 * * * /opt/mira/backup.sh >> /home/deploy/mira-backup.log 2>&1
+0 3 * * * /opt/nexus/backup.sh >> /home/deploy/nexus-backup.log 2>&1
 ```
 
 The archive contains the full catalog document. Store a copy off the VPS
@@ -507,12 +507,12 @@ The archive contains the full catalog document. Store a copy off the VPS
 **Restore** into the configured database:
 
 ```bash
-cd /opt/mira
+cd /opt/nexus
 docker run --rm \
   --env-file admin/.env \
-  -v /opt/mira/backups:/backup \
+  -v /opt/nexus/backups:/backup \
   mongo:8 \
-  sh -c 'mongorestore --uri="$MONGODB_URI" --archive="/backup/mira-2026-11-01T03-00-00Z.archive" --gzip --drop'
+  sh -c 'mongorestore --uri="$MONGODB_URI" --archive="/backup/nexus-2026-11-01T03-00-00Z.archive" --gzip --drop'
 ```
 
 `--drop` replaces the existing collection. Take a fresh backup first, and tell
@@ -523,7 +523,7 @@ the editor that the draft and published revision will both rewind.
 **Admin password:**
 
 ```bash
-cd /opt/mira/admin
+cd /opt/nexus/admin
 # edit .env, change ADMIN_PASSWORD
 docker compose up -d
 ```
@@ -531,7 +531,7 @@ docker compose up -d
 **Session secret:** change `ADMIN_SESSION_SECRET` and run:
 
 ```bash
-cd /opt/mira/admin
+cd /opt/nexus/admin
 docker compose up -d
 ```
 
@@ -559,7 +559,7 @@ string or an error trace.
 Optional host checks:
 
 ```bash
-cd /opt/mira/admin
+cd /opt/nexus/admin
 docker compose ps
 df -h /
 free -m
@@ -576,7 +576,7 @@ repeatedly.
 - [ ] DNS points only at this VPS; no stale A records.
 - [ ] Ports 80 and 443 are open; 3000 and 27017 are not.
 - [ ] Atlas allows only the VPS `/32`, not the whole internet.
-- [ ] The Atlas user has `readWrite` on `mira` only.
+- [ ] The Atlas user has `readWrite` on `nexusbrowser` only.
 - [ ] `admin/.env` is mode `600`, owned by the deploy user, and not in Git.
 - [ ] `ADMIN_PASSWORD` and `ADMIN_SESSION_SECRET` are unique and random.
 - [ ] Login works over HTTPS only; the session cookie is `Secure`, `HttpOnly`,
@@ -644,7 +644,7 @@ Caddy is up but the admin is not serving. On first boot this can last a few
 seconds while Next.js starts; after that, check the container:
 
 ```bash
-cd /opt/mira/admin
+cd /opt/nexus/admin
 docker compose ps
 docker compose logs --tail=200 admin
 ```
@@ -658,7 +658,7 @@ The process is running but Atlas is unreachable. Check:
 
 - The URI in `admin/.env` (URL-encoded password, correct cluster host).
 - Atlas **Network Access** contains the VPS's current public IP.
-- The Atlas user has `readWrite` on `mira`.
+- The Atlas user has `readWrite` on `nexusbrowser`.
 - The cluster is not paused.
 - The VPS can resolve and reach `*.mongodb.net`:
 
@@ -699,7 +699,7 @@ Search settings to trigger a stale check. A build with an empty
 `MONGODB_URI` is not reaching the container. Check:
 
 ```bash
-cd /opt/mira/admin
+cd /opt/nexus/admin
 docker compose config | sed -n '/environment:/,/^[^ ]/p'
 ```
 

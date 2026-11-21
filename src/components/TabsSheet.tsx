@@ -204,7 +204,7 @@ export function TabsSheet({
         ) : null}
 
         <Text style={[styles.hint, { color: theme.faint }]}>
-          Pages stay warm while Mira is open. Private tabs close without a
+          Pages stay warm while Nexus is open. Private tabs close without a
           history entry.
         </Text>
       </ScrollView>

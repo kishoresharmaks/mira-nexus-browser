@@ -21,7 +21,7 @@ export function PrivateVeil() {
         <Icon name="mask" size={32} color={T.accent} strokeWidth={1.5} />
       </View>
       <Text style={styles.title}>Private tab</Text>
-      <Text style={styles.copy}>Hidden while Mira is away</Text>
+      <Text style={styles.copy}>Hidden while Nexus is away</Text>
     </View>
   );
 }

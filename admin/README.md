@@ -1,6 +1,6 @@
-# Mira catalog desk
+# Nexus catalog desk
 
-A small Next.js admin for the three lists Mira reads remotely:
+A small Next.js admin for the three lists Nexus reads remotely:
 
 - **Search engines** — the presets shown in Search settings, plus the default.
 - **Today's page** — the editorial shelf used by the daily rotation.
@@ -14,7 +14,7 @@ Drafts are private until you press Publish.
 
 The desk uses **MongoDB Atlas**. Everything lives in one document:
 
-- Database: `mira` (override with `MONGODB_DB`)
+- Database: `nexusbrowser` (override with `MONGODB_DB`)
 - Collection: `catalog` (override with `MONGODB_COLLECTION`)
 - Document: `_id: "catalog"`
 
@@ -112,7 +112,7 @@ The production path is MongoDB only. For a local preview you can opt into a file
 store explicitly:
 
 ```
-MIRA_DEV_FILE_STORE=1
+NEXUS_DEV_FILE_STORE=1
 ```
 
 That uses the git-ignored `admin/.data/catalog-state.json` and makes the header
@@ -123,7 +123,7 @@ instead of silently writing to a filesystem that disappears on redeploy.
 ## Atlas setup
 
 1. Create a cluster (the free M0 tier is enough for one editor).
-2. **Database Access** → add a user whose role is `readWrite` on `mira`.
+2. **Database Access** → add a user whose role is `readWrite` on `nexusbrowser`.
 3. **Network Access** → add the public IP of the machine running the admin.
    Vercel Functions use dynamic egress addresses; either allow `0.0.0.0/0` with
    a strong database password, or use fixed egress/private networking.
@@ -131,7 +131,7 @@ instead of silently writing to a filesystem that disappears on redeploy.
    Replace the password placeholder and URL-encode special characters
    (`@`, `:`, `/`, `?`, `#`, `%`).
 5. Put the string in `MONGODB_URI`. Leave the database name out of the path if
-   you prefer `MONGODB_DB=mira`; otherwise put `/mira` before the `?`.
+   you prefer `MONGODB_DB=nexusbrowser`; otherwise put `/nexusbrowser` before the `?`.
 
 ### DNS check
 
@@ -145,11 +145,12 @@ nslookup -type=TXT <cluster-host>
 
 Both must return records. If SRV lookups are blocked on the local network, the
 desk cannot connect even with a correct password. Use a network that resolves
-SRV/TXT, or switch to a standard `mongodb://` seed-list URI if Atlas provides
+SRV/TXT, set `MONGODB_DNS_SERVERS=1.1.1.1,8.8.8.8` to resolve through a public
+resolver, or switch to a standard `mongodb://` seed-list URI if Atlas provides
 one for your cluster.
 
 When the desk cannot read the store it shows the driver error, the target
-`mira.catalog`, and a checklist for DNS, Network Access, and the database user.
+`nexusbrowser.catalog`, and a checklist for DNS, Network Access, and the database user.
 The URI itself is never rendered.
 
 ## Environment
@@ -159,9 +160,10 @@ The URI itself is never rendered.
 | `ADMIN_PASSWORD` | Yes | The single password for the desk. Minimum 8 characters. |
 | `ADMIN_SESSION_SECRET` | Yes | HMAC key for the session cookie. Minimum 32 characters. Rotating it signs every session out. |
 | `MONGODB_URI` | Yes | Atlas connection string. `mongodb+srv` or `mongodb`. Server-only. |
-| `MONGODB_DB` | No | Database name. Defaults to `mira`. |
+| `MONGODB_DB` | No | Database name. Defaults to `nexusbrowser`. |
 | `MONGODB_COLLECTION` | No | Collection name. Defaults to `catalog`. |
-| `MIRA_DEV_FILE_STORE` | No | Set to `1` in local development to use the file store when `MONGODB_URI` is missing. Ignored in production. |
+| `MONGODB_DNS_SERVERS` | No | Comma-separated resolvers (for example `1.1.1.1,8.8.8.8`) for hosts that block the SRV lookup used by `mongodb+srv://`. Leave unset when the host resolves Atlas normally. |
+| `NEXUS_DEV_FILE_STORE` | No | Set to `1` in local development to use the file store when `MONGODB_URI` is missing. Ignored in production. |
 
 If a required value is missing or too short, the desk shows a setup notice with
 the missing variable names instead of the login form.
@@ -187,7 +189,7 @@ The complete guide, including Atlas, DNS, backups, upgrades, and rollback, is in
 Quick version on the VPS:
 
 ```bash
-cd /opt/mira/admin
+cd /opt/nexus/admin
 cp .env.docker.example .env
 chmod 600 .env
 # fill in ADMIN_DOMAIN, ADMIN_PASSWORD, ADMIN_SESSION_SECRET, MONGODB_URI
@@ -209,7 +211,7 @@ admin on the private Compose network.
    Production (and Preview if you want a staging desk). Add `MONGODB_DB` or
    `MONGODB_COLLECTION` only if you changed the defaults.
 5. Confirm Atlas **Network Access** allows Vercel's egress, and that the
-   database user can read and write `mira`.
+   database user can read and write `nexusbrowser`.
 6. Deploy. Verify `https://<project>/api/health` returns `200` with
    `"storage": "ok"`. Then open the production URL, sign in, edit the draft, and
    publish.

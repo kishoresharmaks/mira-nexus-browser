@@ -72,7 +72,7 @@ import {
   engagePrivateShield,
   releasePrivateShield,
 } from '@/lib/privateShield';
-import { refreshMiraWidget } from '@/widgets/update-widget';
+import { refreshNexusWidget } from '@/widgets/update-widget';
 import { privateTheme } from '@/theme';
 import { ThemeScope, useTheme } from '@/theme/ThemeProvider';
 import type {
@@ -118,7 +118,7 @@ function createTab(
   };
 }
 
-export default function Mira() {
+export default function Nexus() {
   const { theme, toggleMode } = useTheme();
   const toast = useToast();
   const { activeEngine, engines, todayPages } = useCatalogConfig();
@@ -858,7 +858,7 @@ export default function Mira() {
     resetShareIntent();
 
     if (!target) {
-      toast.show('Mira can only open web links and text');
+      toast.show('Nexus can only open web links and text');
       return;
     }
 
@@ -872,7 +872,7 @@ export default function Mira() {
     setAddressOpen(true);
   }, [hasShareIntent, openInNewTab, resetShareIntent, shareIntent, toast]);
 
-  // Widget and deep links: mira://open?url=…
+  // Widget and deep links: nexus://open?url=…
   useEffect(() => {
     if (Platform.OS === 'web') return;
     let alive = true;
@@ -903,7 +903,7 @@ export default function Mira() {
   useEffect(() => {
     if (!shortcutsReady) return;
     const timer = setTimeout(() => {
-      refreshMiraWidget(shortcuts);
+      refreshNexusWidget(shortcuts);
     }, 500);
     return () => clearTimeout(timer);
   }, [shortcuts, shortcutsReady]);
@@ -915,7 +915,7 @@ export default function Mira() {
       if (state === 'active') {
         setToday(getDailyPage(new Date(), todayPages));
         if (shortcutsReadyRef.current) {
-          refreshMiraWidget(shortcutsRef.current);
+          refreshNexusWidget(shortcutsRef.current);
         }
         return;
       }
