@@ -35,7 +35,7 @@ services:
     environment:
       ADMIN_DOMAIN: ${ADMIN_DOMAIN:?Set ADMIN_DOMAIN in admin/.env}
     ports:
-      - "80:80"
+      - "8443:80"
       - "443:443"
       - "443:443/udp"
     volumes:
