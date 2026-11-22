@@ -144,9 +144,17 @@ export function sameOrigin(request: Request): boolean {
   const origin = request.headers.get('origin');
   if (!origin) return true;
   const host = request.headers.get('x-forwarded-host') ?? request.headers.get('host');
-  if (!host) return false;
   try {
-    return new URL(origin).host === host;
+    const originHost = new URL(origin).host.toLowerCase();
+    if (host && originHost === host.toLowerCase()) return true;
+
+    // Allow configured ADMIN_DOMAIN (e.g. mira.nexusnation.in when behind Cloudflare proxying to Instabox)
+    const adminDomain = process.env.ADMIN_DOMAIN?.toLowerCase().trim();
+    if (adminDomain && (originHost === adminDomain || host?.toLowerCase() === adminDomain)) {
+      return true;
+    }
+
+    return false;
   } catch {
     return false;
   }

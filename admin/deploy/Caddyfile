@@ -27,12 +27,23 @@
 		file_server
 	}
 
+	# If Origin is from mira.nexusnation.in, pass mira.nexusnation.in as X-Forwarded-Host
+	@mira header Origin *mira.nexusnation.in*
+	handle @mira {
+		reverse_proxy admin:3000 {
+			header_up Host {http.request.host}
+			header_up X-Forwarded-Host mira.nexusnation.in
+		}
+	}
+
 	# Forward the original Host header and the X-Forwarded-Host that instabox
 	# sets (the public host the client used). The app's same-origin CSRF check
 	# compares Origin against X-Forwarded-Host behind this reverse proxy.
-	reverse_proxy admin:3000 {
-		header_up Host {http.request.host}
-		header_up X-Forwarded-Host {http.request.header.X-Forwarded-Host}
+	handle {
+		reverse_proxy admin:3000 {
+			header_up Host {http.request.host}
+			header_up X-Forwarded-Host {http.request.header.X-Forwarded-Host}
+		}
 	}
 
 	log {
