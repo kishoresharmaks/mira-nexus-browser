@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 import {
   Animated,
+  Platform,
   Pressable,
   type PressableProps,
   type StyleProp,
@@ -28,7 +29,7 @@ export function PressableScale({
   const animate = (toValue: number) => {
     Animated.spring(scale, {
       toValue,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
       speed: 40,
       bounciness: 3,
     }).start();

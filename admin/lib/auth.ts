@@ -99,6 +99,20 @@ export async function isAuthenticated(): Promise<boolean> {
   return verifySessionToken(jar.get(SESSION_COOKIE)?.value);
 }
 
+export function isAuthorizedBearer(request: Request): boolean {
+  const authHeader = request.headers.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.slice(7).trim();
+    return verifySessionToken(token);
+  }
+  return false;
+}
+
+export async function isAuthorized(request: Request): Promise<boolean> {
+  if (isAuthorizedBearer(request)) return true;
+  return isAuthenticated();
+}
+
 export function clientKey(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) {

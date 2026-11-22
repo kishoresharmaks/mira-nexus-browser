@@ -6,16 +6,18 @@ import { haptic } from '@/lib/haptics';
 import { fonts, softShadow } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
 
-export type NavItem = 'home' | 'tabs' | 'ai' | 'bookmarks' | 'apps';
+export type NavItem = 'home' | 'tabs' | 'ai' | 'saved' | 'explore' | 'bookmarks' | 'apps';
 
 type Props = {
-  activeTab: NavItem;
+  activeTab?: NavItem;
   tabCount: number;
   onPressHome: () => void;
   onPressTabs: () => void;
   onPressAi: () => void;
-  onPressBookmarks: () => void;
-  onPressApps: () => void;
+  onPressSaved?: () => void;
+  onPressBookmarks?: () => void;
+  onPressExplore?: () => void;
+  onPressApps?: () => void;
 };
 
 export function HomeBottomNavigation({
@@ -24,18 +26,32 @@ export function HomeBottomNavigation({
   onPressHome,
   onPressTabs,
   onPressAi,
+  onPressSaved,
   onPressBookmarks,
+  onPressExplore,
   onPressApps,
 }: Props) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const items: { id: NavItem; label: string; icon: IconName; onPress: () => void }[] = [
-    { id: 'home', label: 'Home', icon: 'home', onPress: onPressHome },
-    { id: 'tabs', label: 'Tabs', icon: 'tabs', onPress: onPressTabs },
-    { id: 'ai', label: 'AI', icon: 'sparkle', onPress: onPressAi },
-    { id: 'bookmarks', label: 'Bookmarks', icon: 'bookmark', onPress: onPressBookmarks },
-    { id: 'apps', label: 'Apps', icon: 'grid', onPress: onPressApps },
+  const handleSaved = onPressSaved ?? onPressBookmarks ?? (() => {});
+  const handleExplore = onPressExplore ?? onPressApps ?? (() => {});
+
+  const isSavedActive = activeTab === 'saved' || activeTab === 'bookmarks';
+  const isExploreActive = activeTab === 'explore' || activeTab === 'apps';
+
+  const items: {
+    id: NavItem;
+    label: string;
+    icon: IconName;
+    active: boolean;
+    onPress: () => void;
+  }[] = [
+    { id: 'home', label: 'Home', icon: 'home', active: activeTab === 'home', onPress: onPressHome },
+    { id: 'tabs', label: 'Tabs', icon: 'tabs', active: activeTab === 'tabs', onPress: onPressTabs },
+    { id: 'ai', label: 'AI', icon: 'sparkle', active: activeTab === 'ai', onPress: onPressAi },
+    { id: 'saved', label: 'Saved', icon: 'bookmark', active: isSavedActive, onPress: handleSaved },
+    { id: 'explore', label: 'Explore', icon: 'compass', active: isExploreActive, onPress: handleExplore },
   ];
 
   return (
@@ -54,7 +70,6 @@ export function HomeBottomNavigation({
         ]}
       >
         {items.map((item) => {
-          const active = item.id === activeTab;
           return (
             <PressableScale
               key={item.id}
@@ -65,15 +80,15 @@ export function HomeBottomNavigation({
               scaleTo={0.92}
               style={styles.item}
               accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
+              accessibilityState={{ selected: item.active }}
               accessibilityLabel={`${item.label} navigation button`}
             >
               <View style={styles.iconWrap}>
                 <Icon
                   name={item.icon}
                   size={20}
-                  color={active ? theme.accent : theme.muted}
-                  strokeWidth={active ? 2.2 : 1.8}
+                  color={item.active ? theme.accent : theme.muted}
+                  strokeWidth={item.active ? 2.2 : 1.8}
                 />
                 {item.id === 'tabs' && tabCount > 0 ? (
                   <View style={[styles.badge, { backgroundColor: theme.accent }]}>
@@ -87,8 +102,8 @@ export function HomeBottomNavigation({
                 style={[
                   styles.label,
                   {
-                    color: active ? theme.accent : theme.muted,
-                    fontFamily: active ? fonts.semibold : fonts.sans,
+                    color: item.active ? theme.accent : theme.muted,
+                    fontFamily: item.active ? fonts.semibold : fonts.sans,
                   },
                 ]}
               >

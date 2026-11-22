@@ -25,11 +25,22 @@ const MONGO_DEFAULT_DB = 'nexusbrowser';
 const MONGO_DEFAULT_COLLECTION = 'catalog';
 const LOCAL_PATH = join(process.cwd(), '.data', 'catalog-state.json');
 
+export type VersionSnapshot = {
+  revision: number;
+  publishedAt: string;
+  catalog: Catalog;
+  summary: {
+    totalProviders: number;
+    activeCategories: number;
+  };
+};
+
 type CatalogDocument = {
   _id: string;
   storeVersion: 1;
   draft: Catalog;
   published: StoreState['published'];
+  history?: VersionSnapshot[];
   savedAt: string | null;
   updatedAt: string;
 };
@@ -359,12 +370,35 @@ export async function publishState(
   const savedAt = new Date().toISOString();
   const mode = storageMode();
 
+  const totalProviders = Object.values(state.published?.categories ?? {}).reduce(
+    (acc, cat) => acc + (cat.providers?.length ?? 0),
+    0,
+  );
+  const activeCategories = Object.values(state.published?.categories ?? {}).filter(
+    (cat) => cat.enabled,
+  ).length;
+
+  const snapshot: VersionSnapshot | null = state.published
+    ? {
+        revision: state.published.revision,
+        publishedAt: state.published.publishedAt,
+        catalog: JSON.parse(JSON.stringify(state.published)),
+        summary: {
+          totalProviders,
+          activeCategories,
+        },
+      }
+    : null;
+
   if (mode === 'file') {
     const current = await readFileState();
     if ((current.published?.revision ?? 0) !== expectedRevision) {
       return { ok: false, reason: 'conflict' };
     }
-    await writeFileState(state);
+    const currentHistory = await getVersionHistory();
+    const history = [...currentHistory, ...(snapshot ? [snapshot] : [])].slice(-50);
+    const payload = `${JSON.stringify({ ...state, history }, null, 2)}\n`;
+    await writeFile(LOCAL_PATH, payload, 'utf8');
     return { ok: true, savedAt };
   }
   if (mode === 'none') {
@@ -381,7 +415,7 @@ export async function publishState(
     },
   };
 
-  const result = await collection.updateOne(filter, {
+  const update: any = {
     $set: {
       draft: state.draft,
       published: state.published,
@@ -389,10 +423,87 @@ export async function publishState(
       updatedAt: savedAt,
       storeVersion: 1,
     },
-  });
+  };
+  if (snapshot) {
+    update.$push = {
+      history: {
+        $each: [snapshot],
+        $slice: -50,
+      },
+    };
+  }
+
+  const result = await collection.updateOne(filter, update);
 
   if (result.matchedCount !== 1) {
     return { ok: false, reason: 'conflict' };
   }
   return { ok: true, savedAt };
+}
+
+export async function getVersionHistory(): Promise<VersionSnapshot[]> {
+  const mode = storageMode();
+  if (mode === 'file') {
+    try {
+      const raw = await readFile(LOCAL_PATH, 'utf8');
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed?.history) ? parsed.history : [];
+    } catch {
+      return [];
+    }
+  }
+  if (mode === 'mongodb') {
+    try {
+      const collection = await mongoCollection();
+      const doc = await collection.findOne(
+        { _id: MONGO_DOCUMENT_ID },
+        { projection: { history: 1 } },
+      );
+      return Array.isArray(doc?.history) ? doc.history : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+export async function rollbackToVersion(targetRevision: number): Promise<{
+  ok: boolean;
+  newRevision: number;
+  savedAt: string;
+}> {
+  const history = await getVersionHistory();
+  const target = history.find((h) => h.revision === targetRevision);
+  if (!target) {
+    throw new Error(`Revision ${targetRevision} was not found in version history.`);
+  }
+
+  const currentState = await readState();
+  const nextRevision = (currentState.published?.revision ?? 0) + 1;
+  const now = new Date().toISOString();
+
+  const restoredDraft: Catalog = JSON.parse(JSON.stringify(target.catalog));
+  const restoredPublished: StoreState['published'] = {
+    ...restoredDraft,
+    revision: nextRevision,
+    publishedAt: now,
+  };
+
+  const writeRes = await publishState(
+    {
+      draft: restoredDraft,
+      published: restoredPublished,
+    },
+    currentState.published?.revision ?? 0,
+  );
+
+  if (!writeRes.ok) {
+    throw new Error('Rollback conflicted with another concurrent publish. Please reload.');
+  }
+
+  return {
+    ok: true,
+    newRevision: nextRevision,
+    savedAt: writeRes.savedAt,
+  };
 }

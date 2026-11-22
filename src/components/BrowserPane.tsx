@@ -107,39 +107,74 @@ const PAUSE_MEDIA = `
 const PAGE_INSET_AND_SCROLL_SCRIPT = `
   (function () {
     try {
-      function injectBottomSpacer() {
-        var styleId = 'nexus-bottom-inset-style';
-        if (!document.getElementById(styleId)) {
-          var style = document.createElement('style');
-          style.id = styleId;
-          style.textContent = 'html, body { padding-bottom: 124px !important; }';
-          (document.head || document.documentElement).appendChild(style);
-        }
+      var INSET_HEIGHT = 165;
+      var STYLE_ID = 'nexus-bottom-inset-style';
+      var SPACER_ID = 'nexus-bottom-spacer';
 
-        var spacerId = 'nexus-bottom-spacer';
-        if (!document.getElementById(spacerId) && document.body) {
-          var spacer = document.createElement('div');
-          spacer.id = spacerId;
-          spacer.setAttribute('aria-hidden', 'true');
-          spacer.style.cssText = 'height: 124px !important; width: 100% !important; margin: 0 !important; padding: 0 !important; pointer-events: none !important; background: transparent !important; clear: both !important; display: block !important;';
-          document.body.appendChild(spacer);
-        }
+      function injectBottomSpacer() {
+        try {
+          if (!document.getElementById(STYLE_ID)) {
+            var style = document.createElement('style');
+            style.id = STYLE_ID;
+            style.textContent = [
+              'html { padding-bottom: ' + INSET_HEIGHT + 'px !important; box-sizing: border-box !important; }',
+              'body { padding-bottom: ' + INSET_HEIGHT + 'px !important; box-sizing: border-box !important; }',
+              '#__next, #root, [data-reactroot], main, #app { padding-bottom: ' + INSET_HEIGHT + 'px !important; }',
+              '#' + SPACER_ID + ' { height: ' + INSET_HEIGHT + 'px !important; min-height: ' + INSET_HEIGHT + 'px !important; width: 100% !important; margin: 0 !important; padding: 0 !important; pointer-events: none !important; background: transparent !important; clear: both !important; display: block !important; visibility: hidden !important; }'
+            ].join(' ');
+            (document.head || document.documentElement).appendChild(style);
+          }
+
+          if (document.body) {
+            var spacer = document.getElementById(SPACER_ID);
+            if (!spacer) {
+              spacer = document.createElement('div');
+              spacer.id = SPACER_ID;
+              spacer.setAttribute('aria-hidden', 'true');
+              document.body.appendChild(spacer);
+            } else if (spacer.parentNode !== document.body) {
+              document.body.appendChild(spacer);
+            }
+          }
+        } catch (err) {}
       }
+
+      // Initial execution
+      injectBottomSpacer();
 
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', injectBottomSpacer);
-      } else {
-        injectBottomSpacer();
       }
       window.addEventListener('load', injectBottomSpacer);
 
-      if (window.MutationObserver && document.body) {
-        var observer = new MutationObserver(function () {
-          if (!document.getElementById('nexus-bottom-spacer') && document.body) {
-            injectBottomSpacer();
-          }
-        });
-        observer.observe(document.body, { childList: true, subtree: false });
+      // Reinforce periodically for 4s (critical for Next.js, React SPA hydration)
+      var runs = 0;
+      var intervalId = setInterval(function () {
+        injectBottomSpacer();
+        runs += 1;
+        if (runs >= 8) clearInterval(intervalId);
+      }, 500);
+
+      // Persistent MutationObserver that hooks once target element is ready
+      function setupObserver() {
+        var root = document.body || document.documentElement;
+        if (!root || window.__nexusObserverAttached) return;
+        window.__nexusObserverAttached = true;
+        try {
+          var observer = new MutationObserver(function () {
+            if (!document.getElementById(SPACER_ID)) {
+              injectBottomSpacer();
+            }
+          });
+          observer.observe(root, { childList: true, subtree: true });
+        } catch (e) {}
+      }
+
+      if (document.body) {
+        setupObserver();
+      } else {
+        document.addEventListener('DOMContentLoaded', setupObserver);
+        window.addEventListener('load', setupObserver);
       }
 
       if (!window.__nexusScrollAttached) {
@@ -434,6 +469,7 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
     if (!navigation.loading) {
       finishLoad();
       recordVisit(resolvedUrl, nextTitle);
+      webRef.current?.injectJavaScript(PAGE_INSET_AND_SCROLL_SCRIPT);
     }
   };
 
@@ -571,6 +607,7 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
           applicationNameForUserAgent="Nexus/1.0"
           webviewDebuggingEnabled={__DEV__}
           injectedJavaScriptBeforeContentLoaded={PAGE_INSET_AND_SCROLL_SCRIPT}
+          injectedJavaScript={PAGE_INSET_AND_SCROLL_SCRIPT}
           onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
             const currentY = event.nativeEvent.contentOffset?.y ?? 0;
             handleScrollDelta(currentY);

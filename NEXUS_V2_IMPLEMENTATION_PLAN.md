@@ -1199,4 +1199,106 @@ Do not stop at planning. Continue through implementation and testing within the 
    - **Restore Session:** Reopens all pages in a trail as active browser tabs simultaneously.
    - **Session Grouping & CRUD:** Rename trails, delete individual trails, and preserve full session timelines.
 
+---
+
+# PHASE 4: EXPLORE HUB & BOTTOM NAVIGATION REDESIGN
+
+### 1. Unified 5-Tab Navigation ([src/components/home/HomeBottomNavigation.tsx](file:///d:/cllient/bike_map/src/components/home/HomeBottomNavigation.tsx))
+- **Tabs:** `Home` (House), `Tabs` (Layers), `AI` (Sparkle), `Saved` (Bookmark), `Explore` (Compass).
+- Renamed "Apps" -> "Explore" with compass icon.
+- Renamed "Bookmarks" -> "Saved" with clean bookmark icon.
+- Added tactile haptics, active pill indicator, and light/dark theme support.
+
+### 2. Explore Hub ([src/components/explore/ExploreSheet.tsx](file:///d:/cllient/bike_map/src/components/explore/ExploreSheet.tsx))
+- 25 functional tools organized across 6 categories:
+  - **Search Tools:** QR Scanner, Image Search, Voice Search, Website Search, Search Engine Selector.
+  - **Productivity ([src/components/explore/ExploreProductivityModals.tsx](file:///d:/cllient/bike_map/src/components/explore/ExploreProductivityModals.tsx)):** Working Calculator, Unit Converter (length, weight, temp, data), Word Counter, Focus Timer (Pomodoro), Clipboard Tools.
+  - **Reading:** Reader Mode, AI Page Summary, Translate Page (Google Translate proxy), Reading History, Continue Reading.
+  - **Developer Tools:** Website Runtime Info, Page URL Inspector (path, host, query params), Page Source Viewer, User-Agent Inspector.
+  - **File Tools:** Nexus Drop Downloads, PDF Viewer, File Storage Manager, Download History.
+  - **Privacy & Security:** Privacy Dashboard, Tracking Protection, Clear Browsing Data, Private Browsing, Site Permissions.
+
+### 3. Saved Sheet ([src/components/SavedSheet.tsx](file:///d:/cllient/bike_map/src/components/SavedSheet.tsx))
+- Unified Bookmarks, Smart Collections, and Curated Articles with full CRUD, search, Netscape HTML export, and JSON backup.
+
+---
+
+# PHASE 5: CONTENT OCCLUSION & DYNAMIC VIEWPORT INSET
+
+### 1. Root Cause Analysis
+- Modern Android WebViews render full-bleed behind floating React Native controls.
+- The floating bottom toolbar (`58px`), `insets.bottom` (`~34px`), `10px` offset, and `quickActionsRow` (`37px` for Reader & Summary buttons) total `~140px-150px` of vertical screen coverage.
+- When websites reach their natural end (`scrollHeight`), modern Single Page Apps (Next.js, React, Tailwind) using `#__next`, `#root`, and flex column containers trapped footer text (`© 2026 NexusNation...`) directly behind the floating controls with zero scroll headroom.
+
+### 2. Solution Implemented ([src/components/BrowserPane.tsx](file:///d:/cllient/bike_map/src/components/BrowserPane.tsx))
+- **165px Universal Scroll Inset:** Injected CSS padding and an invisible spacer div sized to 165px, ensuring any footer or bottom content can be scrolled comfortably above both the Reader/Summary pills and the address bar.
+- **SPA & Hydration Resilience:**
+  - Injects CSS rules targeting `html, body, #__next, #root, [data-reactroot], main, #app`.
+  - Runs in both `injectedJavaScriptBeforeContentLoaded` and `injectedJavaScript`.
+  - Re-executes on `onNavigationStateChange` and `handleLoadEnd` to support client-side route transitions.
+  - Periodic reinforcement during initial 4s hydration window.
+  - Persistent `MutationObserver` attaches automatically once `document.body` or `documentElement` is mounted to re-insert spacer if SPA frameworks drop it during reconciliation.
+- **Auto-Hide on Scroll:** Automatically slides bottom toolbar offscreen during downward reading scrolls and restores it on gentle upward scrolls.
+
+---
+
+# PHASE 6: SEARCH SETTINGS & CATALOG SYNC STREAMLINING
+
+### 1. Developer Card Removal ([src/app/settings.tsx](file:///d:/cllient/bike_map/src/app/settings.tsx))
+- **Removed "Published Catalog" UI:** Completely eliminated the internal/diagnostic "CATALOG" section, "Published catalog" status badge, manual "Check" button, and technical network payload disclaimer from consumer Search Settings.
+- **Silent Background Sync Maintained:** Background catalog synchronization continues to operate automatically and seamlessly in the background (`catalog-provider.tsx`) on app launch and hourly intervals.
+- **Consumer-Grade Search Screen:** Search settings now cleanly presents what users actually care about:
+  1. Default Search Engine selection (Google, DuckDuckGo, Brave, Ecosia, Qwant, Kagi).
+  2. Add / Remove Custom Search Engines.
+
+---
+
+# PHASE 7: WEB COMPATIBILITY & DOCK BUTTON DECOUPLING
+
+### 1. Root Cause Analysis
+- When bundling for Web (`Platform.OS === 'web'`), React Native Web renders `<Pressable accessibilityRole="button">` as an HTML `<button type="button">`.
+- In `SmartSearch.tsx`, the outer dock was a `PressableScale` (an animated `<button>`) and contained inner `PressableScale` buttons (Voice, QR, Go).
+- In the Web DOM, nesting `<button>` inside `<button>` is an invalid DOM hierarchy that causes hydration and rendering crashes (`validateDOMNesting`).
+- Additionally, `useNativeDriver: true` in `PressableScale` caused console warnings on Web because the native driver is only available on iOS/Android.
+
+### 2. Solution Implemented
+- **Dock Separation ([src/components/home/SmartSearch.tsx](file:///d:/cllient/bike_map/src/components/home/SmartSearch.tsx)):**
+  - Changed the outer dock from a button to a container `<View style={styles.dock}>`.
+  - Wrapped the search trigger (icon + placeholder text) in a sibling `<PressableScale style={styles.searchArea}>`.
+  - Placed the Voice search, QR scanner, and Go buttons as sibling interactive elements inside `styles.actionsRow` rather than nested descendants.
+  - Removed reliance on `e.stopPropagation()`.
+- **Web-Safe Animated Driver ([src/components/PressableScale.tsx](file:///d:/cllient/bike_map/src/components/PressableScale.tsx)):**
+  - Configured `useNativeDriver: Platform.OS !== 'web'`, eliminating the warning on Web while keeping 60fps native driver performance on Android and iOS.
+
+---
+
+# PHASE 8: NATIVE VOICE SEARCH & CAMERA QR CODE SCANNER
+
+### 1. Architectural Transition & Permission Hardening ([app.json](file:///d:/cllient/bike_map/app.json))
+- **Removed from `blockedPermissions`:** Selectively unblocked `android.permission.RECORD_AUDIO` and `android.permission.CAMERA` to enable on-device voice search and QR scanning.
+- **Config Plugins Added:** Integrated `expo-speech-recognition` and `expo-camera` with barcode scanner configuration.
+- **Strict WebView Isolation Preserved:** The web engine continues to block third-party pages from accessing camera and microphone (`mediaCapturePermissionGrantType="deny"` in `BrowserPane.tsx`).
+
+### 2. Native Voice Search Engine ([src/components/voice/VoiceSearchSheet.tsx](file:///d:/cllient/bike_map/src/components/voice/VoiceSearchSheet.tsx))
+- **Library:** `expo-speech-recognition` (Expo SDK 58 compatible).
+- **Runtime Permissions:** Requests microphone permission only upon user tap; provides clear on-device processing explanations and a fallback to Android App Settings.
+- **State Machine:** Handles `ready` -> `listening` (with animated pulsing ring) -> `processing` -> `recognized` (with rolling interim results) -> `done` / `error`.
+- **Search Routing:** Allows users to review and edit recognized text before dispatching the search via `submitAddress(query)` through the active search engine.
+- **Lifecycle Cleanup:** Gracefully halts and aborts recognition sessions on modal dismissal or when the app moves to the background (`AppState`).
+
+### 3. Native QR Code Scanner Engine ([src/components/scanner/QRScannerSheet.tsx](file:///d:/cllient/bike_map/src/components/scanner/QRScannerSheet.tsx))
+- **Library:** `expo-camera` with `CameraView` barcode scanner (`barcodeTypes: ['qr']`).
+- **Viewfinder Experience:** Custom scan reticle frame with pulsing corner accents, instructions, and torch/flashlight toggle.
+- **Security & Scheme Validation:**
+  - Scans are debounced to prevent duplicate events.
+  - Strictly permits `https:` and `http:` (with an explicit `⚠️ Insecure HTTP` warning badge).
+  - Explicitly blocks and warns on dangerous URI schemes (`javascript:`, `file:`, `intent:`, `data:`, `content:`).
+  - **Never auto-navigates:** Presents an editorial preview card requiring explicit user confirmation before opening in Nexus.
+  - Supports Wi-Fi, Email, Phone, and Plain Text with instant copy-to-clipboard functionality.
+- **Camera Lifecycle:** Unmounts and shuts down camera hardware immediately when dismissed or backgrounded.
+
+
+
+
+
 

@@ -1,70 +1,59 @@
-import type { SearchEngine } from './catalog';
-import type { SearchCategory } from '@/components/home/SearchCategories';
+import {
+  buildSearchUrl,
+  type SearchCategoriesConfig,
+  type SearchCategoryKey,
+  type SearchEngine,
+  type SearchProvider,
+} from './catalog';
 
 /**
- * Builds a category-targeted search URL based on the active search engine.
+ * Builds a category-targeted search URL based on dynamic remote categories
+ * and the active search engine. NO search URLs are hardcoded in the client.
  */
 export function buildCategorizedSearchUrl(
   query: string,
-  category: SearchCategory,
+  category: SearchCategoryKey,
   engine: SearchEngine,
+  categories?: SearchCategoriesConfig,
 ): string {
-  const encoded = encodeURIComponent(query.trim());
-  const engineId = engine.id.toLowerCase();
+  const trimmed = query.trim();
+  if (!trimmed) return '';
 
-  switch (category) {
-    case 'images':
-      if (engineId === 'duckduckgo') {
-        return `https://duckduckgo.com/?q=${encoded}&iax=images&ia=images`;
-      }
-      if (engineId === 'brave') {
-        return `https://search.brave.com/images?q=${encoded}`;
-      }
-      if (engineId === 'bing') {
-        return `https://www.bing.com/images/search?q=${encoded}`;
-      }
-      if (engineId === 'startpage') {
-        return `https://www.startpage.com/sp/search?query=${encoded}&cat=images`;
-      }
-      // Standard Google fallback
-      return `https://www.google.com/search?q=${encoded}&tbm=isch`;
+  if (categories) {
+    const catConfig = categories[category];
+    if (catConfig && catConfig.enabled && catConfig.providers.length > 0) {
+      const enabledProviders = catConfig.providers.filter((p) => p.enabled);
+      const matched =
+        enabledProviders.find((p) => p.id === engine.id) ??
+        enabledProviders.find((p) => p.id === catConfig.defaultProvider) ??
+        enabledProviders[0];
 
-    case 'news':
-      if (engineId === 'duckduckgo') {
-        return `https://duckduckgo.com/?q=${encoded}&iar=news&ia=news`;
+      if (matched && matched.searchUrl) {
+        return buildSearchUrl(trimmed, matched.searchUrl);
       }
-      if (engineId === 'brave') {
-        return `https://search.brave.com/news?q=${encoded}`;
-      }
-      if (engineId === 'bing') {
-        return `https://www.bing.com/news/search?q=${encoded}`;
-      }
-      return `https://www.google.com/search?q=${encoded}&tbm=nws`;
-
-    case 'videos':
-      if (engineId === 'duckduckgo') {
-        return `https://duckduckgo.com/?q=${encoded}&iax=videos&ia=videos`;
-      }
-      if (engineId === 'brave') {
-        return `https://search.brave.com/videos?q=${encoded}`;
-      }
-      if (engineId === 'bing') {
-        return `https://www.bing.com/videos/search?q=${encoded}`;
-      }
-      return `https://www.google.com/search?q=${encoded}&tbm=vid`;
-
-    case 'ai':
-      if (engineId === 'brave') {
-        return `https://search.brave.com/search?q=${encoded}&source=llm`;
-      }
-      if (engineId === 'duckduckgo') {
-        return `https://duckduckgo.com/?q=!ai+${encoded}`;
-      }
-      // Perplexity or AI search entry
-      return `https://duckduckgo.com/?q=${encoded}`;
-
-    case 'web':
-    default:
-      return engine.searchUrl.replace('%s', encoded);
+    }
   }
+
+  // Fallback to active engine searchUrl template if category is web or unavailable
+  return buildSearchUrl(trimmed, engine);
+}
+
+/**
+ * Resolves the active provider for a category to display in the UI.
+ */
+export function getActiveCategoryProvider(
+  category: SearchCategoryKey,
+  engine: SearchEngine,
+  categories?: SearchCategoriesConfig,
+): SearchProvider | null {
+  if (!categories) return null;
+  const catConfig = categories[category];
+  if (!catConfig || !catConfig.enabled) return null;
+  const enabledProviders = catConfig.providers.filter((p) => p.enabled);
+  return (
+    enabledProviders.find((p) => p.id === engine.id) ??
+    enabledProviders.find((p) => p.id === catConfig.defaultProvider) ??
+    enabledProviders[0] ??
+    null
+  );
 }

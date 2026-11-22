@@ -4,6 +4,7 @@ import { Icon } from '../Icon';
 import { PressableScale } from '../PressableScale';
 import { SearchCategories, type SearchCategory } from './SearchCategories';
 import { useCatalogConfig } from '@/lib/catalog-provider';
+import { getActiveCategoryProvider } from '@/lib/search-routing';
 import { haptic } from '@/lib/haptics';
 import { fonts, softShadow } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -26,8 +27,11 @@ export function SmartSearch({
   onOpenPrivateTabs,
 }: Props) {
   const { theme } = useTheme();
-  const { activeEngine } = useCatalogConfig();
+  const { activeEngine, categories } = useCatalogConfig();
   const [category, setCategory] = useState<SearchCategory>('web');
+
+  const currentProvider = getActiveCategoryProvider(category, activeEngine, categories);
+  const providerName = currentProvider?.name ?? activeEngine.name;
 
   const isPrivateEngine =
     activeEngine.id === 'duckduckgo' ||
@@ -47,13 +51,7 @@ export function SmartSearch({
       />
 
       {/* Main Search Dock */}
-      <PressableScale
-        onPress={() => {
-          haptic.tap();
-          onOpenSearch(category);
-        }}
-        scaleTo={0.985}
-        accessibilityLabel="Search or enter a website"
+      <View
         style={[
           styles.dock,
           {
@@ -63,39 +61,48 @@ export function SmartSearch({
           softShadow(theme.mode, 'dock'),
         ]}
       >
-        <View style={[styles.searchIconOrb, { backgroundColor: theme.accentSoft }]}>
-          <Icon
-            name={category === 'ai' ? 'sparkle' : 'search'}
-            size={18}
-            color={theme.accent}
-            strokeWidth={2.1}
-          />
-        </View>
-
-        <View style={styles.searchCopy}>
-          <Text style={[styles.searchPlaceholder, { color: theme.ink }]}>
-            {category === 'ai'
-              ? 'Ask Nexus AI or search...'
-              : 'Search or enter address'}
-          </Text>
-          <View style={styles.privacyRow}>
+        <PressableScale
+          onPress={() => {
+            haptic.tap();
+            onOpenSearch(category);
+          }}
+          scaleTo={0.985}
+          accessibilityLabel="Search or enter a website"
+          style={styles.searchArea}
+        >
+          <View style={[styles.searchIconOrb, { backgroundColor: theme.accentSoft }]}>
             <Icon
-              name={isPrivateEngine ? 'lock' : 'globe'}
-              size={11}
-              color={theme.muted}
-              strokeWidth={1.8}
+              name={category === 'ai' ? 'sparkle' : 'search'}
+              size={18}
+              color={theme.accent}
+              strokeWidth={2.1}
             />
-            <Text style={[styles.privacyLabel, { color: theme.muted }]}>
-              {privacyText} · {activeEngine.name}
-            </Text>
           </View>
-        </View>
+
+          <View style={styles.searchCopy}>
+            <Text style={[styles.searchPlaceholder, { color: theme.ink }]}>
+              {category === 'ai'
+                ? 'Ask Nexus AI or search...'
+                : 'Search or enter address'}
+            </Text>
+            <View style={styles.privacyRow}>
+              <Icon
+                name={isPrivateEngine ? 'lock' : 'globe'}
+                size={11}
+                color={theme.muted}
+                strokeWidth={1.8}
+              />
+              <Text style={[styles.privacyLabel, { color: theme.muted }]}>
+                {privacyText} · {providerName}
+              </Text>
+            </View>
+          </View>
+        </PressableScale>
 
         {/* Action Buttons: Voice, QR, and Go */}
         <View style={styles.actionsRow}>
           <PressableScale
-            onPress={(e) => {
-              e.stopPropagation();
+            onPress={() => {
               haptic.tap();
               if (onOpenVoiceSearch) {
                 onOpenVoiceSearch();
@@ -111,8 +118,7 @@ export function SmartSearch({
           </PressableScale>
 
           <PressableScale
-            onPress={(e) => {
-              e.stopPropagation();
+            onPress={() => {
               haptic.tap();
               if (onOpenQrScanner) {
                 onOpenQrScanner();
@@ -127,16 +133,24 @@ export function SmartSearch({
             <Icon name="qr" size={15} color={theme.inkSoft} strokeWidth={2} />
           </PressableScale>
 
-          <View style={[styles.goButton, { backgroundColor: theme.accent }]}>
+          <PressableScale
+            onPress={() => {
+              haptic.tap();
+              onOpenSearch(category);
+            }}
+            scaleTo={0.9}
+            style={[styles.goButton, { backgroundColor: theme.accent }]}
+            accessibilityLabel="Search"
+          >
             <Icon
               name="arrowRight"
               size={17}
               color={theme.accentInk}
               strokeWidth={2.4}
             />
-          </View>
+          </PressableScale>
         </View>
-      </PressableScale>
+      </View>
 
       {/* Private Tabs Bar if open */}
       {privateTabCount > 0 ? (
@@ -190,6 +204,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  searchArea: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    height: '100%',
   },
   searchIconOrb: {
     width: 40,

@@ -14,6 +14,34 @@ export type AdsConfig = {
   iosRewardedUnitId?: string;
 };
 
+export type SearchCategoryKey = 'web' | 'ai' | 'images' | 'news' | 'videos';
+
+export type SearchProvider = {
+  id: string;
+  name: string;
+  category: SearchCategoryKey;
+  searchUrl: string;
+  suggestUrl?: string;
+  note: string;
+  enabled: boolean;
+  priority: number;
+  countries: string[];
+  providerType?: 'external' | 'api';
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type SearchCategoryConfig = {
+  enabled: boolean;
+  defaultProvider: string;
+  providers: SearchProvider[];
+};
+
+export type SearchCategoriesConfig = Record<
+  SearchCategoryKey,
+  SearchCategoryConfig
+>;
+
 export type Engine = {
   id: string;
   name: string;
@@ -38,6 +66,7 @@ export type Catalog = {
   ads: AdsConfig;
   engines: Engine[];
   pages: Page[];
+  categories: SearchCategoriesConfig;
 };
 
 export type PublishedCatalog = Catalog & {
@@ -71,6 +100,7 @@ export type PublicCatalog = {
     note: string;
     readMinutes: number;
   }[];
+  categories: SearchCategoriesConfig;
 };
 
 export type Issue = {
@@ -81,11 +111,336 @@ export type Issue = {
 // Keep these aligned with the app's normalizeCatalog limits. Anything above
 // them would be silently dropped when the app reads the public feed.
 export const MAX_ENGINES = 40;
+export const MAX_PROVIDERS_PER_CATEGORY = 40;
 export const MAX_PAGES = 250;
 const MAX_URL = 2_048;
 const MARKER = 'nexusquerytoken';
 const ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const AD_UNIT_ID = /^ca-app-pub-\d{16}\/\d{10}$/;
+
+export const SEARCH_CATEGORIES: {
+  key: SearchCategoryKey;
+  label: string;
+  description: string;
+}[] = [
+  { key: 'web', label: 'Web', description: 'Primary web search engines and crawlers' },
+  { key: 'ai', label: 'AI', description: 'AI conversational search engines and answer bots' },
+  { key: 'images', label: 'Images', description: 'Image search and visual media discovery' },
+  { key: 'news', label: 'News', description: 'Real-time and curated news publishers' },
+  { key: 'videos', label: 'Videos', description: 'Video streaming and clip discovery platforms' },
+];
+
+export const DEFAULT_WEB_PROVIDERS: SearchProvider[] = [
+  {
+    id: 'duckduckgo',
+    name: 'DuckDuckGo',
+    category: 'web',
+    searchUrl: 'https://duckduckgo.com/?q={query}',
+    suggestUrl: 'https://ac.duckduckgo.com/ac/?q={query}&type=list',
+    note: 'The default. No profile, no search history.',
+    enabled: true,
+    priority: 1,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'brave',
+    name: 'Brave Search',
+    category: 'web',
+    searchUrl: 'https://search.brave.com/search?q={query}',
+    suggestUrl: 'https://search.brave.com/api/suggest?q={query}',
+    note: 'An independent index from Brave.',
+    enabled: true,
+    priority: 2,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'google',
+    name: 'Google',
+    category: 'web',
+    searchUrl: 'https://www.google.com/search?q={query}',
+    suggestUrl: 'https://suggestqueries.google.com/complete/search?client=chrome&q={query}',
+    note: 'Google web search.',
+    enabled: true,
+    priority: 3,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'startpage',
+    name: 'Startpage',
+    category: 'web',
+    searchUrl: 'https://www.startpage.com/sp/search?query={query}',
+    suggestUrl: 'https://www.startpage.com/suggestions?q={query}',
+    note: 'Google results through a privacy proxy.',
+    enabled: true,
+    priority: 4,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'qwant',
+    name: 'Qwant',
+    category: 'web',
+    searchUrl: 'https://www.qwant.com/?q={query}',
+    note: 'European search with no query profiling.',
+    enabled: true,
+    priority: 5,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'kagi',
+    name: 'Kagi',
+    category: 'web',
+    searchUrl: 'https://kagi.com/search?q={query}',
+    note: 'A paid, ad-free index. Sign in on Kagi site.',
+    enabled: true,
+    priority: 6,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+];
+
+export const DEFAULT_AI_PROVIDERS: SearchProvider[] = [
+  {
+    id: 'brave-ai',
+    name: 'Brave AI',
+    category: 'ai',
+    searchUrl: 'https://search.brave.com/search?q={query}&source=llm',
+    note: 'AI-generated summary answers with source citations.',
+    enabled: true,
+    priority: 1,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'duckduckgo-ai',
+    name: 'DuckDuckGo AI',
+    category: 'ai',
+    searchUrl: 'https://duckduckgo.com/?q=!ai+{query}',
+    note: 'Private AI chat and search answers.',
+    enabled: true,
+    priority: 2,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'perplexity',
+    name: 'Perplexity',
+    category: 'ai',
+    searchUrl: 'https://www.perplexity.ai/search?q={query}',
+    note: 'Direct conversational answers with real-time web search.',
+    enabled: true,
+    priority: 3,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'phind',
+    name: 'Phind',
+    category: 'ai',
+    searchUrl: 'https://www.phind.com/search?q={query}',
+    note: 'Developer-oriented intelligent search.',
+    enabled: true,
+    priority: 4,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+];
+
+export const DEFAULT_IMAGES_PROVIDERS: SearchProvider[] = [
+  {
+    id: 'duckduckgo-images',
+    name: 'DuckDuckGo Images',
+    category: 'images',
+    searchUrl: 'https://duckduckgo.com/?q={query}&iax=images&ia=images',
+    note: 'Private image search.',
+    enabled: true,
+    priority: 1,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'google-images',
+    name: 'Google Images',
+    category: 'images',
+    searchUrl: 'https://www.google.com/search?q={query}&tbm=isch',
+    note: 'Google image index.',
+    enabled: true,
+    priority: 2,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'brave-images',
+    name: 'Brave Images',
+    category: 'images',
+    searchUrl: 'https://search.brave.com/images?q={query}',
+    note: 'Brave independent image search.',
+    enabled: true,
+    priority: 3,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'bing-images',
+    name: 'Bing Images',
+    category: 'images',
+    searchUrl: 'https://www.bing.com/images/search?q={query}',
+    note: 'Microsoft Bing visual search.',
+    enabled: true,
+    priority: 4,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+];
+
+export const DEFAULT_NEWS_PROVIDERS: SearchProvider[] = [
+  {
+    id: 'duckduckgo-news',
+    name: 'DuckDuckGo News',
+    category: 'news',
+    searchUrl: 'https://duckduckgo.com/?q={query}&iar=news&ia=news',
+    note: 'Private news headlines and articles.',
+    enabled: true,
+    priority: 1,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'google-news',
+    name: 'Google News',
+    category: 'news',
+    searchUrl: 'https://www.google.com/search?q={query}&tbm=nws',
+    note: 'Global news aggregator.',
+    enabled: true,
+    priority: 2,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'brave-news',
+    name: 'Brave News',
+    category: 'news',
+    searchUrl: 'https://search.brave.com/news?q={query}',
+    note: 'Brave independent news search.',
+    enabled: true,
+    priority: 3,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'bing-news',
+    name: 'Bing News',
+    category: 'news',
+    searchUrl: 'https://www.bing.com/news/search?q={query}',
+    note: 'Bing news feed.',
+    enabled: true,
+    priority: 4,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+];
+
+export const DEFAULT_VIDEOS_PROVIDERS: SearchProvider[] = [
+  {
+    id: 'youtube',
+    name: 'YouTube',
+    category: 'videos',
+    searchUrl: 'https://www.youtube.com/results?search_query={query}',
+    suggestUrl: 'https://suggestqueries.google.com/complete/search?client=youtube&ds=yt&q={query}',
+    note: 'Global video sharing platform.',
+    enabled: true,
+    priority: 1,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'duckduckgo-videos',
+    name: 'DuckDuckGo Videos',
+    category: 'videos',
+    searchUrl: 'https://duckduckgo.com/?q={query}&iax=videos&ia=videos',
+    note: 'Privacy video search.',
+    enabled: true,
+    priority: 2,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'brave-videos',
+    name: 'Brave Videos',
+    category: 'videos',
+    searchUrl: 'https://search.brave.com/videos?q={query}',
+    note: 'Brave video search without tracker injection.',
+    enabled: true,
+    priority: 3,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'bing-videos',
+    name: 'Bing Videos',
+    category: 'videos',
+    searchUrl: 'https://www.bing.com/videos/search?q={query}',
+    note: 'Bing video results.',
+    enabled: true,
+    priority: 4,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+];
+
+export function createDefaultCategories(
+  existingEngines?: Engine[],
+  existingDefaultId?: string,
+): SearchCategoriesConfig {
+  const webProviders: SearchProvider[] =
+    existingEngines && existingEngines.length > 0
+      ? existingEngines.map((e, index) => ({
+          id: e.id,
+          name: e.name,
+          category: 'web' as const,
+          searchUrl: e.searchUrl.includes('%s')
+            ? e.searchUrl.replace('%s', '{query}')
+            : e.searchUrl,
+          note: e.note,
+          enabled: e.enabled !== false,
+          priority: index + 1,
+          countries: ['ALL'],
+          providerType: 'external' as const,
+        }))
+      : DEFAULT_WEB_PROVIDERS;
+
+  return {
+    web: {
+      enabled: true,
+      defaultProvider: existingDefaultId || 'duckduckgo',
+      providers: webProviders,
+    },
+    ai: {
+      enabled: true,
+      defaultProvider: 'brave-ai',
+      providers: DEFAULT_AI_PROVIDERS,
+    },
+    images: {
+      enabled: true,
+      defaultProvider: 'duckduckgo-images',
+      providers: DEFAULT_IMAGES_PROVIDERS,
+    },
+    news: {
+      enabled: true,
+      defaultProvider: 'duckduckgo-news',
+      providers: DEFAULT_NEWS_PROVIDERS,
+    },
+    videos: {
+      enabled: true,
+      defaultProvider: 'youtube',
+      providers: DEFAULT_VIDEOS_PROVIDERS,
+    },
+  };
+}
 
 export const DEFAULT_ADS: AdsConfig = {
   enabled: false,
@@ -171,24 +526,32 @@ function parseHttps(
   if (!value || value.length > MAX_URL) return null;
   if (/[\u0000-\u001f\u007f]/.test(value)) return null;
 
-  const placeholders = value.split('%s').length - 1;
+  const countPercentS = value.split('%s').length - 1;
+  const countBraced = value.split('{query}').length - 1;
+  const totalPlaceholders = countPercentS + countBraced;
+
   if (options.allowTemplate) {
-    if (placeholders !== 1) return null;
-  } else if (placeholders !== 0) {
+    if (totalPlaceholders !== 1) return null;
+  } else if (totalPlaceholders !== 0) {
     return null;
   }
 
   if (options.allowTemplate) {
     const hashPosition = value.indexOf('#');
-    if (hashPosition !== -1 && value.slice(hashPosition).includes('%s')) {
+    if (
+      hashPosition !== -1 &&
+      (value.slice(hashPosition).includes('%s') ||
+        value.slice(hashPosition).includes('{query}'))
+    ) {
       return null;
     }
   }
 
   try {
-    const parsed = new URL(
-      options.allowTemplate ? value.replace('%s', MARKER) : value,
-    );
+    const normalized = options.allowTemplate
+      ? value.replace('{query}', MARKER).replace('%s', MARKER)
+      : value;
+    const parsed = new URL(normalized);
     if (parsed.protocol !== 'https:') return null;
     if (!parsed.hostname || parsed.username || parsed.password) return null;
     if (isPrivateHostname(parsed.hostname)) return null;
@@ -217,14 +580,14 @@ export function isValidHttpsUrl(
 export function templateFromExample(value: string): string | null {
   const raw = urlText(value);
   if (!raw) return null;
-  if (raw.includes('%s')) {
+  if (raw.includes('{query}') || raw.includes('%s')) {
     return parseHttps(raw, { allowTemplate: true }) ? raw : null;
   }
   if (!parseHttps(raw, { allowTemplate: false })) return null;
 
   try {
     const parsed = new URL(raw);
-    const preferred = ['q', 'query', 'search', 's', 'text', 'p'];
+    const preferred = ['q', 'query', 'search', 's', 'text', 'p', 'search_query'];
     const entries = [...parsed.searchParams.entries()].filter(
       ([, part]) => part.trim().length > 0,
     );
@@ -239,7 +602,7 @@ export function templateFromExample(value: string): string | null {
     const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const replaced = raw.replace(
       new RegExp(`([?&])${escaped}=[^&#]*`),
-      `$1${key}=%s`,
+      `$1${key}={query}`,
     );
     return parseHttps(replaced, { allowTemplate: true }) ? replaced : null;
   } catch {
@@ -248,11 +611,15 @@ export function templateFromExample(value: string): string | null {
 }
 
 export function buildSearchUrl(
-  engine: Pick<Engine, 'searchUrl'>,
-  query = 'quiet web',
+  engine: Pick<SearchProvider, 'searchUrl'> | Pick<Engine, 'searchUrl'>,
+  query = 'quantum computing',
 ): string | null {
   if (!isValidHttpsUrl(engine.searchUrl, { allowTemplate: true })) return null;
-  return engine.searchUrl.replace('%s', encodeURIComponent(query));
+  const encoded = encodeURIComponent(query.trim());
+  if (engine.searchUrl.includes('{query}')) {
+    return engine.searchUrl.replaceAll('{query}', encoded);
+  }
+  return engine.searchUrl.replace('%s', encoded);
 }
 
 function enabledEngineIds(catalog: Catalog): Set<string> {
@@ -286,6 +653,78 @@ export function coerceAds(value: unknown): AdsConfig {
     androidRewardedUnitId: text(value.androidRewardedUnitId, 64),
     iosRewardedUnitId: text(value.iosRewardedUnitId, 64),
   };
+}
+
+export function coerceCategories(
+  value: unknown,
+  fallbackEngines?: Engine[],
+  fallbackDefaultId?: string,
+): SearchCategoriesConfig {
+  const defaults = createDefaultCategories(fallbackEngines, fallbackDefaultId);
+  if (!isRecord(value)) return defaults;
+
+  const result: Partial<SearchCategoriesConfig> = {};
+
+  for (const cat of SEARCH_CATEGORIES) {
+    const rawCat = isRecord(value[cat.key])
+      ? (value[cat.key] as Record<string, unknown>)
+      : null;
+    if (!rawCat) {
+      result[cat.key] = defaults[cat.key];
+      continue;
+    }
+
+    const enabled = rawCat.enabled !== false;
+    const rawProviders = Array.isArray(rawCat.providers)
+      ? rawCat.providers
+      : defaults[cat.key].providers;
+    const providerIds = new Set<string>();
+    const providers: SearchProvider[] = [];
+
+    for (const item of rawProviders.slice(0, MAX_PROVIDERS_PER_CATEGORY)) {
+      if (!isRecord(item)) continue;
+      const name = text(item.name, 40);
+      const requestedId = cleanId(item.id) || slugify(name, 'provider');
+      const id = providerIds.has(requestedId)
+        ? uniqueId(requestedId, providerIds)
+        : requestedId;
+      providerIds.add(id);
+
+      const countries = Array.isArray(item.countries)
+        ? item.countries.map((c) => text(c, 10).toUpperCase()).filter(Boolean)
+        : ['ALL'];
+
+      providers.push({
+        id,
+        name,
+        category: cat.key,
+        searchUrl: urlText(item.searchUrl),
+        suggestUrl: item.suggestUrl ? urlText(item.suggestUrl) : undefined,
+        note: text(item.note, 160),
+        enabled: item.enabled !== false,
+        priority: Number.isFinite(Number(item.priority))
+          ? Number(item.priority)
+          : providers.length + 1,
+        countries: countries.length > 0 ? countries : ['ALL'],
+        providerType: item.providerType === 'api' ? 'api' : 'external',
+        createdAt: typeof item.createdAt === 'string' ? item.createdAt : undefined,
+        updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : undefined,
+      });
+    }
+
+    const requestedDefault = cleanId(rawCat.defaultProvider);
+    const defaultProvider = providers.some((p) => p.id === requestedDefault)
+      ? requestedDefault
+      : (providers.find((p) => p.enabled)?.id ?? providers[0]?.id ?? '');
+
+    result[cat.key] = {
+      enabled,
+      defaultProvider,
+      providers,
+    };
+  }
+
+  return result as SearchCategoriesConfig;
 }
 
 /**
@@ -349,7 +788,30 @@ export function coerceCatalog(value: unknown): Catalog | null {
     ? requestedDefault
     : (engines.find((engine) => engine.enabled)?.id ?? engines[0]?.id ?? '');
 
-  return { version: 1, defaultEngineId, ads: coerceAds(value.ads), engines, pages };
+  const categories = coerceCategories(
+    value.categories,
+    engines,
+    defaultEngineId,
+  );
+
+  const syncedEngines: Engine[] = categories.web.providers.map((p) => ({
+    id: p.id,
+    name: p.name,
+    searchUrl: p.searchUrl,
+    note: p.note,
+    enabled: p.enabled,
+  }));
+  const effectiveDefaultEngineId =
+    categories.web.defaultProvider || defaultEngineId;
+
+  return {
+    version: 1,
+    defaultEngineId: effectiveDefaultEngineId,
+    ads: coerceAds(value.ads),
+    engines: syncedEngines.length > 0 ? syncedEngines : engines,
+    pages,
+    categories,
+  };
 }
 
 export function validateCatalog(catalog: Catalog): Issue[] {
@@ -496,6 +958,66 @@ export function validateCatalog(catalog: Catalog): Issue[] {
     }
   }
 
+  // Validate Categories and Search Providers
+  for (const cat of SEARCH_CATEGORIES) {
+    const categoryConfig = catalog.categories[cat.key];
+    const catLabel = `Category “${cat.label}”`;
+
+    if (categoryConfig.enabled) {
+      const live = categoryConfig.providers.filter((p) => p.enabled);
+      if (live.length === 0) {
+        issues.push({
+          at: catLabel,
+          message: `At least one search provider in ${cat.label} must be enabled.`,
+        });
+      }
+
+      const defaultProvider = categoryConfig.providers.find(
+        (p) => p.id === categoryConfig.defaultProvider,
+      );
+      if (!defaultProvider) {
+        issues.push({
+          at: catLabel,
+          message: `Choose a default provider for ${cat.label}.`,
+        });
+      } else if (!defaultProvider.enabled) {
+        issues.push({
+          at: catLabel,
+          message: `The default provider for ${cat.label} must be enabled.`,
+        });
+      }
+    }
+
+    const providerIds = new Set<string>();
+    for (const p of categoryConfig.providers) {
+      const at = `${cat.label} provider “${p.name || 'Untitled'}”`;
+      if (!ID.test(p.id) || providerIds.has(p.id)) {
+        issues.push({ at, message: 'Provider ID is missing or duplicated.' });
+      }
+      providerIds.add(p.id);
+
+      if (!p.enabled) continue;
+      if (!p.name) {
+        issues.push({ at: 'Untitled provider', message: 'Give it a name.' });
+      }
+      if (!isValidHttpsUrl(p.searchUrl, { allowTemplate: true })) {
+        issues.push({
+          at,
+          message: 'Use an https search URL containing {query} (or %s).',
+        });
+      }
+      if (p.suggestUrl && !isValidHttpsUrl(p.suggestUrl, { allowTemplate: true })) {
+        issues.push({
+          at,
+          message: 'Suggestion URL must be an https URL containing {query} (or %s).',
+        });
+      }
+      if (p.note && p.note.length > 160) {
+        issues.push({ at, message: 'Note is longer than 160 characters.' });
+      }
+    }
+  }
+
   return issues;
 }
 
@@ -520,6 +1042,37 @@ export function toPublicCatalog(
   if (engines.length === 0 || pages.length === 0) return null;
   const liveIds = new Set(engines.map((engine) => engine.id));
 
+  const publicCategories: SearchCategoriesConfig = {
+    web: {
+      enabled: published.categories?.web?.enabled !== false,
+      defaultProvider:
+        published.categories?.web?.defaultProvider || published.defaultEngineId,
+      providers: (published.categories?.web?.providers ?? []).filter((p) => p.enabled),
+    },
+    ai: {
+      enabled: published.categories?.ai?.enabled !== false,
+      defaultProvider: published.categories?.ai?.defaultProvider || 'brave-ai',
+      providers: (published.categories?.ai?.providers ?? []).filter((p) => p.enabled),
+    },
+    images: {
+      enabled: published.categories?.images?.enabled !== false,
+      defaultProvider:
+        published.categories?.images?.defaultProvider || 'duckduckgo-images',
+      providers: (published.categories?.images?.providers ?? []).filter((p) => p.enabled),
+    },
+    news: {
+      enabled: published.categories?.news?.enabled !== false,
+      defaultProvider:
+        published.categories?.news?.defaultProvider || 'duckduckgo-news',
+      providers: (published.categories?.news?.providers ?? []).filter((p) => p.enabled),
+    },
+    videos: {
+      enabled: published.categories?.videos?.enabled !== false,
+      defaultProvider: published.categories?.videos?.defaultProvider || 'youtube',
+      providers: (published.categories?.videos?.providers ?? []).filter((p) => p.enabled),
+    },
+  };
+
   return {
     version: 1,
     revision: published.revision,
@@ -530,6 +1083,7 @@ export function toPublicCatalog(
     ads: { ...published.ads },
     engines,
     pages,
+    categories: publicCategories,
   };
 }
 
@@ -548,11 +1102,13 @@ type BundledShape = {
     note: string;
     readMinutes: number;
   }[];
+  categories?: unknown;
 };
 
 const bundledCatalog = bundled as BundledShape;
 
 export function createSeedState(): StoreState {
+  const defaultCats = createDefaultCategories();
   const draft: Catalog = {
     version: 1,
     defaultEngineId: bundledCatalog.defaultEngineId,
@@ -562,6 +1118,7 @@ export function createSeedState(): StoreState {
       enabled: true,
     })),
     pages: bundledCatalog.pages.map((page) => ({ ...page, enabled: true })),
+    categories: defaultCats,
   };
 
   return {
@@ -570,6 +1127,7 @@ export function createSeedState(): StoreState {
       ...draft,
       engines: draft.engines.map((engine) => ({ ...engine })),
       pages: draft.pages.map((page) => ({ ...page })),
+      categories: JSON.parse(JSON.stringify(defaultCats)),
       revision: Number.isFinite(bundledCatalog.revision)
         ? bundledCatalog.revision
         : 1,

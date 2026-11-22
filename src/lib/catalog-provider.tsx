@@ -16,7 +16,10 @@ import {
   normalizeCustomEngines,
   type AdsConfig,
   type Catalog,
+  type SearchCategoriesConfig,
+  type SearchCategoryKey,
   type SearchEngine,
+  type SearchProvider,
 } from '@/lib/catalog';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 import { usePersistentState } from '@/lib/usePersistentState';
@@ -47,6 +50,10 @@ type CatalogContextValue = {
   activeEngine: SearchEngine;
   todayPages: Catalog['pages'];
   ads: AdsConfig;
+  categories: SearchCategoriesConfig;
+  activeCategories: SearchCategoryKey[];
+  getCategoryDefaultProvider: (category: SearchCategoryKey) => SearchProvider | null;
+  getCategoryProviders: (category: SearchCategoryKey) => SearchProvider[];
   /** The cached catalog and saved search choice have been read. */
   hydrated: boolean;
   selectEngine: (id: string) => void;
@@ -276,6 +283,34 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     [loadRemote],
   );
 
+  const activeCategories = useMemo<SearchCategoryKey[]>(() => {
+    const list: SearchCategoryKey[] = ['web', 'ai', 'images', 'news', 'videos'];
+    return list.filter((key) => catalog.categories?.[key]?.enabled !== false);
+  }, [catalog.categories]);
+
+  const getCategoryDefaultProvider = useCallback(
+    (category: SearchCategoryKey): SearchProvider | null => {
+      const cat = catalog.categories?.[category];
+      if (!cat) return null;
+      const providers = cat.providers.filter((p) => p.enabled);
+      return (
+        providers.find((p) => p.id === cat.defaultProvider) ??
+        providers[0] ??
+        null
+      );
+    },
+    [catalog.categories],
+  );
+
+  const getCategoryProviders = useCallback(
+    (category: SearchCategoryKey): SearchProvider[] => {
+      const cat = catalog.categories?.[category];
+      if (!cat) return [];
+      return cat.providers.filter((p) => p.enabled);
+    },
+    [catalog.categories],
+  );
+
   const value = useMemo<CatalogContextValue>(
     () => ({
       engines,
@@ -284,6 +319,10 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       activeEngine,
       todayPages: catalog.pages,
       ads: catalog.ads,
+      categories: catalog.categories,
+      activeCategories,
+      getCategoryDefaultProvider,
+      getCategoryProviders,
       hydrated: cacheHydrated && searchHydrated,
       selectEngine,
       addCustomEngine,
@@ -296,22 +335,26 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       hasRemoteConfig: Boolean(CATALOG_URL),
     }),
     [
+      activeCategories,
       activeEngine,
       addCustomEngine,
+      catalog.ads,
+      catalog.categories,
       catalog.engines,
       catalog.pages,
-      catalog.ads,
       cacheHydrated,
       engines,
+      getCategoryDefaultProvider,
+      getCategoryProviders,
       refreshCatalog,
       refreshError,
       refreshing,
+      removeCustomEngine,
       search.customEngines,
       searchHydrated,
       selectEngine,
       source,
       updatedAt,
-      removeCustomEngine,
     ],
   );
 

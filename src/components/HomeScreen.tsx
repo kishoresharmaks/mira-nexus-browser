@@ -54,6 +54,8 @@ type Props = {
   onOpenQrScanner?: () => void;
   onOpenAi: () => void;
   onOpenApps?: () => void;
+  onOpenExplore?: () => void;
+  onOpenSaved?: () => void;
   onOpenCollections: () => void;
   onOpenDownloads: () => void;
   onOpenNotes: () => void;
@@ -93,6 +95,8 @@ export function HomeScreen({
   onOpenQrScanner,
   onOpenAi,
   onOpenApps,
+  onOpenExplore,
+  onOpenSaved,
   onOpenCollections,
   onOpenDownloads,
   onOpenNotes,
@@ -369,11 +373,17 @@ export function HomeScreen({
         onPressAi={() => {
           onOpenAi();
         }}
-        onPressBookmarks={() => {
-          onOpenCollections();
+        onPressSaved={() => {
+          if (onOpenSaved) {
+            onOpenSaved();
+          } else {
+            onOpenCollections();
+          }
         }}
-        onPressApps={() => {
-          if (onOpenApps) {
+        onPressExplore={() => {
+          if (onOpenExplore) {
+            onOpenExplore();
+          } else if (onOpenApps) {
             onOpenApps();
           } else {
             onOpenDownloads();

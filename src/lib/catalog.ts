@@ -15,10 +15,38 @@ export type AdsConfig = {
   iosRewardedUnitId?: string;
 };
 
+export type SearchCategoryKey = 'web' | 'ai' | 'images' | 'news' | 'videos';
+
+export type SearchProvider = {
+  id: string;
+  name: string;
+  category: SearchCategoryKey;
+  searchUrl: string;
+  suggestUrl?: string;
+  note: string;
+  enabled: boolean;
+  priority: number;
+  countries: string[];
+  providerType?: 'external' | 'api';
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type SearchCategoryConfig = {
+  enabled: boolean;
+  defaultProvider: string;
+  providers: SearchProvider[];
+};
+
+export type SearchCategoriesConfig = Record<
+  SearchCategoryKey,
+  SearchCategoryConfig
+>;
+
 export type SearchEngine = {
   id: string;
   name: string;
-  /** A complete search URL with exactly one `%s` placeholder. */
+  /** A complete search URL with exactly one `%s` or `{query}` placeholder. */
   searchUrl: string;
   note: string;
 };
@@ -31,6 +59,7 @@ export type Catalog = {
   ads: AdsConfig;
   engines: SearchEngine[];
   pages: CuratedPage[];
+  categories: SearchCategoriesConfig;
 };
 
 export type SearchMatch = {
@@ -130,9 +159,13 @@ function parseHttpsUrl(
   value: unknown,
   options: { allowTemplate: boolean },
 ): string | null {
-  const raw = typeof value === 'string' ? value.trim() : '';
+  let raw = typeof value === 'string' ? value.trim() : '';
   if (!raw || raw.length > MAX_URL) return null;
   if (/[\u0000-\u001f\u007f]/.test(raw)) return null;
+
+  if (options.allowTemplate && raw.includes('{query}')) {
+    raw = raw.replace(/\{query\}/g, '%s');
+  }
 
   const placeholders = raw.split('%s').length - 1;
   if (options.allowTemplate) {
@@ -201,6 +234,389 @@ export function normalizePage(value: unknown): CuratedPage | null {
   };
 }
 
+export const SEARCH_CATEGORIES: {
+  key: SearchCategoryKey;
+  label: string;
+  description: string;
+}[] = [
+  { key: 'web', label: 'Web', description: 'Primary web search engines and crawlers' },
+  { key: 'ai', label: 'AI', description: 'AI conversational search engines and answer bots' },
+  { key: 'images', label: 'Images', description: 'Image search and visual media discovery' },
+  { key: 'news', label: 'News', description: 'Real-time and curated news publishers' },
+  { key: 'videos', label: 'Videos', description: 'Video streaming and clip discovery platforms' },
+];
+
+export const DEFAULT_WEB_PROVIDERS: SearchProvider[] = [
+  {
+    id: 'duckduckgo',
+    name: 'DuckDuckGo',
+    category: 'web',
+    searchUrl: 'https://duckduckgo.com/?q={query}',
+    suggestUrl: 'https://ac.duckduckgo.com/ac/?q={query}&type=list',
+    note: 'The default. No profile, no search history.',
+    enabled: true,
+    priority: 1,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'brave',
+    name: 'Brave Search',
+    category: 'web',
+    searchUrl: 'https://search.brave.com/search?q={query}',
+    suggestUrl: 'https://search.brave.com/api/suggest?q={query}',
+    note: 'An independent index from Brave.',
+    enabled: true,
+    priority: 2,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'google',
+    name: 'Google',
+    category: 'web',
+    searchUrl: 'https://www.google.com/search?q={query}',
+    suggestUrl: 'https://suggestqueries.google.com/complete/search?client=chrome&q={query}',
+    note: 'Google web search.',
+    enabled: true,
+    priority: 3,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'startpage',
+    name: 'Startpage',
+    category: 'web',
+    searchUrl: 'https://www.startpage.com/sp/search?query={query}',
+    suggestUrl: 'https://www.startpage.com/suggestions?q={query}',
+    note: 'Google results through a privacy proxy.',
+    enabled: true,
+    priority: 4,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'qwant',
+    name: 'Qwant',
+    category: 'web',
+    searchUrl: 'https://www.qwant.com/?q={query}',
+    note: 'European search with no query profiling.',
+    enabled: true,
+    priority: 5,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'kagi',
+    name: 'Kagi',
+    category: 'web',
+    searchUrl: 'https://kagi.com/search?q={query}',
+    note: 'A paid, ad-free index. Sign in on Kagi site.',
+    enabled: true,
+    priority: 6,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+];
+
+export const DEFAULT_AI_PROVIDERS: SearchProvider[] = [
+  {
+    id: 'brave-ai',
+    name: 'Brave AI',
+    category: 'ai',
+    searchUrl: 'https://search.brave.com/search?q={query}&source=llm',
+    note: 'AI-generated summary answers with source citations.',
+    enabled: true,
+    priority: 1,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'duckduckgo-ai',
+    name: 'DuckDuckGo AI',
+    category: 'ai',
+    searchUrl: 'https://duckduckgo.com/?q=!ai+{query}',
+    note: 'Private AI chat and search answers.',
+    enabled: true,
+    priority: 2,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'perplexity',
+    name: 'Perplexity',
+    category: 'ai',
+    searchUrl: 'https://www.perplexity.ai/search?q={query}',
+    note: 'Direct conversational answers with real-time web search.',
+    enabled: true,
+    priority: 3,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'phind',
+    name: 'Phind',
+    category: 'ai',
+    searchUrl: 'https://www.phind.com/search?q={query}',
+    note: 'Developer-oriented intelligent search.',
+    enabled: true,
+    priority: 4,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+];
+
+export const DEFAULT_IMAGES_PROVIDERS: SearchProvider[] = [
+  {
+    id: 'duckduckgo-images',
+    name: 'DuckDuckGo Images',
+    category: 'images',
+    searchUrl: 'https://duckduckgo.com/?q={query}&iax=images&ia=images',
+    note: 'Private image search.',
+    enabled: true,
+    priority: 1,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'google-images',
+    name: 'Google Images',
+    category: 'images',
+    searchUrl: 'https://www.google.com/search?q={query}&tbm=isch',
+    note: 'Google image index.',
+    enabled: true,
+    priority: 2,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'brave-images',
+    name: 'Brave Images',
+    category: 'images',
+    searchUrl: 'https://search.brave.com/images?q={query}',
+    note: 'Brave independent image search.',
+    enabled: true,
+    priority: 3,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'bing-images',
+    name: 'Bing Images',
+    category: 'images',
+    searchUrl: 'https://www.bing.com/images/search?q={query}',
+    note: 'Microsoft Bing visual search.',
+    enabled: true,
+    priority: 4,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+];
+
+export const DEFAULT_NEWS_PROVIDERS: SearchProvider[] = [
+  {
+    id: 'duckduckgo-news',
+    name: 'DuckDuckGo News',
+    category: 'news',
+    searchUrl: 'https://duckduckgo.com/?q={query}&iar=news&ia=news',
+    note: 'Private news headlines and articles.',
+    enabled: true,
+    priority: 1,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'google-news',
+    name: 'Google News',
+    category: 'news',
+    searchUrl: 'https://www.google.com/search?q={query}&tbm=nws',
+    note: 'Global news aggregator.',
+    enabled: true,
+    priority: 2,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'brave-news',
+    name: 'Brave News',
+    category: 'news',
+    searchUrl: 'https://search.brave.com/news?q={query}',
+    note: 'Brave independent news search.',
+    enabled: true,
+    priority: 3,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'bing-news',
+    name: 'Bing News',
+    category: 'news',
+    searchUrl: 'https://www.bing.com/news/search?q={query}',
+    note: 'Bing news feed.',
+    enabled: true,
+    priority: 4,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+];
+
+export const DEFAULT_VIDEOS_PROVIDERS: SearchProvider[] = [
+  {
+    id: 'youtube',
+    name: 'YouTube',
+    category: 'videos',
+    searchUrl: 'https://www.youtube.com/results?search_query={query}',
+    suggestUrl: 'https://suggestqueries.google.com/complete/search?client=youtube&ds=yt&q={query}',
+    note: 'Global video sharing platform.',
+    enabled: true,
+    priority: 1,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'duckduckgo-videos',
+    name: 'DuckDuckGo Videos',
+    category: 'videos',
+    searchUrl: 'https://duckduckgo.com/?q={query}&iax=videos&ia=videos',
+    note: 'Privacy video search.',
+    enabled: true,
+    priority: 2,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'brave-videos',
+    name: 'Brave Videos',
+    category: 'videos',
+    searchUrl: 'https://search.brave.com/videos?q={query}',
+    note: 'Brave video search without tracker injection.',
+    enabled: true,
+    priority: 3,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+  {
+    id: 'bing-videos',
+    name: 'Bing Videos',
+    category: 'videos',
+    searchUrl: 'https://www.bing.com/videos/search?q={query}',
+    note: 'Bing video results.',
+    enabled: true,
+    priority: 4,
+    countries: ['ALL'],
+    providerType: 'external',
+  },
+];
+
+export function createDefaultCategories(
+  existingEngines?: SearchEngine[],
+  existingDefaultId?: string,
+): SearchCategoriesConfig {
+  const webProviders: SearchProvider[] =
+    existingEngines && existingEngines.length > 0
+      ? existingEngines.map((e, index) => ({
+          id: e.id,
+          name: e.name,
+          category: 'web' as const,
+          searchUrl: e.searchUrl.includes('%s')
+            ? e.searchUrl.replace('%s', '{query}')
+            : e.searchUrl,
+          note: e.note,
+          enabled: true,
+          priority: index + 1,
+          countries: ['ALL'],
+          providerType: 'external',
+        }))
+      : DEFAULT_WEB_PROVIDERS;
+
+  return {
+    web: {
+      enabled: true,
+      defaultProvider:
+        existingDefaultId && webProviders.some((p) => p.id === existingDefaultId)
+          ? existingDefaultId
+          : (webProviders[0]?.id ?? 'duckduckgo'),
+      providers: webProviders,
+    },
+    ai: {
+      enabled: true,
+      defaultProvider: 'brave-ai',
+      providers: DEFAULT_AI_PROVIDERS,
+    },
+    images: {
+      enabled: true,
+      defaultProvider: 'duckduckgo-images',
+      providers: DEFAULT_IMAGES_PROVIDERS,
+    },
+    news: {
+      enabled: true,
+      defaultProvider: 'duckduckgo-news',
+      providers: DEFAULT_NEWS_PROVIDERS,
+    },
+    videos: {
+      enabled: true,
+      defaultProvider: 'youtube',
+      providers: DEFAULT_VIDEOS_PROVIDERS,
+    },
+  };
+}
+
+function normalizeCategories(
+  value: unknown,
+  existingEngines: SearchEngine[],
+  defaultEngineId: string,
+): SearchCategoriesConfig {
+  const defaults = createDefaultCategories(existingEngines, defaultEngineId);
+  if (!isRecord(value)) return defaults;
+
+  const result: SearchCategoriesConfig = { ...defaults };
+  const validKeys: SearchCategoryKey[] = ['web', 'ai', 'images', 'news', 'videos'];
+
+  for (const key of validKeys) {
+    const rawCat = value[key];
+    if (!isRecord(rawCat)) continue;
+
+    const enabled = typeof rawCat.enabled === 'boolean' ? rawCat.enabled : true;
+    const providers: SearchProvider[] = [];
+
+    if (Array.isArray(rawCat.providers)) {
+      for (const item of rawCat.providers.slice(0, 40)) {
+        if (!isRecord(item)) continue;
+        const id = cleanId(item.id);
+        const name = cleanText(item.name, 48);
+        const searchUrl = parseHttpsUrl(item.searchUrl, { allowTemplate: true });
+        if (!id || !name || !searchUrl) continue;
+
+        providers.push({
+          id,
+          name,
+          category: key,
+          searchUrl,
+          suggestUrl: typeof item.suggestUrl === 'string' ? item.suggestUrl : undefined,
+          note: cleanText(item.note, 200),
+          enabled: item.enabled !== false,
+          priority: typeof item.priority === 'number' ? item.priority : providers.length + 1,
+          countries: Array.isArray(item.countries) ? item.countries.map(String) : ['ALL'],
+          providerType: item.providerType === 'api' ? 'api' : 'external',
+        });
+      }
+    }
+
+    const finalProviders = providers.length > 0 ? providers : defaults[key].providers;
+    const defaultProvider = cleanId(rawCat.defaultProvider) || defaults[key].defaultProvider;
+
+    result[key] = {
+      enabled,
+      defaultProvider: finalProviders.some((p) => p.id === defaultProvider)
+        ? defaultProvider
+        : (finalProviders[0]?.id ?? ''),
+      providers: finalProviders,
+    };
+  }
+
+  return result;
+}
+
 /** The boundary between bundled or remote data and the app. */
 export function normalizeCatalog(value: unknown): Catalog | null {
   if (!isRecord(value)) return null;
@@ -242,6 +658,7 @@ export function normalizeCatalog(value: unknown): Catalog | null {
     ads: normalizeAds(value.ads),
     engines,
     pages,
+    categories: normalizeCategories(value.categories, engines, defaultEngineId),
   };
 }
 
@@ -258,11 +675,16 @@ export const DEFAULT_SEARCH_ENGINE =
 
 export function buildSearchUrl(
   query: string,
-  engine: SearchEngine = DEFAULT_SEARCH_ENGINE,
+  engineOrUrl: SearchEngine | string = DEFAULT_SEARCH_ENGINE,
 ): string {
-  const template = parseHttpsUrl(engine.searchUrl, { allowTemplate: true });
+  const rawUrl =
+    typeof engineOrUrl === 'string' ? engineOrUrl : engineOrUrl.searchUrl;
+  const template = parseHttpsUrl(rawUrl, { allowTemplate: true });
   const target = template ?? DEFAULT_SEARCH_ENGINE.searchUrl;
-  return target.replace('%s', encodeURIComponent(query.trim()));
+  const normalized = target.includes('{query}')
+    ? target.replace(/\{query\}/g, '%s')
+    : target;
+  return normalized.replace('%s', encodeURIComponent(query.trim()));
 }
 
 type CompiledTemplate = {

@@ -10,6 +10,7 @@ import {
 import {
   MAX_ENGINES,
   MAX_PAGES,
+  SEARCH_CATEGORIES,
   coerceCatalog,
   formatUtcDateTime,
   liveCounts,
@@ -21,6 +22,9 @@ import {
   type Issue,
   type Page,
   type PublishedCatalog,
+  type SearchCategoryConfig,
+  type SearchCategoryKey,
+  type SearchProvider,
 } from '@/lib/catalog';
 import { NexusMark } from '@/components/NexusMark';
 import { AdsEditor } from './workbench/AdsEditor';
@@ -28,12 +32,15 @@ import { EngineEditor } from './workbench/EngineEditor';
 import { EnginePanel } from './workbench/EnginePanel';
 import { PageEditor } from './workbench/PageEditor';
 import { PagePanel } from './workbench/PagePanel';
+import { SearchDashboardOverview } from './workbench/SearchDashboardOverview';
+import { SearchManagement } from './workbench/SearchManagement';
 import { TodayLedger } from './workbench/TodayLedger';
+import { VersionRollbackModal } from './workbench/VersionRollbackModal';
 import { WorkbenchDock } from './workbench/WorkbenchDock';
 
-type Section = 'engines' | 'today' | 'ads';
+type Section = 'search' | 'today' | 'ads';
 
-const SECTIONS: Section[] = ['engines', 'today', 'ads'];
+const SECTIONS: Section[] = ['search', 'today', 'ads'];
 
 type Props = {
   initialDraft: Catalog;
@@ -121,7 +128,13 @@ export function Workbench({
   );
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
-  const [section, setSection] = useState<Section>('engines');
+  const [section, setSection] = useState<Section>('search');
+  const [providerId, setProviderId] = useState<string | null>(
+    initialDraft.categories?.web?.providers?.[0]?.id ??
+      initialDraft.engines[0]?.id ??
+      null,
+  );
+  const [versionsOpen, setVersionsOpen] = useState(false);
   const [engineId, setEngineId] = useState<string | null>(
     initialDraft.engines[0]?.id ?? null,
   );
@@ -155,8 +168,32 @@ export function Workbench({
   const selectedPage =
     draft.pages.find((page) => page.id === pageId) ?? null;
   const activeId =
-    section === 'engines' ? engineId : section === 'today' ? pageId : null;
+    section === 'search' ? providerId : section === 'today' ? pageId : null;
   const nextRevision = (published?.revision ?? 0) + 1;
+
+  const { totalProvidersCount, liveProvidersCount, activeCategoriesCount } =
+    useMemo(() => {
+      let total = 0;
+      let live = 0;
+      let activeCats = 0;
+      if (draft.categories) {
+        for (const catKey of Object.keys(draft.categories) as SearchCategoryKey[]) {
+          const cat = draft.categories[catKey];
+          if (cat) {
+            if (cat.enabled) activeCats++;
+            if (Array.isArray(cat.providers)) {
+              total += cat.providers.length;
+              live += cat.providers.filter((p) => p.enabled).length;
+            }
+          }
+        }
+      }
+      return {
+        totalProvidersCount: total,
+        liveProvidersCount: live,
+        activeCategoriesCount: activeCats,
+      };
+    }, [draft.categories]);
 
   const beginEdit = () => {
     setError(null);
@@ -204,6 +241,234 @@ export function Workbench({
     }));
   };
 
+  const updateProvider = (
+    category: SearchCategoryKey,
+    id: string,
+    patch: Partial<SearchProvider>,
+  ) => {
+    beginEdit();
+    setDraft((current) => {
+      const cat = current.categories[category] ?? {
+        enabled: true,
+        defaultProvider: '',
+        providers: [],
+      };
+      const updatedProviders = cat.providers.map((p) =>
+        p.id === id ? { ...p, ...patch, updatedAt: new Date().toISOString() } : p,
+      );
+      const nextCategories = {
+        ...current.categories,
+        [category]: {
+          ...cat,
+          providers: updatedProviders,
+        },
+      };
+
+      const nextEngines =
+        category === 'web'
+          ? updatedProviders.map((p) => ({
+              id: p.id,
+              name: p.name,
+              searchUrl: p.searchUrl.replace(/\{query\}/g, '%s'),
+              note: p.note,
+              enabled: p.enabled,
+            }))
+          : current.engines;
+
+      return {
+        ...current,
+        categories: nextCategories,
+        engines: nextEngines,
+      };
+    });
+  };
+
+  const addProvider = (category: SearchCategoryKey) => {
+    beginEdit();
+    const cat = draft.categories[category] ?? {
+      enabled: true,
+      defaultProvider: '',
+      providers: [],
+    };
+    const existingIds = new Set<string>();
+    if (draft.categories) {
+      for (const c of Object.values(draft.categories)) {
+        if (c?.providers) {
+          for (const p of c.providers) existingIds.add(p.id);
+        }
+      }
+    }
+    if (draft.engines) {
+      for (const e of draft.engines) existingIds.add(e.id);
+    }
+    const newId = uniqueId(`${category}-provider`, existingIds);
+    const newProvider: SearchProvider = {
+      id: newId,
+      name: 'New Provider',
+      category,
+      searchUrl: 'https://example.com/search?q={query}',
+      note: '',
+      enabled: true,
+      priority: (cat.providers?.length ?? 0) + 1,
+      countries: ['ALL'],
+      providerType: 'external',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setDraft((current) => {
+      const currentCat = current.categories[category] ?? {
+        enabled: true,
+        defaultProvider: '',
+        providers: [],
+      };
+      const updatedProviders = [...currentCat.providers, newProvider];
+      const defaultProvider = currentCat.defaultProvider || newId;
+      const nextCategories = {
+        ...current.categories,
+        [category]: {
+          ...currentCat,
+          defaultProvider,
+          providers: updatedProviders,
+        },
+      };
+
+      const nextEngines =
+        category === 'web'
+          ? updatedProviders.map((p) => ({
+              id: p.id,
+              name: p.name,
+              searchUrl: p.searchUrl.replace(/\{query\}/g, '%s'),
+              note: p.note,
+              enabled: p.enabled,
+            }))
+          : current.engines;
+
+      return {
+        ...current,
+        categories: nextCategories,
+        engines: nextEngines,
+        defaultEngineId:
+          category === 'web' && !current.defaultEngineId
+            ? newId
+            : current.defaultEngineId,
+      };
+    });
+
+    setProviderId(newId);
+  };
+
+  const deleteProvider = (category: SearchCategoryKey, id: string) => {
+    beginEdit();
+    const cat = draft.categories[category] ?? {
+      enabled: true,
+      defaultProvider: '',
+      providers: [],
+    };
+    const removeIndex = cat.providers.findIndex((p) => p.id === id);
+    const remaining = cat.providers.filter((p) => p.id !== id);
+    const nextId =
+      remaining[Math.min(Math.max(removeIndex, 0), remaining.length - 1)]?.id ??
+      null;
+
+    setDraft((current) => {
+      const currentCat = current.categories[category] ?? {
+        enabled: true,
+        defaultProvider: '',
+        providers: [],
+      };
+      const curRemaining = currentCat.providers.filter((p) => p.id !== id);
+      const defaultProvider =
+        currentCat.defaultProvider === id
+          ? (curRemaining.find((p) => p.enabled)?.id ?? curRemaining[0]?.id ?? '')
+          : currentCat.defaultProvider;
+
+      const nextCategories = {
+        ...current.categories,
+        [category]: {
+          ...currentCat,
+          defaultProvider,
+          providers: curRemaining,
+        },
+      };
+
+      const nextEngines =
+        category === 'web'
+          ? curRemaining.map((p) => ({
+              id: p.id,
+              name: p.name,
+              searchUrl: p.searchUrl.replace(/\{query\}/g, '%s'),
+              note: p.note,
+              enabled: p.enabled,
+            }))
+          : current.engines;
+
+      return {
+        ...current,
+        categories: nextCategories,
+        engines: nextEngines,
+        defaultEngineId:
+          category === 'web' && current.defaultEngineId === id
+            ? defaultProvider
+            : current.defaultEngineId,
+      };
+    });
+    setProviderId(nextId);
+  };
+
+  const makeCategoryDefault = (category: SearchCategoryKey, id: string) => {
+    beginEdit();
+    setDraft((current) => {
+      const cat = current.categories[category] ?? {
+        enabled: true,
+        defaultProvider: '',
+        providers: [],
+      };
+      const nextCategories = {
+        ...current.categories,
+        [category]: {
+          ...cat,
+          defaultProvider: id,
+        },
+      };
+      return {
+        ...current,
+        categories: nextCategories,
+        defaultEngineId: category === 'web' ? id : current.defaultEngineId,
+      };
+    });
+  };
+
+  const updateCategory = (
+    category: SearchCategoryKey,
+    patch: Partial<SearchCategoryConfig>,
+  ) => {
+    beginEdit();
+    setDraft((current) => {
+      const cat = current.categories[category] ?? {
+        enabled: true,
+        defaultProvider: '',
+        providers: [],
+      };
+      return {
+        ...current,
+        categories: {
+          ...current.categories,
+          [category]: {
+            ...cat,
+            ...patch,
+          },
+        },
+      };
+    });
+  };
+
+  const handleRollbackSuccess = (newRevision: number) => {
+    setVersionsOpen(false);
+    setFlash(`Restored revision ${newRevision} as active configuration.`);
+    window.location.reload();
+  };
+
   const updateAds = (patch: Partial<AdsConfig>) => {
     beginEdit();
     setDraft((current) => ({
@@ -239,7 +504,7 @@ export function Workbench({
       ...current,
       engines: [...current.engines, engine],
     }));
-    setSection('engines');
+    setSection('search');
     setEngineId(id);
     pendingScroll.current = true;
   };
@@ -419,7 +684,7 @@ export function Workbench({
   };
 
   const chooseEngine = (id: string) => {
-    setSection('engines');
+    setSection('search');
     setEngineId(id);
     if (window.matchMedia('(max-width: 64rem)').matches) {
       pendingScroll.current = true;
@@ -492,12 +757,9 @@ export function Workbench({
         ? initialDraft.pages.find((page) => page.id === requestedItem)
         : initialDraft.pages[0];
       setPageId(match?.id ?? null);
-    } else if (requestedSection === 'engines') {
-      setSection('engines');
-      const match = requestedItem
-        ? initialDraft.engines.find((engine) => engine.id === requestedItem)
-        : initialDraft.engines[0];
-      setEngineId(match?.id ?? null);
+    } else if (requestedSection === 'search' || requestedSection === 'engines') {
+      setSection('search');
+      setProviderId(requestedItem ?? null);
     } else if (requestedSection === 'ads') {
       setSection('ads');
     }
@@ -681,14 +943,14 @@ export function Workbench({
             type="button"
             className="tab"
             role="tab"
-            id="tab-engines"
-            aria-selected={section === 'engines'}
-            aria-controls="panel-engines"
-            tabIndex={section === 'engines' ? 0 : -1}
-            onClick={() => switchSection('engines')}
+            id="tab-search"
+            aria-selected={section === 'search'}
+            aria-controls="panel-search"
+            tabIndex={section === 'search' ? 0 : -1}
+            onClick={() => switchSection('search')}
           >
-            Search engines
-            <span className="tab-count">{draft.engines.length}</span>
+            Search Providers
+            <span className="tab-count">{totalProvidersCount}</span>
           </button>
           <button
             type="button"
@@ -737,46 +999,43 @@ export function Workbench({
           </section>
         ) : null}
 
-        {section === 'engines' ? (
+        {section === 'search' ? (
           <section
             className="panel-section"
             role="tabpanel"
-            id="panel-engines"
-            aria-labelledby="tab-engines"
+            id="panel-search"
+            aria-labelledby="tab-search"
             tabIndex={0}
           >
-            <div className="work-grid">
-              <EnginePanel
-                engines={draft.engines}
-                defaultEngineId={draft.defaultEngineId}
-                liveCount={live.engines}
-                selectedId={engineId}
-                busy={busy}
-                maxEngines={MAX_ENGINES}
-                onAdd={addEngine}
-                onSelect={chooseEngine}
-              />
-              <div className="editor" ref={editorRef}>
-                {selectedEngine ? (
-                  <EngineEditor
-                    key={selectedEngine.id}
-                    engine={selectedEngine}
-                    isDefault={selectedEngine.id === draft.defaultEngineId}
-                    busy={busy}
-                    onUpdate={updateEngine}
-                    onMakeDefault={makeDefault}
-                    onDelete={deleteSelectedEngine}
-                  />
-                ) : (
-                  <EmptySelection
-                    kind="engine"
-                    busy={busy}
-                    atLimit={draft.engines.length >= MAX_ENGINES}
-                    onAdd={addEngine}
-                  />
-                )}
-              </div>
-            </div>
+            <SearchDashboardOverview
+              totalProviders={totalProvidersCount}
+              liveProviders={liveProvidersCount}
+              hiddenProviders={totalProvidersCount - liveProvidersCount}
+              activeCategoriesCount={activeCategoriesCount}
+              totalCategoriesCount={SEARCH_CATEGORIES.length}
+              revision={published?.revision ?? 0}
+              publishedAt={published?.publishedAt ?? null}
+              onOpenVersions={() => setVersionsOpen(true)}
+            />
+
+            <SearchManagement
+              categories={draft.categories}
+              selectedProviderId={providerId}
+              busy={busy}
+              onSelectProvider={setProviderId}
+              onUpdateProvider={updateProvider}
+              onAddProvider={addProvider}
+              onDeleteProvider={deleteProvider}
+              onMakeDefault={makeCategoryDefault}
+              onUpdateCategory={updateCategory}
+            />
+
+            <VersionRollbackModal
+              isOpen={versionsOpen}
+              currentRevision={published?.revision ?? 0}
+              onClose={() => setVersionsOpen(false)}
+              onRollbackSuccess={handleRollbackSuccess}
+            />
           </section>
         ) : section === 'today' ? (
           <section

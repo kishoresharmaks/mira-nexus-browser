@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -25,7 +24,6 @@ import {
   type SearchEngine,
 } from '@/lib/catalog';
 import { haptic } from '@/lib/haptics';
-import { relativeTime } from '@/lib/time';
 import { fonts, layout, softShadow } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
 
@@ -47,11 +45,8 @@ export default function SearchSettings() {
     hasRemoteConfig,
     presetEngines,
     refreshCatalog,
-    refreshError,
-    refreshing,
     removeCustomEngine,
     selectEngine,
-    source,
     updatedAt,
   } = useCatalogConfig();
   const { ads, privacyOptionsRequired, showPrivacyOptions, testMode } = useAds();
@@ -70,21 +65,6 @@ export default function SearchSettings() {
 
   const preview = searchUrl.trim() ? templateFromExample(searchUrl) : null;
   const addedCount = customEngines.length;
-
-  const catalogTitle =
-    source === 'network'
-      ? 'Published catalog'
-      : source === 'cache'
-        ? 'Saved catalog'
-        : 'Built-in catalog';
-
-  const catalogMeta = refreshError
-    ? 'Last check failed · using the saved list'
-    : updatedAt
-      ? `Checked ${relativeTime(updatedAt)}`
-      : hasRemoteConfig
-        ? 'Not checked yet'
-        : 'Bundled with Nexus';
 
   const handleAdd = () => {
     const result = validateCustomEngine({ name, searchUrl });
@@ -107,13 +87,6 @@ export default function SearchSettings() {
     removeCustomEngine(engine.id);
     haptic.warn();
     toast.show(`Removed ${engine.name}`);
-  };
-
-  const handleRefresh = async () => {
-    if (refreshing) return;
-    haptic.tap();
-    const ok = await refreshCatalog();
-    toast.show(ok ? 'Catalog is up to date' : 'Could not reach the catalog');
   };
 
   const handleAdPrivacy = async () => {
@@ -470,111 +443,6 @@ export default function SearchSettings() {
                     Add engine
                   </Text>
                 </PressableScale>
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionLabel, { color: theme.muted }]}>
-                  CATALOG
-                </Text>
-              </View>
-
-              <View
-                style={[
-                  styles.card,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: theme.line,
-                  },
-                  softShadow(theme.mode),
-                ]}
-              >
-                <View style={styles.catalogHead}>
-                  <View
-                    style={[
-                      styles.catalogIcon,
-                      { backgroundColor: theme.accentSoft },
-                    ]}
-                  >
-                    <Icon
-                      name="globe"
-                      size={17}
-                      color={theme.accent}
-                      strokeWidth={1.8}
-                    />
-                  </View>
-                  <View style={styles.catalogCopy}>
-                    <Text
-                      style={[styles.catalogTitle, { color: theme.ink }]}
-                    >
-                      {catalogTitle}
-                    </Text>
-                    <Text
-                      numberOfLines={2}
-                      style={[styles.catalogMeta, { color: theme.muted }]}
-                    >
-                      {catalogMeta}
-                    </Text>
-                  </View>
-                  {hasRemoteConfig ? (
-                    <PressableScale
-                      onPress={handleRefresh}
-                      disabled={refreshing}
-                      scaleTo={0.97}
-                      style={[
-                        styles.checkButton,
-                        { borderColor: theme.line },
-                      ]}
-                      accessibilityLabel="Check the catalog for updates"
-                    >
-                      {refreshing ? (
-                        <ActivityIndicator
-                          size="small"
-                          color={theme.accent}
-                        />
-                      ) : (
-                        <>
-                          <Icon
-                            name="refresh"
-                            size={13}
-                            color={theme.inkSoft}
-                            strokeWidth={2}
-                          />
-                          <Text
-                            style={[
-                              styles.checkText,
-                              { color: theme.inkSoft },
-                            ]}
-                          >
-                            Check
-                          </Text>
-                        </>
-                      )}
-                    </PressableScale>
-                  ) : null}
-                </View>
-
-                <View
-                  style={[
-                    styles.catalogNote,
-                    { borderTopColor: theme.line },
-                  ]}
-                >
-                  <Icon
-                    name="shield"
-                    size={14}
-                    color={theme.faint}
-                    strokeWidth={1.8}
-                  />
-                  <Text
-                    style={[styles.catalogNoteText, { color: theme.muted }]}
-                  >
-                    The catalog request carries no account, device ID, or
-                    browsing data. If it cannot be reached, Nexus keeps the list
-                    it already has.
-                  </Text>
-                </View>
               </View>
             </View>
 

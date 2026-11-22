@@ -74,9 +74,9 @@ export function PrivacySheet({
       verified: true,
     },
     {
-      title: 'Hardware Sensors & Permissions Denied',
-      subtitle: 'Camera, Microphone, GPS Location, Contacts, Calendar, and SMS are stripped from Android manifest.',
-      status: 'Blocked',
+      title: 'Hardware Privacy & Manifest Hardening',
+      subtitle: 'GPS Location, Contacts, Calendar, Phone, and SMS are stripped from Android manifest. Camera and Microphone are runtime-guarded exclusively for voice search and QR scanning.',
+      status: 'Enforced',
       icon: 'shield',
       verified: true,
     },

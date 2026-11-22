@@ -1,11 +1,13 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { Icon, type IconName } from '../Icon';
 import { PressableScale } from '../PressableScale';
+import { useCatalogConfig } from '@/lib/catalog-provider';
+import type { SearchCategoryKey } from '@/lib/catalog';
 import { haptic } from '@/lib/haptics';
 import { fonts } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
 
-export type SearchCategory = 'web' | 'ai' | 'images' | 'news' | 'videos';
+export type SearchCategory = SearchCategoryKey;
 
 type Props = {
   activeCategory: SearchCategory;
@@ -25,6 +27,11 @@ export function SearchCategories({
   onSelectCategory,
 }: Props) {
   const { theme } = useTheme();
+  const { activeCategories } = useCatalogConfig();
+
+  const visibleCategories = CATEGORIES.filter((cat) =>
+    activeCategories ? activeCategories.includes(cat.id) : true,
+  );
 
   return (
     <ScrollView
@@ -32,7 +39,7 @@ export function SearchCategories({
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
     >
-      {CATEGORIES.map((cat) => {
+      {visibleCategories.map((cat) => {
         const active = cat.id === activeCategory;
         return (
           <PressableScale

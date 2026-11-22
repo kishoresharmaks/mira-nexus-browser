@@ -16,23 +16,25 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShareIntent } from 'expo-share-intent';
 import { AddressOverlay } from '@/components/AddressOverlay';
 import { AiSummarySheet } from '@/components/AiSummarySheet';
-import { AppsSheet } from '@/components/AppsSheet';
 import { AudioPlayerBar } from '@/components/AudioPlayerBar';
 import { BrowserPane } from '@/components/BrowserPane';
 import { BrowserToolbar } from '@/components/BrowserToolbar';
-import { CollectionsSheet } from '@/components/CollectionsSheet';
 import { CommunitySheet } from '@/components/CommunitySheet';
 import { DownloadsSheet } from '@/components/DownloadsSheet';
+import { ExploreSheet } from '@/components/explore/ExploreSheet';
 import { HistorySheet } from '@/components/HistorySheet';
 import { HomeScreen } from '@/components/HomeScreen';
 import type { SearchCategory } from '@/components/home/SearchCategories';
 import { MenuSheet } from '@/components/MenuSheet';
 import { NotesSheet } from '@/components/NotesSheet';
+import { VoiceSearchSheet } from '@/components/voice/VoiceSearchSheet';
+import { QRScannerSheet } from '@/components/scanner/QRScannerSheet';
 import { PrivacySheet } from '@/components/PrivacySheet';
 import { PrivateSheet } from '@/components/PrivateSheet';
 import { PrivateStart } from '@/components/PrivateStart';
 import { PrivateVeil } from '@/components/PrivateVeil';
 import { ReaderSheet } from '@/components/ReaderSheet';
+import { SavedSheet } from '@/components/SavedSheet';
 import { TabsSheet } from '@/components/TabsSheet';
 import { TodaySheet } from '@/components/TodaySheet';
 import { TrailsSheet } from '@/components/TrailsSheet';
@@ -152,7 +154,7 @@ function createTab(
 export default function Nexus() {
   const { theme, toggleMode } = useTheme();
   const toast = useToast();
-  const { activeEngine, engines, todayPages } = useCatalogConfig();
+  const { activeEngine, engines, todayPages, categories } = useCatalogConfig();
 
   const [shortcuts, setShortcuts, shortcutsReady] = usePersistentState<
     Shortcut[]
@@ -229,11 +231,13 @@ export default function Nexus() {
   const [addressPrivate, setAddressPrivate] = useState(false);
   const [appState, setAppState] = useState(AppState.currentState);
   const [toolbarVisible, setToolbarVisible] = useState(true);
-  const [appsOpen, setAppsOpen] = useState(false);
-  const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const [exploreOpen, setExploreOpen] = useState(false);
+  const [savedOpen, setSavedOpen] = useState(false);
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [downloadsOpen, setDownloadsOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [voiceSearchOpen, setVoiceSearchOpen] = useState(false);
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [searchCategory, setSearchCategory] = useState<SearchCategory>('web');
 
   const shift = useAnimatedValue(0);
@@ -468,11 +472,12 @@ export default function Nexus() {
       let target = resolveInput(raw, activeEngine);
       if (!target) return;
 
-      if (target.kind === 'search' && searchCategory !== 'web') {
+      if (target.kind === 'search') {
         const catUrl = buildCategorizedSearchUrl(
           raw,
           searchCategory,
           activeEngine,
+          categories,
         );
         target = {
           url: catUrl,
@@ -500,6 +505,7 @@ export default function Nexus() {
       activeEngine,
       activeTabRef,
       browserActiveRef,
+      categories,
       navigateTab,
       openInNewTab,
       searchCategory,
@@ -998,6 +1004,17 @@ export default function Nexus() {
     setDownloads((prev) => prev.filter((d) => d.status === 'downloading'));
   }, [setDownloads]);
 
+  const handleTranslatePage = useCallback(() => {
+    const url = snapshot.url;
+    if (!url || !isWebUrl(url)) {
+      toast.show('Open a webpage first to translate it');
+      return;
+    }
+    const translateUrl = `https://translate.google.com/translate?sl=auto&tl=en&u=${encodeURIComponent(url)}`;
+    openInNewTab(translateUrl, `Translate: ${hostOf(url)}`);
+    toast.show('Translating page...');
+  }, [snapshot.url, openInNewTab, toast]);
+
   const handleOpenWindow = useCallback(
     (url: string, title?: string, options?: { private?: boolean }) => {
       openInNewTab(url, title, options);
@@ -1019,7 +1036,14 @@ export default function Nexus() {
           tabsOpen ||
           trailsOpen ||
           todayOpen ||
-          communityOpen
+          communityOpen ||
+          exploreOpen ||
+          savedOpen ||
+          downloadsOpen ||
+          notesOpen ||
+          privacyOpen ||
+          voiceSearchOpen ||
+          qrScannerOpen
         ) {
           setMenuOpen(false);
           setHistoryOpen(false);
@@ -1027,6 +1051,13 @@ export default function Nexus() {
           setTrailsOpen(false);
           setTodayOpen(false);
           setCommunityOpen(false);
+          setExploreOpen(false);
+          setSavedOpen(false);
+          setDownloadsOpen(false);
+          setNotesOpen(false);
+          setPrivacyOpen(false);
+          setVoiceSearchOpen(false);
+          setQrScannerOpen(false);
           return true;
         }
         if (browserActive) {
@@ -1047,13 +1078,20 @@ export default function Nexus() {
     browserActive,
     closeAddress,
     communityOpen,
+    downloadsOpen,
+    exploreOpen,
     goHome,
     historyOpen,
     menuOpen,
+    notesOpen,
+    privacyOpen,
+    qrScannerOpen,
+    savedOpen,
     snapshot.canGoBack,
     tabsOpen,
     todayOpen,
     trailsOpen,
+    voiceSearchOpen,
   ]);
 
   // Share intake: URLs open in a new tab, plain text becomes a search draft.
@@ -1274,14 +1312,8 @@ export default function Nexus() {
             setSearchCategory(category);
             openAddress('', true);
           }}
-          onOpenVoiceSearch={() => {
-            toast.show('Voice search ready — speak your query');
-            openAddress('', true);
-          }}
-          onOpenQrScanner={() => {
-            toast.show('Camera scanner ready');
-            openAddress('', true);
-          }}
+          onOpenVoiceSearch={() => setVoiceSearchOpen(true)}
+          onOpenQrScanner={() => setQrScannerOpen(true)}
           onOpenAi={() => {
             if (snapshot.article) {
               setAiSummaryOpen(true);
@@ -1290,8 +1322,10 @@ export default function Nexus() {
               openAddress('', true);
             }
           }}
-          onOpenApps={() => setAppsOpen(true)}
-          onOpenCollections={() => setCollectionsOpen(true)}
+          onOpenApps={() => setExploreOpen(true)}
+          onOpenExplore={() => setExploreOpen(true)}
+          onOpenSaved={() => setSavedOpen(true)}
+          onOpenCollections={() => setSavedOpen(true)}
           onOpenDownloads={() => setDownloadsOpen(true)}
           onOpenNotes={() => setNotesOpen(true)}
           onOpenPrivacy={() => setPrivacyOpen(true)}
@@ -1579,9 +1613,9 @@ export default function Nexus() {
         }}
       />
 
-      <CollectionsSheet
-        visible={collectionsOpen}
-        onClose={() => setCollectionsOpen(false)}
+      <SavedSheet
+        visible={savedOpen}
+        onClose={() => setSavedOpen(false)}
         collections={collections}
         bookmarks={bookmarks}
         activeUrl={snapshot.url}
@@ -1678,15 +1712,44 @@ export default function Nexus() {
         onOpenUrl={(url) => openInNewTab(url)}
       />
 
-      <AppsSheet
-        visible={appsOpen}
-        onClose={() => setAppsOpen(false)}
+      <ExploreSheet
+        visible={exploreOpen}
+        currentUrl={snapshot.url}
+        onClose={() => setExploreOpen(false)}
+        onOpenSearch={(category = 'web') => {
+          setSearchCategory(category);
+          openAddress('', true);
+        }}
+        onOpenVoiceSearch={() => setVoiceSearchOpen(true)}
+        onOpenQrScanner={() => setQrScannerOpen(true)}
         onOpenDownloads={() => setDownloadsOpen(true)}
         onOpenNotes={() => setNotesOpen(true)}
         onOpenPrivacy={() => setPrivacyOpen(true)}
         onOpenTrails={() => setTrailsOpen(true)}
-        onOpenArchive={() => setTodayOpen(true)}
+        onOpenHistory={() => setHistoryOpen(true)}
+        onOpenReader={openReader}
+        onOpenAiSummary={openAiSummary}
         onOpenSettings={() => openSettings()}
+        onOpenPrivateTab={openPrivateTab}
+        onTranslatePage={handleTranslatePage}
+      />
+
+      <VoiceSearchSheet
+        visible={voiceSearchOpen}
+        onClose={() => setVoiceSearchOpen(false)}
+        onSubmit={(query) => {
+          setVoiceSearchOpen(false);
+          submitAddress(query);
+        }}
+      />
+
+      <QRScannerSheet
+        visible={qrScannerOpen}
+        onClose={() => setQrScannerOpen(false)}
+        onOpenUrl={(url) => {
+          setQrScannerOpen(false);
+          openInNewTab(url);
+        }}
       />
     </View>
   );

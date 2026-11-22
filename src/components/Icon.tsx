@@ -49,7 +49,13 @@ export type IconName =
   | 'grid'
   | 'image'
   | 'newspaper'
-  | 'video';
+  | 'video'
+  | 'compass'
+  | 'calculator'
+  | 'timer'
+  | 'clipboard'
+  | 'code'
+  | 'fileText';
 
 function content(name: IconName, color: string): ReactNode {
   switch (name) {
@@ -378,6 +384,60 @@ function content(name: IconName, color: string): ReactNode {
         <>
           <Path d="m22 8-6 4 6 4V8Z" />
           <Rect width="14" height="12" x="2" y="6" rx="2" />
+        </>
+      );
+    case 'compass':
+      return (
+        <>
+          <Circle cx="12" cy="12" r="10" />
+          <Path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z" />
+        </>
+      );
+    case 'calculator':
+      return (
+        <>
+          <Rect width="16" height="20" x="4" y="2" rx="2" />
+          <Path d="M8 6h8" />
+          <Path d="M16 14v4" />
+          <Path d="M16 10h.01" />
+          <Path d="M12 10h.01" />
+          <Path d="M8 10h.01" />
+          <Path d="M12 14h.01" />
+          <Path d="M8 14h.01" />
+          <Path d="M12 18h.01" />
+          <Path d="M8 18h.01" />
+        </>
+      );
+    case 'timer':
+      return (
+        <>
+          <Circle cx="12" cy="14" r="8" />
+          <Path d="M12 2v4" />
+          <Path d="M12 14l3-3" />
+        </>
+      );
+    case 'clipboard':
+      return (
+        <>
+          <Rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+          <Path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+        </>
+      );
+    case 'code':
+      return (
+        <>
+          <Path d="m16 18 6-6-6-6" />
+          <Path d="m8 6-6 6 6 6" />
+        </>
+      );
+    case 'fileText':
+      return (
+        <>
+          <Path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+          <Path d="M14 2v4a2 2 0 0 0 2 2h4" />
+          <Path d="M10 9H8" />
+          <Path d="M16 13H8" />
+          <Path d="M16 17H8" />
         </>
       );
     default:
