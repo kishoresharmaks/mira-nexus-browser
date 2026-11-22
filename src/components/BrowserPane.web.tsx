@@ -32,6 +32,7 @@ type Props = {
   onVisit: (url: string, title: string) => void;
   onGoHome: () => void;
   onOpenWindow?: (url: string, title?: string) => void;
+  onScrollChange?: (visible: boolean) => void;
 };
 
 /**

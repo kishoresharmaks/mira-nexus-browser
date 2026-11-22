@@ -16,6 +16,8 @@ import {
   StyleSheet,
   Text,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
@@ -56,6 +58,8 @@ type Props = {
   onGoHome: () => void;
   /** A page asked for a new window. The shell decides whether to make a tab. */
   onOpenWindow?: (url: string, title?: string) => void;
+  /** Notifies the shell when scroll direction changes to auto-hide the toolbar */
+  onScrollChange?: (visible: boolean) => void;
 };
 
 type LoadError = {
@@ -98,6 +102,83 @@ const PAUSE_MEDIA = `
   true;
 `;
 
+const PAGE_INSET_AND_SCROLL_SCRIPT = `
+  (function () {
+    try {
+      function injectBottomSpacer() {
+        var styleId = 'nexus-bottom-inset-style';
+        if (!document.getElementById(styleId)) {
+          var style = document.createElement('style');
+          style.id = styleId;
+          style.textContent = 'html, body { padding-bottom: 124px !important; }';
+          (document.head || document.documentElement).appendChild(style);
+        }
+
+        var spacerId = 'nexus-bottom-spacer';
+        if (!document.getElementById(spacerId) && document.body) {
+          var spacer = document.createElement('div');
+          spacer.id = spacerId;
+          spacer.setAttribute('aria-hidden', 'true');
+          spacer.style.cssText = 'height: 124px !important; width: 100% !important; margin: 0 !important; padding: 0 !important; pointer-events: none !important; background: transparent !important; clear: both !important; display: block !important;';
+          document.body.appendChild(spacer);
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', injectBottomSpacer);
+      } else {
+        injectBottomSpacer();
+      }
+      window.addEventListener('load', injectBottomSpacer);
+
+      if (window.MutationObserver && document.body) {
+        var observer = new MutationObserver(function () {
+          if (!document.getElementById('nexus-bottom-spacer') && document.body) {
+            injectBottomSpacer();
+          }
+        });
+        observer.observe(document.body, { childList: true, subtree: false });
+      }
+
+      if (!window.__nexusScrollAttached) {
+        window.__nexusScrollAttached = true;
+        var lastY = window.scrollY || window.pageYOffset || 0;
+        var ticking = false;
+
+        window.addEventListener('scroll', function () {
+          if (!ticking) {
+            window.requestAnimationFrame(function () {
+              var y = window.scrollY || window.pageYOffset || 0;
+              var delta = y - lastY;
+              if (y <= 35) {
+                if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+                  window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'NEXUS_SCROLL',
+                    payload: { visible: true, y: y }
+                  }));
+                }
+                lastY = y;
+              } else if (Math.abs(delta) > 20) {
+                if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+                  window.ReactNativeWebView.postMessage(JSON.stringify({
+                    type: 'NEXUS_SCROLL',
+                    payload: { visible: delta < 0, y: y }
+                  }));
+                }
+                lastY = y;
+              }
+              ticking = false;
+            });
+            ticking = true;
+          }
+        }, { passive: true });
+      }
+    } catch (e) {}
+    return true;
+  })();
+  true;
+`;
+
 export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane(
   {
     initialUrl,
@@ -107,6 +188,7 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
     onVisit,
     onGoHome,
     onOpenWindow,
+    onScrollChange,
   },
   ref,
 ) {
@@ -136,6 +218,34 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
   });
 
   const curtain = useAnimatedValue(1);
+
+  const lastYRef = useRef(0);
+  const isVisibleRef = useRef(true);
+
+  const handleScrollDelta = useCallback(
+    (currentY: number) => {
+      if (currentY <= 35) {
+        if (!isVisibleRef.current) {
+          isVisibleRef.current = true;
+          onScrollChange?.(true);
+        }
+        lastYRef.current = currentY;
+        return;
+      }
+
+      const delta = currentY - lastYRef.current;
+      if (delta > 20 && isVisibleRef.current) {
+        isVisibleRef.current = false;
+        onScrollChange?.(false);
+        lastYRef.current = currentY;
+      } else if (delta < -20 && !isVisibleRef.current) {
+        isVisibleRef.current = true;
+        onScrollChange?.(true);
+        lastYRef.current = currentY;
+      }
+    },
+    [onScrollChange],
+  );
 
   const snapshotListener = useRef(onSnapshot);
   snapshotListener.current = onSnapshot;
@@ -278,6 +388,9 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
     errorRef.current = null;
     setError(null);
     setProgress(START_PROGRESS);
+    isVisibleRef.current = true;
+    lastYRef.current = 0;
+    onScrollChange?.(true);
 
     const nextUrl = isWebUrl(url) ? url : urlRef.current;
     if (isWebUrl(nextUrl)) {
@@ -326,6 +439,7 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
     finishLoad();
     recordVisit(urlRef.current, titleRef.current);
     extractArticle();
+    webRef.current?.injectJavaScript(PAGE_INSET_AND_SCROLL_SCRIPT);
   };
 
   const handleError = (error: LoadError) => {
@@ -447,6 +561,11 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
           refreshControlLightMode={mode === 'light'}
           applicationNameForUserAgent="Nexus/1.0"
           webviewDebuggingEnabled={__DEV__}
+          injectedJavaScriptBeforeContentLoaded={PAGE_INSET_AND_SCROLL_SCRIPT}
+          onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+            const currentY = event.nativeEvent.contentOffset?.y ?? 0;
+            handleScrollDelta(currentY);
+          }}
           onLoadStart={(event) => handleLoadStart(event.nativeEvent.url)}
           onLoadProgress={(event) =>
             setProgress(Math.min(1, Math.max(0.04, event.nativeEvent.progress)))
@@ -462,6 +581,16 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
                   ...previous,
                   article,
                 }));
+              } else if (data && data.type === 'NEXUS_SCROLL') {
+                if (typeof data.payload?.visible === 'boolean') {
+                  if (isVisibleRef.current !== data.payload.visible) {
+                    isVisibleRef.current = data.payload.visible;
+                    onScrollChange?.(data.payload.visible);
+                  }
+                  if (typeof data.payload?.y === 'number') {
+                    lastYRef.current = data.payload.y;
+                  }
+                }
               }
             } catch {}
           }}

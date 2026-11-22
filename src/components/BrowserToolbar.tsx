@@ -1,8 +1,10 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useEffect } from 'react';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useCatalogConfig } from '@/lib/catalog-provider';
 import { haptic } from '@/lib/haptics';
 import { getDisplayUrl } from '@/lib/url';
+import { useAnimatedValue } from '@/lib/useAnimatedValue';
 import { fonts, softShadow } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { CommunityThread, PageSnapshot } from '@/types';
@@ -12,6 +14,7 @@ import { IconButton } from './IconButton';
 import { PressableScale } from './PressableScale';
 
 type Props = {
+  visible?: boolean;
   snapshot: PageSnapshot;
   tabCount: number;
   privateTab?: boolean;
@@ -29,6 +32,7 @@ type Props = {
 };
 
 export function BrowserToolbar({
+  visible = true,
   snapshot,
   tabCount,
   privateTab = false,
@@ -50,10 +54,27 @@ export function BrowserToolbar({
   const display = getDisplayUrl(snapshot.url, engines);
   const empty = !snapshot.url;
 
+  const translateY = useAnimatedValue(0);
+
+  useEffect(() => {
+    Animated.timing(translateY, {
+      toValue: visible ? 0 : 160 + insets.bottom,
+      duration: 250,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [visible, insets.bottom, translateY]);
+
   return (
-    <View
-      pointerEvents="box-none"
-      style={[styles.host, { bottom: insets.bottom + 10 }]}
+    <Animated.View
+      pointerEvents={visible ? 'box-none' : 'none'}
+      style={[
+        styles.host,
+        {
+          bottom: insets.bottom + 10,
+          transform: [{ translateY }],
+        },
+      ]}
     >
       {privateTab ? (
         <View pointerEvents="box-none" style={styles.privateRow}>
@@ -234,7 +255,7 @@ export function BrowserToolbar({
           }}
         />
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

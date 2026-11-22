@@ -171,6 +171,7 @@ export default function Nexus() {
   const [privateInfoOpen, setPrivateInfoOpen] = useState(false);
   const [addressPrivate, setAddressPrivate] = useState(false);
   const [appState, setAppState] = useState(AppState.currentState);
+  const [toolbarVisible, setToolbarVisible] = useState(true);
 
   const shift = useAnimatedValue(0);
   const browserRefs = useRef(new Map<string, BrowserHandle>());
@@ -261,6 +262,7 @@ export default function Nexus() {
         ),
       );
       setActiveTabId(id);
+      setToolbarVisible(true);
       revealBrowser();
     },
     [revealBrowser, tabsRef],
@@ -368,6 +370,7 @@ export default function Nexus() {
       }
 
       setActiveTabId(id);
+      setToolbarVisible(true);
       revealBrowser();
     },
     [revealBrowser, tabsRef],
@@ -384,6 +387,7 @@ export default function Nexus() {
       addressNewTabRef.current = newTab;
       setAddressPrivate(inPrivateRoom);
       setAddressSeed(seed);
+      setToolbarVisible(true);
       setAddressOpen(true);
     },
     [activeTabRef, browserActiveRef, tabsRef],
@@ -439,6 +443,7 @@ export default function Nexus() {
 
   const openTabs = useCallback(() => {
     haptic.tap();
+    setToolbarVisible(true);
     setTabsOpen(true);
   }, []);
 
@@ -1179,6 +1184,11 @@ export default function Nexus() {
                     onOpenWindow={(url, title) =>
                       handleOpenWindow(url, title, { private: tab.private })
                     }
+                    onScrollChange={(visible) => {
+                      if (tab.id === activeTabId) {
+                        setToolbarVisible(visible);
+                      }
+                    }}
                   />
                 )}
               </ThemeScope>
@@ -1189,6 +1199,7 @@ export default function Nexus() {
         {tabs.length > 0 ? (
           <ThemeScope theme={privateChrome ? privateTheme : theme}>
             <BrowserToolbar
+              visible={toolbarVisible}
               snapshot={snapshot}
               tabCount={tabs.length}
               privateTab={privateChrome}
@@ -1331,7 +1342,9 @@ export default function Nexus() {
       {privateChrome && appState !== 'active' ? <PrivateVeil /> : null}
 
       <AudioPlayerBar
-        bottomOffset={insets.bottom + (tabs.length > 0 ? 84 : 20)}
+        bottomOffset={
+          insets.bottom + (tabs.length > 0 ? (toolbarVisible ? 84 : 14) : 20)
+        }
         onOpenReader={snapshot.article ? openReader : undefined}
       />
 
