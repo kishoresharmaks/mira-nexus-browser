@@ -3,7 +3,7 @@
     "name": "Nexus",
     "slug": "mira-browser",
     "scheme": "nexus",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "com.nexus.browser",
-      "versionCode": 9,
+      "versionCode": 10,
       "allowBackup": false,
       "permissions": [
         "android.permission.INTERNET",
