@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "com.nexus.browser",
-      "versionCode": 10,
+      "versionCode": 11,
       "allowBackup": false,
       "permissions": [
         "android.permission.INTERNET",
