@@ -304,7 +304,7 @@ notes.
 
 Questions about this policy or about data in Nexus:
 
-**REPLACE_WITH_YOUR_EMAIL@example.com**
+**krishkishoreks@gmail.com**
 
 This address must be replaced with a monitored contact before publishing to
 Google Play.
