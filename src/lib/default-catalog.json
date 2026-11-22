@@ -5,10 +5,14 @@
     "defaultEngineId":  "duckduckgo",
     "ads":  {
                 "enabled":  true,
-                "testMode":  true,
+                "bannerEnabled":  true,
+                "rewardedEnabled":  true,
+                "testMode":  false,
                 "layout":  "anchored",
                 "androidUnitId":  "ca-app-pub-3076513882745753/7545779992",
-                "iosUnitId":  ""
+                "iosUnitId":  "",
+                "androidRewardedUnitId":  "ca-app-pub-3076513882745753/4482301258",
+                "iosRewardedUnitId":  ""
             },
     "engines":  [
                     {

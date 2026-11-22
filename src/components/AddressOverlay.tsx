@@ -14,6 +14,7 @@ import {
   type TextStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAds } from '@/lib/ads-provider';
 import { useCatalogConfig } from '@/lib/catalog-provider';
 import { haptic } from '@/lib/haptics';
 import { relativeTime } from '@/lib/time';
@@ -66,6 +67,7 @@ export function AddressOverlay({
 }: Props) {
   const { theme, mode } = useTheme();
   const { activeEngine } = useCatalogConfig();
+  const { ads, showRewardedAd } = useAds();
   const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(visible);
   const [query, setQuery] = useState(initialValue);
@@ -343,7 +345,13 @@ export function AddressOverlay({
             <SuggestionGroup
               label="SHORTCUTS"
               items={shortcutSuggestions}
-              onPress={(item) => submit(item.url)}
+              onPress={(item) => {
+                if (ads.rewardedEnabled) {
+                  showRewardedAd(() => submit(item.url));
+                } else {
+                  submit(item.url);
+                }
+              }}
             />
           ) : null}
 

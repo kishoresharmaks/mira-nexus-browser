@@ -4,11 +4,15 @@
   "publishedAt": "2026-10-27T00:00:00.000Z",
   "defaultEngineId": "duckduckgo",
   "ads": {
-    "enabled": false,
-    "testMode": true,
-    "layout": "inline",
-    "androidUnitId": "",
-    "iosUnitId": ""
+    "enabled": true,
+    "bannerEnabled": true,
+    "rewardedEnabled": true,
+    "testMode": false,
+    "layout": "anchored",
+    "androidUnitId": "ca-app-pub-3076513882745753/7545779992",
+    "iosUnitId": "",
+    "androidRewardedUnitId": "ca-app-pub-3076513882745753/4482301258",
+    "iosRewardedUnitId": ""
   },
   "engines": [
     {

@@ -5,10 +5,14 @@ export type AdsLayout = 'inline' | 'anchored';
 
 export type AdsConfig = {
   enabled: boolean;
+  bannerEnabled?: boolean;
+  rewardedEnabled?: boolean;
   testMode: boolean;
   layout: AdsLayout;
   androidUnitId: string;
   iosUnitId: string;
+  androidRewardedUnitId?: string;
+  iosRewardedUnitId?: string;
 };
 
 export type SearchEngine = {
@@ -63,10 +67,14 @@ function cleanId(value: unknown): string {
 
 export const DEFAULT_ADS: AdsConfig = {
   enabled: false,
+  bannerEnabled: false,
+  rewardedEnabled: false,
   testMode: true,
   layout: 'inline',
   androidUnitId: '',
   iosUnitId: '',
+  androidRewardedUnitId: '',
+  iosRewardedUnitId: '',
 };
 
 export function isAdUnitId(value: string): boolean {
@@ -75,8 +83,16 @@ export function isAdUnitId(value: string): boolean {
 
 function normalizeAds(value: unknown): AdsConfig {
   if (!isRecord(value)) return { ...DEFAULT_ADS };
+  const bannerEnabled =
+    typeof value.bannerEnabled === 'boolean'
+      ? value.bannerEnabled
+      : value.enabled === true;
+  const rewardedEnabled = value.rewardedEnabled === true;
+
   return {
-    enabled: value.enabled === true,
+    enabled: bannerEnabled,
+    bannerEnabled,
+    rewardedEnabled,
     testMode: value.testMode !== false,
     layout: value.layout === 'anchored' ? 'anchored' : 'inline',
     androidUnitId:
@@ -86,6 +102,14 @@ function normalizeAds(value: unknown): AdsConfig {
     iosUnitId:
       typeof value.iosUnitId === 'string'
         ? value.iosUnitId.trim().slice(0, 64)
+        : '',
+    androidRewardedUnitId:
+      typeof value.androidRewardedUnitId === 'string'
+        ? value.androidRewardedUnitId.trim().slice(0, 64)
+        : '',
+    iosRewardedUnitId:
+      typeof value.iosRewardedUnitId === 'string'
+        ? value.iosRewardedUnitId.trim().slice(0, 64)
         : '',
   };
 }

@@ -9,6 +9,11 @@ export type BannerUnit = {
   testMode: boolean;
 };
 
+export type RewardedUnit = {
+  unitId: string | null;
+  testMode: boolean;
+};
+
 let modulePromise: Promise<AdsModule | null> | null = null;
 
 /**
@@ -36,13 +41,40 @@ export function resolveBannerUnit(
   module: AdsModule,
   ads: AdsConfig,
 ): BannerUnit {
+  const isEnabled = ads.bannerEnabled ?? ads.enabled;
   const testMode = __DEV__ || ads.testMode;
+  if (!isEnabled) {
+    return { unitId: null, testMode };
+  }
   if (testMode) {
     return { unitId: module.TestIds.ADAPTIVE_BANNER, testMode: true };
   }
 
   const configured =
     Platform.OS === 'ios' ? ads.iosUnitId : ads.androidUnitId;
+  return {
+    unitId: isAdUnitId(configured) ? configured : null,
+    testMode: false,
+  };
+}
+
+export function resolveRewardedUnit(
+  module: AdsModule,
+  ads: AdsConfig,
+): RewardedUnit {
+  const isEnabled = ads.rewardedEnabled === true;
+  const testMode = __DEV__ || ads.testMode;
+  if (!isEnabled) {
+    return { unitId: null, testMode };
+  }
+  if (testMode) {
+    return { unitId: module.TestIds.REWARDED_INTERSTITIAL, testMode: true };
+  }
+
+  const configured =
+    Platform.OS === 'ios'
+      ? ads.iosRewardedUnitId || ''
+      : ads.androidRewardedUnitId || '';
   return {
     unitId: isAdUnitId(configured) ? configured : null,
     testMode: false,

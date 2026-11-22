@@ -4,10 +4,14 @@ export type AdsLayout = 'inline' | 'anchored';
 
 export type AdsConfig = {
   enabled: boolean;
+  bannerEnabled?: boolean;
+  rewardedEnabled?: boolean;
   testMode: boolean;
   layout: AdsLayout;
   androidUnitId: string;
   iosUnitId: string;
+  androidRewardedUnitId?: string;
+  iosRewardedUnitId?: string;
 };
 
 export type Engine = {
@@ -85,10 +89,14 @@ const AD_UNIT_ID = /^ca-app-pub-\d{16}\/\d{10}$/;
 
 export const DEFAULT_ADS: AdsConfig = {
   enabled: false,
+  bannerEnabled: false,
+  rewardedEnabled: false,
   testMode: true,
   layout: 'inline',
   androidUnitId: '',
   iosUnitId: '',
+  androidRewardedUnitId: '',
+  iosRewardedUnitId: '',
 };
 
 export function isAdUnitId(value: string): boolean {
@@ -261,12 +269,22 @@ function enabledEngineIds(catalog: Catalog): Set<string> {
  */
 export function coerceAds(value: unknown): AdsConfig {
   if (!isRecord(value)) return { ...DEFAULT_ADS };
+  const bannerEnabled =
+    typeof value.bannerEnabled === 'boolean'
+      ? value.bannerEnabled
+      : value.enabled === true;
+  const rewardedEnabled = value.rewardedEnabled === true;
+
   return {
-    enabled: value.enabled === true,
+    enabled: bannerEnabled,
+    bannerEnabled,
+    rewardedEnabled,
     testMode: value.testMode !== false,
     layout: value.layout === 'anchored' ? 'anchored' : 'inline',
     androidUnitId: text(value.androidUnitId, 64),
     iosUnitId: text(value.iosUnitId, 64),
+    androidRewardedUnitId: text(value.androidRewardedUnitId, 64),
+    iosRewardedUnitId: text(value.iosRewardedUnitId, 64),
   };
 }
 
@@ -425,28 +443,55 @@ export function validateCatalog(catalog: Catalog): Issue[] {
   }
 
   const ads = catalog.ads;
-  if (ads.enabled && !ads.testMode) {
+  const bannerActive = ads.bannerEnabled ?? ads.enabled;
+  if (bannerActive && !ads.testMode) {
     const androidValid = isAdUnitId(ads.androidUnitId);
     const iosValid = isAdUnitId(ads.iosUnitId);
     if (ads.androidUnitId && !androidValid) {
       issues.push({
-        at: 'Android ad unit',
+        at: 'Android banner ad unit',
         message:
           'Use a live Android unit ID in the form ca-app-pub-<16 digits>/<10 digits>.',
       });
     }
     if (ads.iosUnitId && !iosValid) {
       issues.push({
-        at: 'iOS ad unit',
+        at: 'iOS banner ad unit',
         message:
           'Use a live iOS unit ID in the form ca-app-pub-<16 digits>/<10 digits>.',
       });
     }
     if (!androidValid && !iosValid) {
       issues.push({
-        at: 'Ads',
+        at: 'Banner Ads',
         message:
-          'Add a valid Android or iOS ad unit ID, or turn test mode back on.',
+          'Add a valid Android or iOS banner ad unit ID, or turn test mode back on.',
+      });
+    }
+  }
+
+  if (ads.rewardedEnabled && !ads.testMode) {
+    const androidValid = isAdUnitId(ads.androidRewardedUnitId || '');
+    const iosValid = isAdUnitId(ads.iosRewardedUnitId || '');
+    if (ads.androidRewardedUnitId && !androidValid) {
+      issues.push({
+        at: 'Android rewarded ad unit',
+        message:
+          'Use a live Android unit ID in the form ca-app-pub-<16 digits>/<10 digits>.',
+      });
+    }
+    if (ads.iosRewardedUnitId && !iosValid) {
+      issues.push({
+        at: 'iOS rewarded ad unit',
+        message:
+          'Use a live iOS unit ID in the form ca-app-pub-<16 digits>/<10 digits>.',
+      });
+    }
+    if (!androidValid && !iosValid) {
+      issues.push({
+        at: 'Rewarded Ads',
+        message:
+          'Add a valid Android or iOS rewarded ad unit ID, or turn test mode back on.',
       });
     }
   }

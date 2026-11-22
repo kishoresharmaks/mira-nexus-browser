@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAds } from '@/lib/ads-provider';
 import { useCatalogConfig } from '@/lib/catalog-provider';
 import { haptic } from '@/lib/haptics';
 import { relativeTime } from '@/lib/time';
@@ -91,6 +92,7 @@ export function HomeScreen({
 }: Props) {
   const { theme, mode } = useTheme();
   const { activeEngine, engines } = useCatalogConfig();
+  const { ads, showRewardedAd } = useAds();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [editing, setEditing] = useState(false);
@@ -535,7 +537,13 @@ export function HomeScreen({
                           onRemoveShortcut(shortcut);
                         } else {
                           haptic.tap();
-                          onOpenUrl(shortcut.url);
+                          if (ads.rewardedEnabled) {
+                            showRewardedAd(() => {
+                              onOpenUrl(shortcut.url);
+                            });
+                          } else {
+                            onOpenUrl(shortcut.url);
+                          }
                         }
                       }}
                     />

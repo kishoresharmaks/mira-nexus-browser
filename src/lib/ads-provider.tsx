@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -13,6 +14,7 @@ import {
   loadAdsModule,
   requestTrackingPermission,
   resolveBannerUnit,
+  resolveRewardedUnit,
   type AdsModule,
 } from '@/lib/ads';
 import { useCatalogConfig } from '@/lib/catalog-provider';
@@ -24,11 +26,17 @@ type AdsContextValue = {
   ads: AdsConfig;
   module: AdsModule | null;
   phase: AdsPhase;
-  /** Consent is settled and the SDK is initialized. */
+  /** Overall SDK initialized and ready */
+  sdkReady: boolean;
+  /** Consent settled, SDK ready, banner enabled, and valid unit configured. */
   ready: boolean;
+  bannerReady: boolean;
+  rewardedReady: boolean;
   /** Development builds always force Google test units. */
   testMode: boolean;
   unitId: string | null;
+  rewardedUnitId: string | null;
+  showRewardedAd: (onComplete?: () => void) => Promise<boolean>;
   privacyOptionsRequired: boolean;
   showPrivacyOptions: () => Promise<boolean>;
 };
@@ -37,17 +45,30 @@ const AdsContext = createContext<AdsContextValue | null>(null);
 
 export function AdsProvider({ children }: { children: ReactNode }) {
   const { ads } = useCatalogConfig();
-  const enabled = ads.enabled;
+  const bannerActive = (ads.bannerEnabled ?? ads.enabled) === true;
+  const rewardedActive = ads.rewardedEnabled === true;
+  const anyAdsEnabled = bannerActive || rewardedActive;
+
   const [module, setModule] = useState<AdsModule | null>(null);
-  const [phase, setPhase] = useState<AdsPhase>(enabled ? 'preparing' : 'off');
+  const [phase, setPhase] = useState<AdsPhase>(
+    anyAdsEnabled ? 'preparing' : 'off',
+  );
   const [privacyOptionsRequired, setPrivacyOptionsRequired] = useState(false);
+  const [rewardedLoaded, setRewardedLoaded] = useState(false);
+
+  const rewardedAdRef = useRef<any>(null);
+  const loadRewardedAdRef = useRef<() => void>(() => {});
+  const rewardedCallbacksRef = useRef<{
+    onComplete?: () => void;
+    timer?: ReturnType<typeof setTimeout>;
+  }>({});
 
   useEffect(() => {
     let alive = true;
     setPrivacyOptionsRequired(false);
     setModule(null);
 
-    if (!enabled) {
+    if (!anyAdsEnabled) {
       setPhase('off');
       return () => {
         alive = false;
@@ -112,7 +133,7 @@ export function AdsProvider({ children }: { children: ReactNode }) {
     return () => {
       alive = false;
     };
-  }, [enabled]);
+  }, [anyAdsEnabled]);
 
   const showPrivacyOptions = useCallback(async (): Promise<boolean> => {
     if (!module) return false;
@@ -146,27 +167,187 @@ export function AdsProvider({ children }: { children: ReactNode }) {
     return resolveBannerUnit(module, ads);
   }, [ads, module]);
 
+  const rewarded = useMemo(() => {
+    if (!module) {
+      return { unitId: null, testMode: __DEV__ || ads.testMode };
+    }
+    return resolveRewardedUnit(module, ads);
+  }, [ads, module]);
+
+  const loadRewardedAd = useCallback(() => {
+    if (!module || !rewarded.unitId || !ads.rewardedEnabled) {
+      setRewardedLoaded(false);
+      return;
+    }
+
+    try {
+      if (rewardedAdRef.current) {
+        try {
+          rewardedAdRef.current.removeAllListeners();
+        } catch {}
+        rewardedAdRef.current = null;
+      }
+
+      const ad = module.RewardedInterstitialAd.createForAdRequest(
+        rewarded.unitId,
+        {
+          requestNonPersonalizedAdsOnly: false,
+        },
+      );
+
+      ad.addAdEventListener(module.RewardedAdEventType.LOADED, () => {
+        setRewardedLoaded(true);
+      });
+
+      ad.addAdEventListener(module.AdEventType.CLOSED, () => {
+        setRewardedLoaded(false);
+        const cb = rewardedCallbacksRef.current.onComplete;
+        if (cb) {
+          rewardedCallbacksRef.current.onComplete = undefined;
+          if (rewardedCallbacksRef.current.timer) {
+            clearTimeout(rewardedCallbacksRef.current.timer);
+            rewardedCallbacksRef.current.timer = undefined;
+          }
+          cb();
+        }
+        loadRewardedAdRef.current();
+      });
+
+      ad.addAdEventListener(module.RewardedAdEventType.EARNED_REWARD, () => {
+        // User earned reward
+      });
+
+      ad.addAdEventListener(module.AdEventType.ERROR, () => {
+        setRewardedLoaded(false);
+        const cb = rewardedCallbacksRef.current.onComplete;
+        if (cb) {
+          rewardedCallbacksRef.current.onComplete = undefined;
+          if (rewardedCallbacksRef.current.timer) {
+            clearTimeout(rewardedCallbacksRef.current.timer);
+            rewardedCallbacksRef.current.timer = undefined;
+          }
+          cb();
+        }
+      });
+
+      rewardedAdRef.current = ad;
+      ad.load();
+    } catch {
+      setRewardedLoaded(false);
+    }
+  }, [ads.rewardedEnabled, module, rewarded.unitId]);
+
+  useEffect(() => {
+    loadRewardedAdRef.current = loadRewardedAd;
+  }, [loadRewardedAd]);
+
+  useEffect(() => {
+    if (phase === 'ready' && ads.rewardedEnabled && rewarded.unitId) {
+      loadRewardedAd();
+    } else {
+      setRewardedLoaded(false);
+      if (rewardedAdRef.current) {
+        try {
+          rewardedAdRef.current.removeAllListeners();
+        } catch {}
+        rewardedAdRef.current = null;
+      }
+    }
+  }, [ads.rewardedEnabled, loadRewardedAd, phase, rewarded.unitId]);
+
+  useEffect(() => {
+    return () => {
+      if (rewardedCallbacksRef.current.timer) {
+        clearTimeout(rewardedCallbacksRef.current.timer);
+      }
+      if (rewardedAdRef.current) {
+        try {
+          rewardedAdRef.current.removeAllListeners();
+        } catch {}
+      }
+    };
+  }, []);
+
+  const showRewardedAd = useCallback(
+    async (onComplete?: () => void): Promise<boolean> => {
+      if (!ads.rewardedEnabled || !rewardedLoaded || !rewardedAdRef.current) {
+        onComplete?.();
+        if (ads.rewardedEnabled && phase === 'ready' && rewarded.unitId) {
+          loadRewardedAd();
+        }
+        return false;
+      }
+
+      try {
+        const timer = setTimeout(() => {
+          const cb = rewardedCallbacksRef.current.onComplete;
+          if (cb) {
+            rewardedCallbacksRef.current.onComplete = undefined;
+            cb();
+          }
+        }, 15000);
+
+        rewardedCallbacksRef.current = {
+          onComplete,
+          timer,
+        };
+
+        await rewardedAdRef.current.show();
+        return true;
+      } catch {
+        if (rewardedCallbacksRef.current.timer) {
+          clearTimeout(rewardedCallbacksRef.current.timer);
+          rewardedCallbacksRef.current.timer = undefined;
+        }
+        const cb = rewardedCallbacksRef.current.onComplete;
+        rewardedCallbacksRef.current.onComplete = undefined;
+        cb?.();
+        loadRewardedAd();
+        return false;
+      }
+    },
+    [ads.rewardedEnabled, loadRewardedAd, phase, rewarded.unitId, rewardedLoaded],
+  );
+
+  const bannerReady =
+    phase === 'ready' && Boolean(banner.unitId) && bannerActive;
+  const rewardedReady =
+    phase === 'ready' &&
+    Boolean(rewarded.unitId) &&
+    rewardedActive &&
+    rewardedLoaded;
+
   const value = useMemo<AdsContextValue>(
     () => ({
       ads,
       module,
       phase,
-      ready:
-        phase === 'ready' && Boolean(banner.unitId) && ads.enabled,
-      testMode: banner.testMode,
+      sdkReady: phase === 'ready',
+      ready: bannerReady,
+      bannerReady,
+      rewardedReady,
+      testMode: banner.testMode || rewarded.testMode,
       unitId: banner.unitId,
+      rewardedUnitId: rewarded.unitId,
+      showRewardedAd,
       privacyOptionsRequired:
-        ads.enabled && Boolean(module) && privacyOptionsRequired,
+        anyAdsEnabled && Boolean(module) && privacyOptionsRequired,
       showPrivacyOptions,
     }),
     [
       ads,
+      anyAdsEnabled,
       banner.testMode,
       banner.unitId,
+      bannerReady,
       module,
       phase,
       privacyOptionsRequired,
+      rewarded.testMode,
+      rewarded.unitId,
+      rewardedReady,
       showPrivacyOptions,
+      showRewardedAd,
     ],
   );
 
