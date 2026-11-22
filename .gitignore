@@ -48,3 +48,10 @@ yarn-error.*
 # build artifacts
 *.apk
 *.aab
+
+# Admin portal build & dependencies
+admin/node_modules/
+admin/.next/
+admin/.data/
+.next/
+

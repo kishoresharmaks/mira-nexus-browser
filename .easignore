@@ -1,0 +1,55 @@
+# Dependencies (installed fresh during cloud build)
+node_modules
+admin/node_modules
+
+# Admin portal (separate Next.js web application, not part of mobile app)
+admin
+.next
+**/.next
+
+# Generated native directories (Continuous Native Generation prebuilds on EAS)
+android
+ios
+.kotlin
+
+# Local build artifacts & binaries
+*.apk
+*.aab
+3.apk
+application-*.aab
+
+# Keystores & credentials
+*.jks
+*.keystore
+*.keystore.b64
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Expo & Web build outputs
+.expo
+dist
+web-build
+expo-env.d.ts
+
+# Git & tooling metadata
+.git
+.github
+.claude
+.hallmark
+
+# Documentation & non-mobile assets
+docs
+catalog
+scripts
+*.md
+
+# Logs & temp files
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.tsbuildinfo
+.DS_Store
+.env*.local
