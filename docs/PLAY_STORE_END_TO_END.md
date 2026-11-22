@@ -1,4 +1,4 @@
-# Nexus — Play Store Publishing: End-to-End Guide
+﻿# Nexus â€” Play Store Publishing: End-to-End Guide
 
 Complete step-by-step instructions from generating the upload keystore to
 publishing on Google Play. This document is written for Windows + PowerShell
@@ -7,7 +7,7 @@ and for the GitHub Actions CI build path used by this repo.
 It assumes:
 - The repo is at `https://github.com/kishoresharmaks/mira-nexus-browser.git`
 - Package ID: `com.nexus.browser`
-- Admin catalog desk deployed at: `https://8443-agq7z3cbkhepfciyjxeaj2wabi.instabox.tech`
+- Admin catalog desk deployed at: `https://mira.nexusnation.in`
 - Support email: `krishkishoreks@gmail.com`
 
 ---
@@ -28,7 +28,7 @@ It assumes:
 
 ## 1. Prerequisites
 
-- A Google Play developer account (you already have one — $25 one-time fee)
+- A Google Play developer account (you already have one â€” $25 one-time fee)
 - Java 17 JDK installed (for `keytool`)
 - Git access to the repository
 - Ability to sign in to GitHub and Google Play Console
@@ -45,7 +45,7 @@ keytool -version
 ## 2. Generate the Upload Keystore
 
 Run this **once**, on your local machine. Keep the output file and both
-passwords safe — you cannot update the app under the same Play listing without
+passwords safe â€” you cannot update the app under the same Play listing without
 this keystore.
 
 ```powershell
@@ -56,10 +56,10 @@ keytool -genkeypair -v `
 ```
 
 `keytool` will prompt for:
-1. **Keystore password** — choose a strong, unique password (save it in a password manager).
-2. **First and last name** — your name or organization.
-3. **Organizational unit, organization, city, state, country code** — optional, press Enter to skip.
-4. **Key password** — press Enter to reuse the keystore password, or set a different one.
+1. **Keystore password** â€” choose a strong, unique password (save it in a password manager).
+2. **First and last name** â€” your name or organization.
+3. **Organizational unit, organization, city, state, country code** â€” optional, press Enter to skip.
+4. **Key password** â€” press Enter to reuse the keystore password, or set a different one.
 
 ### Back up the keystore
 
@@ -87,7 +87,7 @@ After uploading the secret to GitHub, delete `nexus-upload.keystore.b64`.
 Edit `app.json` in the repo root. This is the single source of truth for app
 identity, signing metadata, AdMob IDs, and the catalog URL.
 
-### 3.1 AdMob App IDs (REQUIRED — replace test IDs)
+### 3.1 AdMob App IDs (REQUIRED â€” replace test IDs)
 
 Current test IDs (do NOT use these in production):
 
@@ -102,9 +102,9 @@ Current test IDs (do NOT use these in production):
 **Production values you must set:**
 
 1. Sign in to [AdMob](https://apps.admob.com/) with your Google account.
-2. **Apps → Add app** → "Nexus — A Quieter Browser" → Android.
+2. **Apps â†’ Add app** â†’ "Nexus â€” A Quieter Browser" â†’ Android.
 3. Copy the **App ID** (format: `ca-app-pub-XXXXXXXXXXXXXXXX~YYYYYYYYYY`).
-4. **Ad units → Add ad unit** → "Banner" → name it "Nexus Home Banner" → copy the **Ad unit ID** (format: `ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ`).
+4. **Ad units â†’ Add ad unit** â†’ "Banner" â†’ name it "Nexus Home Banner" â†’ copy the **Ad unit ID** (format: `ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ`).
 
 Update `app.json`:
 
@@ -125,7 +125,7 @@ Add or verify this in `app.json` or as an Expo build variable:
 
 ```json
 "extra": {
-  "EXPO_PUBLIC_CATALOG_URL": "https://8443-agq7z3cbkhepfciyjxeaj2wabi.instabox.tech/api/catalog"
+  "EXPO_PUBLIC_CATALOG_URL": "https://mira.nexusnation.in/api/catalog"
 }
 ```
 
@@ -137,14 +137,14 @@ value means it falls back to the bundled catalog only.
 
 | Field | Current value | Action |
 |-------|--------------|--------|
-| `expo.name` | `Nexus` | Launcher label — OK |
+| `expo.name` | `Nexus` | Launcher label â€” OK |
 | `expo.slug` | `nexus-browser` | OK |
-| `expo.scheme` | `nexus` | Deep-link scheme — OK |
+| `expo.scheme` | `nexus` | Deep-link scheme â€” OK |
 | `expo.version` | `1.0.0` | User-visible version; bump for updates |
-| `expo.android.package` | `com.nexus.browser` | Fixed at first Play upload — do not change after |
+| `expo.android.package` | `com.nexus.browser` | Fixed at first Play upload â€” do not change after |
 | `expo.android.versionCode` | `1` | CI overrides per build |
 | `expo.android.permissions` | `INTERNET` only in app.json | AdMob adds `AD_ID`, `ACCESS_NETWORK_STATE`, `VIBRATE`, `WAKE_LOCK` via plugin |
-| `expo.android.blockedPermissions` | Camera, mic, location, storage, contacts, SMS, notifications, overlay | Keep — blocks unneeded permissions |
+| `expo.android.blockedPermissions` | Camera, mic, location, storage, contacts, SMS, notifications, overlay | Keep â€” blocks unneeded permissions |
 | `expo.ios.bundleIdentifier` | `com.nexus.browser` | iOS (not yet released) |
 
 ### 3.4 Version bump (for future releases)
@@ -156,7 +156,7 @@ CI sets `versionCode` from the workflow run number automatically.
 
 ## 4. Add GitHub Actions Secrets & Variables
 
-Go to your repo on GitHub → **Settings → Secrets and variables → Actions**.
+Go to your repo on GitHub â†’ **Settings â†’ Secrets and variables â†’ Actions**.
 
 ### Secrets (add under the **Secrets** tab)
 
@@ -173,7 +173,7 @@ Add each with **New repository secret**, paste the value, and click **Add secret
 
 | Variable name | Value |
 |---------------|-------|
-| `EXPO_PUBLIC_CATALOG_URL` | `https://8443-agq7z3cbkhepfciyjxeaj2wabi.instabox.tech/api/catalog` |
+| `EXPO_PUBLIC_CATALOG_URL` | `https://mira.nexusnation.in/api/catalog` |
 
 ---
 
@@ -198,12 +198,12 @@ CI will:
 5. Verify both are signed with the upload key
 6. Publish a GitHub Release with:
    - `nexus-1.0.0-<run>.apk`
-   - `nexus-1.0.0-<run>.aab`  ← upload this to Play
+   - `nexus-1.0.0-<run>.aab`  â† upload this to Play
    - `SHA256SUMS.txt`
 
 ### Option B: Manual workflow dispatch
 
-1. Go to GitHub → **Actions → Android release builds**
+1. Go to GitHub â†’ **Actions â†’ Android release builds**
 2. Click **Run workflow**
 3. Set `version` (e.g. `1.0.0`), `version_code` (e.g. `1`), and optionally `catalog_url`
 4. Download the `.aab` artifact from the completed run
@@ -212,7 +212,7 @@ CI will:
 
 Open the GitHub Release and confirm the notes say **Signing: upload key**.
 If they say **debug key (sideload only)**, the four secrets are missing or
-incomplete — do not upload that `.aab` to Play.
+incomplete â€” do not upload that `.aab` to Play.
 
 ---
 
@@ -220,14 +220,14 @@ incomplete — do not upload that `.aab` to Play.
 
 1. Sign in to [Play Console](https://play.google.com/console).
 2. **Create app**:
-   - App name: `Nexus — A Quieter Browser`
+   - App name: `Nexus â€” A Quieter Browser`
    - Default language: English
    - Application type: **App** (not Game)
    - Pricing: **Free**
 3. Accept the Developer Distribution Agreement and US export declarations.
-4. **App identity** → confirm package name is `com.nexus.browser`.
-   - ⚠️ This is fixed at first upload and **cannot be changed later**.
-5. **Play App Signing** → accept when offered on first upload. Google holds the
+4. **App identity** â†’ confirm package name is `com.nexus.browser`.
+   - âš ï¸ This is fixed at first upload and **cannot be changed later**.
+5. **Play App Signing** â†’ accept when offered on first upload. Google holds the
    app-signing key; your keystore becomes the upload key.
 
 ---
@@ -238,7 +238,7 @@ incomplete — do not upload that `.aab` to Play.
 
 | Field | Value |
 |-------|-------|
-| App name | `Nexus — A Quieter Browser` (25 characters) |
+| App name | `Nexus â€” A Quieter Browser` (25 characters) |
 | Short description | `A quieter browser: trails, five tabs, private rooms, and one page a day.` (80 chars) |
 | Full description | See `PLAY_STORE_PUBLISHING.md` section 2 |
 | Category | **Tools** |
@@ -253,31 +253,31 @@ Upload from the repo:
 
 | Asset | File | Spec |
 |-------|------|------|
-| App icon | `assets/icon-512.png` | 512 × 512, 32-bit PNG, ≤1 MB |
-| Feature graphic | `docs/play/feature-graphic.png` | 1024 × 500, 24-bit PNG, no alpha |
-| Phone screenshots | `docs/play/screenshots/01-home.png` … `09-private.png` | 780 × 1520, 24-bit PNG, no alpha, 8 images in order |
+| App icon | `assets/icon-512.png` | 512 Ã— 512, 32-bit PNG, â‰¤1 MB |
+| Feature graphic | `docs/play/feature-graphic.png` | 1024 Ã— 500, 24-bit PNG, no alpha |
+| Phone screenshots | `docs/play/screenshots/01-home.png` â€¦ `09-private.png` | 780 Ã— 1520, 24-bit PNG, no alpha, 8 images in order |
 
 Screenshot order:
-1. `01-home.png` — home: hero, omnibox, Today's page
-2. `02-home-shelves.png` — trail, shortcuts, recent pages
-3. `03-today.png` — Today archive sheet
-4. `04-trails.png` — Trails sheet with three trails
-5. `06-browser.png` — real page in browser
-6. `07-tabs.png` — four tabs in grid
-7. `09-private.png` — private tab start page
-8. `08-discussions.png` — discussion sheet over The Slow Web
+1. `01-home.png` â€” home: hero, omnibox, Today's page
+2. `02-home-shelves.png` â€” trail, shortcuts, recent pages
+3. `03-today.png` â€” Today archive sheet
+4. `04-trails.png` â€” Trails sheet with three trails
+5. `06-browser.png` â€” real page in browser
+6. `07-tabs.png` â€” four tabs in grid
+7. `09-private.png` â€” private tab start page
+8. `08-discussions.png` â€” discussion sheet over The Slow Web
 
 ### 7.3 Privacy policy
 
-URL: `https://8443-agq7z3cbkhepfciyjxeaj2wabi.instabox.tech/privacy.html`
+URL: `https://mira.nexusnation.in/privacy.html`
 
 This page is publicly reachable and contains the support email
-`krishkishoreks@gmail.com`. Paste this exact URL in Play Console → **App content → Privacy policy**.
+`krishkishoreks@gmail.com`. Paste this exact URL in Play Console â†’ **App content â†’ Privacy policy**.
 
 ### 7.4 Ads declaration
 
-- **Contains ads:** Yes — one adaptive home-screen banner via Google AdMob
-- **Advertising ID:** Yes — used by the Google Mobile Ads SDK
+- **Contains ads:** Yes â€” one adaptive home-screen banner via Google AdMob
+- **Advertising ID:** Yes â€” used by the Google Mobile Ads SDK
 - Do **not** label the app as ad-free.
 
 ### 7.5 Data safety form
@@ -295,7 +295,7 @@ Use the answers from `PLAY_STORE_PUBLISHING.md` section 4:
 
 ### 7.6 Content rating (IARC)
 
-Answer the questionnaire truthfully — the app is a browser with unrestricted web
+Answer the questionnaire truthfully â€” the app is a browser with unrestricted web
 access. Expected rating: **Teen**.
 
 ### 7.7 App access
@@ -312,11 +312,11 @@ Email: `krishkishoreks@gmail.com`
 
 ### 8.1 Internal testing (first)
 
-1. Play Console → **Testing → Internal testing → Create new release**
+1. Play Console â†’ **Testing â†’ Internal testing â†’ Create new release**
 2. Accept **Play App Signing** when prompted
 3. Upload `nexus-1.0.0-<run>.aab` from the GitHub Release
 4. Add release notes (use the "What's new" text from `PLAY_STORE_PUBLISHING.md` section 2)
-5. **Save → Review release → Start rollout to internal testing**
+5. **Save â†’ Review release â†’ Start rollout to internal testing**
 6. Under **Testers**, add email addresses or a Google Group
 7. Share the opt-in link with testers
 8. Install from the Play link on a physical device and run the device checklist
@@ -333,9 +333,9 @@ at least 12 testers for **14 continuous days** before production access.
 
 ### 8.3 Production
 
-1. Play Console → **Production → Create new release**
+1. Play Console â†’ **Production â†’ Create new release**
 2. Upload (or promote) the `.aab`
-3. Start with a **staged rollout of 10–20%**
+3. Start with a **staged rollout of 10â€“20%**
 4. Watch pre-launch report and crash rate for a day
 5. Increase rollout to 100%
 
@@ -391,7 +391,7 @@ Complete breakdown of every `app.json` field you may need to change:
       ["expo-splash-screen", { ... }],
       ["expo-build-properties", { "android": { "usesCleartextTraffic": false, ... } }],
       ["expo-share-intent", { "iosShareExtensionName": "Nexus", "androidIntentFilters": ["text/*"] }],
-      ["react-native-android-widget", { ... fonts, widget label "Nexus — Today's page", previewImage ... }],
+      ["react-native-android-widget", { ... fonts, widget label "Nexus â€” Today's page", previewImage ... }],
       ["react-native-google-mobile-ads", {
         "androidAppId": "REPLACE_WITH_REAL_ANDROID_APP_ID",
         "iosAppId": "REPLACE_WITH_REAL_IOS_APP_ID",
@@ -417,16 +417,16 @@ Complete breakdown of every `app.json` field you may need to change:
 
 | Location | Field | Reason |
 |----------|-------|--------|
-| `android` | `package` | `com.nexus.browser` — fixed at first upload |
+| `android` | `package` | `com.nexus.browser` â€” fixed at first upload |
 | `slug` | `expo.slug` | Affects deep links and EAS project identity |
 
 ### Banner unit IDs (set in admin, not app.json)
 
 The banner unit IDs are configured in the admin catalog desk, not in `app.json`:
 
-1. Open `https://8443-agq7z3cbkhepfciyjxeaj2wabi.instabox.tech/`
+1. Open `https://mira.nexusnation.in/`
 2. Sign in with the admin password (generated on the VM)
-3. **Advertising tab** → enter real Android banner unit ID
+3. **Advertising tab** â†’ enter real Android banner unit ID
 4. Turn **test mode off**
 5. Enable the banner and **Publish**
 6. The app reads this from `EXPO_PUBLIC_CATALOG_URL` at runtime
@@ -436,9 +436,9 @@ The banner unit IDs are configured in the admin catalog desk, not in `app.json`:
 ## 10. Versioning Rules
 
 - Play rejects a `versionCode` already uploaded on any track.
-- CI uses the workflow run number by default (1, 2, 3, …) — monotonic per repo.
+- CI uses the workflow run number by default (1, 2, 3, â€¦) â€” monotonic per repo.
 - Pass `version_code` on a manual run when you need a specific number.
-- User-visible `version` comes from the tag (`v1.2.0` → `1.2.0`).
+- User-visible `version` comes from the tag (`v1.2.0` â†’ `1.2.0`).
 - Never reuse a number after a failed upload.
 
 ---

@@ -1,9 +1,9 @@
-# Publishing Nexus to Google Play
+﻿# Publishing Nexus to Google Play
 
 This is the complete runbook for shipping Nexus to Google Play: signing, the
 release build, every Play Console form, the listing copy, and the first rollout.
 Follow it in order. It assumes the catalog desk is already deployed and serving
-`https://<domain>/api/catalog` — if it is not, finish
+`https://<domain>/api/catalog` â€” if it is not, finish
 [`VPS_DEPLOYMENT.md`](VPS_DEPLOYMENT.md) first.
 
 Everything in this file is written for the app as it exists in this repository:
@@ -30,7 +30,7 @@ of the checklist, not as optional reading.
 Two placeholders must be reviewed before you submit anything:
 `REPLACE_WITH_YOUR_EMAIL@example.com` must be replaced with a real support email in
 `PRIVACY.md` and `docs/privacy.html`. The privacy domain is already set to the
-deployed InstaBox URL (`8443-agq7z3cbkhepfciyjxeaj2wabi.instabox.tech`) for
+deployed InstaBox URL (`mira.nexusnation.in`) for
 testing; replace it with your real domain before production submission.
 
 ---
@@ -39,7 +39,7 @@ testing; replace it with your real domain before production submission.
 
 | Field | Value |
 | --- | --- |
-| App name | **Nexus — A Quieter Browser** (25 characters) |
+| App name | **Nexus â€” A Quieter Browser** (25 characters) |
 | Package | `com.nexus.browser` |
 | Version | `1.0.0`; `versionCode` is set per build (see [8.4](#84-build-the-bundle-in-ci)) |
 | Format | Android App Bundle (`.aab`) for Play; APK for testers |
@@ -48,10 +48,10 @@ testing; replace it with your real domain before production submission.
 | Category | **Tools** |
 | Tags | Browser, Reading, Productivity |
 | Pricing | Free, no in-app purchases |
-| Ads | **Yes** — one adaptive banner on the home screen, served by Google AdMob |
+| Ads | **Yes** â€” one adaptive banner on the home screen, served by Google AdMob |
 | Account required | No |
 | Platforms | Android phone and tablet (portrait) |
-| Privacy policy | `https://8443-agq7z3cbkhepfciyjxeaj2wabi.instabox.tech/privacy.html` |
+| Privacy policy | `https://mira.nexusnation.in/privacy.html` |
 | Support email | `REPLACE_WITH_YOUR_EMAIL@example.com` |
 
 Nexus is a general-purpose browser. It does not require a login and does not send
@@ -79,7 +79,7 @@ review.
 ### App name (max 30 characters)
 
 ```
-Nexus — A Quieter Browser
+Nexus â€” A Quieter Browser
 ```
 
 ### Short description (max 80 characters)
@@ -123,18 +123,18 @@ ONE QUIET HOME-SCREEN BANNER
 Nexus can show a single adaptive banner on the home screen, served by Google AdMob. It never appears while you browse, in private tabs, in sheets, or in Settings. Where required, Nexus asks for consent before requesting an ad, and Settings offers a button to review or withdraw your ad choices. Google may use your advertising ID, IP address, app interactions, and diagnostics to serve, measure, and protect that ad. The developer does not receive that data.
 
 PRIVATE BY CONSTRUCTION
-• No account, sign-in, analytics, or crash-reporting SDK.
-• One small home-screen banner, served by Google AdMob; no ads in the browser, private tabs, sheets, or Settings.
-• History, trails, search choice, and theme stay on your device.
-• Android backup is disabled, so browsing data is not copied to Google Drive.
-• HTTPS-only top-level browsing; public HTTP links are upgraded.
-• Third-party cookies are disabled and mixed content is blocked.
-• Search engines are yours: private presets plus any HTTPS engine you add. The catalog request carries no account, device ID, or browsing history.
-• Discussion lookup sends only the current page address, and can be switched off.
-• File access, geolocation, camera, and microphone are denied inside pages.
-• External links are limited to mail, phone, SMS, and maps.
-• Android Safe Browsing stays on.
-• Delete history and trails at any time from the page menu.
+â€¢ No account, sign-in, analytics, or crash-reporting SDK.
+â€¢ One small home-screen banner, served by Google AdMob; no ads in the browser, private tabs, sheets, or Settings.
+â€¢ History, trails, search choice, and theme stay on your device.
+â€¢ Android backup is disabled, so browsing data is not copied to Google Drive.
+â€¢ HTTPS-only top-level browsing; public HTTP links are upgraded.
+â€¢ Third-party cookies are disabled and mixed content is blocked.
+â€¢ Search engines are yours: private presets plus any HTTPS engine you add. The catalog request carries no account, device ID, or browsing history.
+â€¢ Discussion lookup sends only the current page address, and can be switched off.
+â€¢ File access, geolocation, camera, and microphone are denied inside pages.
+â€¢ External links are limited to mail, phone, SMS, and maps.
+â€¢ Android Safe Browsing stays on.
+â€¢ Delete history and trails at any time from the page menu.
 
 A SMALL, CONSIDERED INTERFACE
 Warm paper, ink, a single orange accent. Instrument Serif for headlines, Instrument Sans for everything else. Light and dark themes follow your system and remember your choice.
@@ -149,17 +149,17 @@ No account. No feed. No noise.
 ```
 First release.
 
-• Trails: browsing grouped into sessions you can resume
-• Five tabs with a grid switcher
-• Private tabs: no history, cache bypassed, screen-capture shield
-• Search your way: private presets or your own HTTPS engine
-• Today's page, hand-picked daily, with a ten-day archive
-• Hacker News and Lobsters discussions, in a native overlay
-• Share links and text into Nexus
-• Android home-screen widget
-• HTTPS-only browsing, third-party cookies off, no analytics
-• One quiet home-screen banner, clearly marked
-• Light and dark themes
+â€¢ Trails: browsing grouped into sessions you can resume
+â€¢ Five tabs with a grid switcher
+â€¢ Private tabs: no history, cache bypassed, screen-capture shield
+â€¢ Search your way: private presets or your own HTTPS engine
+â€¢ Today's page, hand-picked daily, with a ten-day archive
+â€¢ Hacker News and Lobsters discussions, in a native overlay
+â€¢ Share links and text into Nexus
+â€¢ Android home-screen widget
+â€¢ HTTPS-only browsing, third-party cookies off, no analytics
+â€¢ One quiet home-screen banner, clearly marked
+â€¢ Light and dark themes
 ```
 
 ---
@@ -168,28 +168,28 @@ First release.
 
 | Asset | Requirement | Status in this repo |
 | --- | --- | --- |
-| App icon | 512 × 512, 32-bit PNG, ≤1 MB | ✅ `assets/icon-512.png` |
-| Feature graphic | 1024 × 500, JPEG or 24-bit PNG, no alpha | ✅ `docs/play/feature-graphic.png` |
-| Phone screenshots | 2–8, 16:9 or 9:16, 320–3840 px, no alpha | ✅ eight captures in `docs/play/screenshots/` (780 × 1520, 24-bit PNG) |
-| 7" tablet screenshots | Optional unless tablet-optimised listing | ⬜ only if claiming tablet support |
-| 10" tablet screenshots | Optional unless tablet-optimised listing | ⬜ only if claiming tablet support |
+| App icon | 512 Ã— 512, 32-bit PNG, â‰¤1 MB | âœ… `assets/icon-512.png` |
+| Feature graphic | 1024 Ã— 500, JPEG or 24-bit PNG, no alpha | âœ… `docs/play/feature-graphic.png` |
+| Phone screenshots | 2â€“8, 16:9 or 9:16, 320â€“3840 px, no alpha | âœ… eight captures in `docs/play/screenshots/` (780 Ã— 1520, 24-bit PNG) |
+| 7" tablet screenshots | Optional unless tablet-optimised listing | â¬œ only if claiming tablet support |
+| 10" tablet screenshots | Optional unless tablet-optimised listing | â¬œ only if claiming tablet support |
 | Promo video | Optional, YouTube URL | Not planned |
 
 The screenshot set lives in `docs/play/screenshots/` and is ordered below. Each
-image is 780 × 1520 px (a 390 × 760 viewport at DPR 2, 1.95:1), 24-bit PNG with
-no alpha channel — inside Play's accepted range. `02-home-shelves.png` is cropped
-to 780 × 1480 so the frame ends on a clean edge.
+image is 780 Ã— 1520 px (a 390 Ã— 760 viewport at DPR 2, 1.95:1), 24-bit PNG with
+no alpha channel â€” inside Play's accepted range. `02-home-shelves.png` is cropped
+to 780 Ã— 1480 so the frame ends on a clean edge.
 
-1. `01-home.png` — home from the top: hero, omnibox, Today's page.
-2. `02-home-shelves.png` — the same screen below the hero: the latest trail with
+1. `01-home.png` â€” home from the top: hero, omnibox, Today's page.
+2. `02-home-shelves.png` â€” the same screen below the hero: the latest trail with
    its dot row, shortcuts, and recent pages.
-3. `03-today.png` — the Today archive sheet with the last ten days.
-4. `04-trails.png` — the Trails sheet with three named trails.
-5. `06-browser.png` — a real page in the browser, with the address and tab count.
-6. `07-tabs.png` — four open tabs in the two-column grid.
-7. `09-private.png` — a private tab's start page in the night palette, with its
+3. `03-today.png` â€” the Today archive sheet with the last ten days.
+4. `04-trails.png` â€” the Trails sheet with three named trails.
+5. `06-browser.png` â€” a real page in the browser, with the address and tab count.
+6. `07-tabs.png` â€” four open tabs in the two-column grid.
+7. `09-private.png` â€” a private tab's start page in the night palette, with its
    privacy assurances. This replaces the older address-overlay capture.
-8. `08-discussions.png` — the native discussion sheet in dark mode, showing a
+8. `08-discussions.png` â€” the native discussion sheet in dark mode, showing a
    live Hacker News thread over *The Slow Web*.
 
 They were captured from the app's React Native interface through the web QA
@@ -199,9 +199,9 @@ News data. Re-capture from a device build if you want the platform status bar;
 the only other difference is that tabs show a real page title on native instead
 of a hostname when the page is cross-origin.
 
-Capture at a 2:1 or shorter aspect ratio. A 390 × 760 logical viewport at DPR 2
-produces 780 × 1520 px, which is accepted. Avoid 20:9 phone captures
-(390 × 844 → 2.16:1); Play can reject them as too tall.
+Capture at a 2:1 or shorter aspect ratio. A 390 Ã— 760 logical viewport at DPR 2
+produces 780 Ã— 1520 px, which is accepted. Avoid 20:9 phone captures
+(390 Ã— 844 â†’ 2.16:1); Play can reject them as too tall.
 
 Do not put device frames, marketing headlines, or fake UI into screenshots.
 Google allows captioned screenshots, but Nexus's design is the pitch; let it be
@@ -231,22 +231,22 @@ being collected by the developer, which is how the discussion lookup is declared
 
 | Question | Answer |
 | --- | --- |
-| Does your app collect or share any of the required user data types? | **Yes** — the optional discussion lookup shares the current page address with Hacker News and Lobsters; the Google Mobile Ads SDK collects and shares ad data with Google. The developer receives neither. |
-| Is all of the user data collected by your app encrypted in transit? | **Yes** — HTTPS/TLS only; cleartext traffic is disabled |
-| Do you provide a way for users to request that their data be deleted? | **Yes** — in-app History → Clear history removes Nexus's lists; Android Settings → Apps → Nexus → Storage → Clear storage removes cookies, site storage, and the UMP consent record; Android Settings → Privacy → Ads lets users reset or delete the advertising ID; the discussion lookup stores nothing on a server |
+| Does your app collect or share any of the required user data types? | **Yes** â€” the optional discussion lookup shares the current page address with Hacker News and Lobsters; the Google Mobile Ads SDK collects and shares ad data with Google. The developer receives neither. |
+| Is all of the user data collected by your app encrypted in transit? | **Yes** â€” HTTPS/TLS only; cleartext traffic is disabled |
+| Do you provide a way for users to request that their data be deleted? | **Yes** â€” in-app History â†’ Clear history removes Nexus's lists; Android Settings â†’ Apps â†’ Nexus â†’ Storage â†’ Clear storage removes cookies, site storage, and the UMP consent record; Android Settings â†’ Privacy â†’ Ads lets users reset or delete the advertising ID; the discussion lookup stores nothing on a server |
 
 Data-type rows:
 
 | Data type | Collected by app | Shared | Recipients | Purpose | Optional | Ephemeral | Encrypted |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Web browsing history (current page address only) | **No** | **Yes** | Algolia HN Search API (`hn.algolia.com`) for Hacker News; Lobsters (`lobste.rs`) | App functionality — find public discussion threads | **Yes** — "Look up discussions" can be turned off | **Yes** — held in memory for 15 minutes, never written to history or trails | **Yes** |
-| Approximate location (estimated from IP address) | **Yes** — by the Google Mobile Ads SDK | **Yes** | Google AdMob | Advertising or marketing; Analytics; Fraud prevention, security, and compliance | **No** — consent-gated where required | **No** | **Yes** |
-| App interactions (app launches, taps, video views) | **Yes** — by the Google Mobile Ads SDK | **Yes** | Google AdMob | Advertising or marketing; Analytics; Fraud prevention, security, and compliance | **No** — consent-gated where required | **No** | **Yes** |
-| Device or other IDs (advertising ID, app set ID) | **Yes** — by the Google Mobile Ads SDK | **Yes** | Google AdMob | Advertising or marketing; Analytics; Fraud prevention, security, and compliance | **No** — consent-gated where required; the advertising ID can be reset or deleted in Android settings | **No** | **Yes** |
-| Other app performance data (diagnostics: launch time, hang rate, energy usage) | **Yes** — by the Google Mobile Ads SDK | **Yes** | Google AdMob | Analytics; Fraud prevention, security, and compliance | **No** | **No** | **Yes** |
+| Web browsing history (current page address only) | **No** | **Yes** | Algolia HN Search API (`hn.algolia.com`) for Hacker News; Lobsters (`lobste.rs`) | App functionality â€” find public discussion threads | **Yes** â€” "Look up discussions" can be turned off | **Yes** â€” held in memory for 15 minutes, never written to history or trails | **Yes** |
+| Approximate location (estimated from IP address) | **Yes** â€” by the Google Mobile Ads SDK | **Yes** | Google AdMob | Advertising or marketing; Analytics; Fraud prevention, security, and compliance | **No** â€” consent-gated where required | **No** | **Yes** |
+| App interactions (app launches, taps, video views) | **Yes** â€” by the Google Mobile Ads SDK | **Yes** | Google AdMob | Advertising or marketing; Analytics; Fraud prevention, security, and compliance | **No** â€” consent-gated where required | **No** | **Yes** |
+| Device or other IDs (advertising ID, app set ID) | **Yes** â€” by the Google Mobile Ads SDK | **Yes** | Google AdMob | Advertising or marketing; Analytics; Fraud prevention, security, and compliance | **No** â€” consent-gated where required; the advertising ID can be reset or deleted in Android settings | **No** | **Yes** |
+| Other app performance data (diagnostics: launch time, hang rate, energy usage) | **Yes** â€” by the Google Mobile Ads SDK | **Yes** | Google AdMob | Analytics; Fraud prevention, security, and compliance | **No** | **No** | **Yes** |
 
 Where Google's UMP flow requires consent, refusing consent stops ad requests and
-the SDK is not initialized. Users can reopen the consent form from Settings →
+the SDK is not initialized. Users can reopen the consent form from Settings â†’
 Advertising. The developer can also disable the placement entirely in the
 published catalog.
 
@@ -325,7 +325,7 @@ No login, account, invite code, or location restriction. Open the app and browse
 | News app | No |
 | COVID-19 contact tracing | No |
 | Data safety | As above |
-| Advertising ID | **Yes** — used for advertising, analytics, and fraud prevention by the Google Mobile Ads SDK |
+| Advertising ID | **Yes** â€” used for advertising, analytics, and fraud prevention by the Google Mobile Ads SDK |
 | Photo/video permissions | Not requested |
 | Location permissions | Not requested |
 | Camera/microphone | Not requested |
@@ -380,19 +380,19 @@ audience at 13+.
 loaded from the network. Host the file at a stable public HTTPS URL and use that
 exact URL in Play Console.
 
-### Option A — GitHub Pages
+### Option A â€” GitHub Pages
 
 1. Replace the contact placeholder in `docs/privacy.html` and `PRIVACY.md`.
 2. Push the repository to GitHub.
-3. Settings → Pages → Deploy from a branch → `main` / `/docs`.
+3. Settings â†’ Pages â†’ Deploy from a branch â†’ `main` / `/docs`.
 4. The policy is at `https://<user>.github.io/<repo>/privacy.html`.
 
-### Option B — Cloudflare Pages / Netlify / Vercel
+### Option B â€” Cloudflare Pages / Netlify / Vercel
 
 Upload the `docs/` directory as a static site. No build command is required.
 Set the output directory to `docs`.
 
-### Option C — your own domain
+### Option C â€” your own domain
 
 Copy `docs/privacy.html` to `/privacy.html` on the domain you control. Keep the
 URL stable; changing it later requires a Play Console update.
@@ -437,12 +437,12 @@ it.
 - [ ] Replace `REPLACE_WITH_YOUR_EMAIL@example.com` in **both** `PRIVACY.md` and
       `docs/privacy.html` with a monitored address.
       The privacy domain is already set to the deployed InstaBox URL
-      (`https://8443-agq7z3cbkhepfciyjxeaj2wabi.instabox.tech/privacy.html`) for
+      (`https://mira.nexusnation.in/privacy.html`) for
       testing; replace it with your real domain before production submission.
 - [ ] Open the hosted page on a phone and in dark mode.
 - [ ] Confirm the page loads with no network requests other than the document
-      itself (browser dev tools → Network → reload).
-- [ ] Paste the URL into Play Console → App content → Privacy policy.
+      itself (browser dev tools â†’ Network â†’ reload).
+- [ ] Paste the URL into Play Console â†’ App content â†’ Privacy policy.
 - [ ] Deploy the catalog admin, publish a revision, and open `/api/catalog` to
       confirm the public feed.
 - [ ] Set `EXPO_PUBLIC_CATALOG_URL` for the production build and confirm the app
@@ -453,7 +453,7 @@ it.
       enable the banner, and publish.
 - [ ] Confirm the production build shows the real banner on Home and no banner in
       the browser, private tabs, sheets, or Settings.
-- [ ] Check Settings → Advertising: the privacy-choices button appears where UMP
+- [ ] Check Settings â†’ Advertising: the privacy-choices button appears where UMP
       requires it and reopens the consent form.
 
 ---
@@ -470,7 +470,7 @@ hour of Console work; later releases are a tag and an upload.
 1. Register a Google Play developer account at
    <https://play.google.com/console>. The one-time fee is $25. Complete identity
    verification; it can take a day or two.
-2. **Create app** → name `Nexus — A Quieter Browser`, default language English,
+2. **Create app** â†’ name `Nexus â€” A Quieter Browser`, default language English,
    **App**, **Free**.
 3. Accept the developer distribution agreement and the US export declarations.
 4. Under **App content**, work through privacy policy, ads, content rating,
@@ -528,7 +528,7 @@ Windows PowerShell:
 ) | Set-Content -NoNewline nexus-upload.keystore.b64
 ```
 
-Add four repository secrets in **Settings → Secrets and variables → Actions →
+Add four repository secrets in **Settings â†’ Secrets and variables â†’ Actions â†’
 Secrets**:
 
 | Secret | Value |
@@ -565,19 +565,19 @@ The **Android release builds** workflow checks out the tag, runs `expo prebuild`
 builds `:app:assembleRelease` and `:app:bundleRelease`, verifies both signatures,
 and publishes a GitHub Release with:
 
-- `nexus-1.0.0-<run>.apk` — sideload for testers
-- `nexus-1.0.0-<run>.aab` — upload to Play
+- `nexus-1.0.0-<run>.apk` â€” sideload for testers
+- `nexus-1.0.0-<run>.aab` â€” upload to Play
 - `SHA256SUMS.txt`
 
 Open the release and confirm the notes say **Signing: upload key**. If they say
 **debug key (sideload only)**, the four secrets are missing or incomplete; do not
 upload that `.aab`.
 
-For a manual run: **Actions → Android release builds → Run workflow**. Set
+For a manual run: **Actions â†’ Android release builds â†’ Run workflow**. Set
 `version`, `version_code`, and optionally `catalog_url`, then download the
 artifact from the run. Manual runs do not create a GitHub Release.
 
-The first CI run builds all four ABIs and takes 20–35 minutes. Later runs reuse
+The first CI run builds all four ABIs and takes 20â€“35 minutes. Later runs reuse
 the Gradle cache.
 
 ### 8.5 Build the bundle locally (optional)
@@ -608,14 +608,14 @@ The output is `android/app/build/outputs/bundle/release/app-release.aab`.
 
 ### 8.6 Upload to internal testing
 
-1. Play Console → **Testing → Internal testing → Create new release**.
+1. Play Console â†’ **Testing â†’ Internal testing â†’ Create new release**.
 2. Accept **Play App Signing** when prompted.
 3. Upload `nexus-1.0.0-<run>.aab`.
 4. Add release notes. The **What's new** text in [section 2](#2-store-listing-copy)
    is already under the 500-character limit.
 5. Fix any errors Play reports. Version code reuse and target API are the two
    common blockers.
-6. **Save → Review release → Start rollout to internal testing**.
+6. **Save â†’ Review release â†’ Start rollout to internal testing**.
 7. Add testers under the **Testers** tab (email addresses or a Google Group) and
    share the opt-in link.
 8. Install from the Play link on a physical device and run the device checklist
@@ -632,8 +632,8 @@ test below.
   shown in your Play Console; Google changes it.
 - Create a closed track, upload a build with a **new versionCode**, add testers,
   and collect feedback for the required period.
-- Then **Production → Create new release**, upload (or promote) the bundle, and
-  start with a staged rollout of 10–20%.
+- Then **Production â†’ Create new release**, upload (or promote) the bundle, and
+  start with a staged rollout of 10â€“20%.
 - Watch the pre-launch report and the crash rate for a day, then increase the
   rollout to 100%.
 - The first review usually takes a few days and can take up to seven. Updates are
@@ -646,10 +646,10 @@ before promoting it.
 
 Play rejects a `versionCode` that was already uploaded, on any track.
 
-- CI uses the workflow run number by default (`1`, `2`, `3`, …). It is monotonic
+- CI uses the workflow run number by default (`1`, `2`, `3`, â€¦). It is monotonic
   per repository.
 - Pass `version_code` on a manual run when you need a specific number.
-- The user-visible `version` comes from the tag (`v1.2.0` → `1.2.0`), the manual
+- The user-visible `version` comes from the tag (`v1.2.0` â†’ `1.2.0`), the manual
   input, or `package.json`.
 - Bump `expo.version` deliberately when the listing should show a new number.
 - Never reuse a number after a failed upload; Play records attempted bundles.
@@ -714,8 +714,8 @@ unchanged.
 - [ ] Replace the privacy contact placeholder.
 - [ ] Host the privacy policy at a public HTTPS URL.
 - [ ] Create the app in Play Console with package `com.nexus.browser`.
-- [ ] Upload the 512 × 512 icon.
-- [ ] Upload the 1024 × 500 feature graphic.
+- [ ] Upload the 512 Ã— 512 icon.
+- [ ] Upload the 1024 Ã— 500 feature graphic.
 - [ ] Upload the eight captures in `docs/play/screenshots/` in the listed order.
 - [ ] Fill in the short and full descriptions.
 - [ ] Complete Data safety: "shares Web browsing history" for the optional
@@ -834,7 +834,7 @@ Advertising: when the published catalog enables it, one adaptive banner appears
 on the home screen, labeled ADVERTISEMENT. It is served by Google AdMob. It never
 appears in the browser, private tabs, sheets, or Settings. Where UMP requires
 consent, the app shows a consent form before the first request; the same choice
-can be reopened from Settings → Advertising. The app requests INTERNET,
+can be reopened from Settings â†’ Advertising. The app requests INTERNET,
 ACCESS_NETWORK_STATE, VIBRATE, WAKE_LOCK, and the advertising ID permission.
 Camera, microphone, location, storage, contacts, SMS, and notification
 permissions are removed from the manifest. Third-party cookies are disabled and
