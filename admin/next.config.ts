@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   devIndicators: false,
   serverExternalPackages: ['mongodb'],
+  experimental: {
+    agentUpgrade: 'security' as any,
+  },
   turbopack: {
     root: process.cwd(),
   },
