@@ -43,6 +43,10 @@ type Props = {
   privateTab: boolean;
   onOpenPrivateInfo: () => void;
   onNewPrivateTab: () => void;
+  onOpenReader?: () => void;
+  onListen?: () => void;
+  onOpenAiSummary?: () => void;
+  hasArticle?: boolean;
 };
 
 export function MenuSheet({
@@ -70,6 +74,9 @@ export function MenuSheet({
   privateTab = false,
   onOpenPrivateInfo,
   onNewPrivateTab,
+  onOpenReader,
+  onListen,
+  onOpenAiSummary,
 }: Props) {
   const { theme, mode, setMode } = useTheme();
   const { activeEngine, engines } = useCatalogConfig();
@@ -155,6 +162,27 @@ export function MenuSheet({
           ) : null}
           {hasPage ? (
             <>
+              {onOpenReader ? (
+                <SheetAction
+                  icon="book"
+                  label="Reader mode"
+                  onPress={() => run(onOpenReader)}
+                />
+              ) : null}
+              {onListen ? (
+                <SheetAction
+                  icon="volume"
+                  label="Listen"
+                  onPress={() => run(onListen)}
+                />
+              ) : null}
+              {onOpenAiSummary ? (
+                <SheetAction
+                  icon="sparkle"
+                  label="AI Summary"
+                  onPress={() => run(onOpenAiSummary)}
+                />
+              ) : null}
               <SheetAction
                 icon="copy"
                 label="Copy link"

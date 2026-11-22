@@ -12,8 +12,11 @@ import {
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShareIntent } from 'expo-share-intent';
 import { AddressOverlay } from '@/components/AddressOverlay';
+import { AiSummarySheet } from '@/components/AiSummarySheet';
+import { AudioPlayerBar } from '@/components/AudioPlayerBar';
 import { BrowserPane } from '@/components/BrowserPane';
 import { BrowserToolbar } from '@/components/BrowserToolbar';
 import { CommunitySheet } from '@/components/CommunitySheet';
@@ -23,10 +26,12 @@ import { MenuSheet } from '@/components/MenuSheet';
 import { PrivateSheet } from '@/components/PrivateSheet';
 import { PrivateStart } from '@/components/PrivateStart';
 import { PrivateVeil } from '@/components/PrivateVeil';
+import { ReaderSheet } from '@/components/ReaderSheet';
 import { TabsSheet } from '@/components/TabsSheet';
 import { TodaySheet } from '@/components/TodaySheet';
 import { TrailsSheet } from '@/components/TrailsSheet';
 import { useToast } from '@/components/Toast';
+import { speechService } from '@/lib/speech';
 import { useCatalogConfig } from '@/lib/catalog-provider';
 import {
   canonicalizeArticleUrl,
@@ -147,6 +152,7 @@ export default function Nexus() {
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [browserActive, setBrowserActive] = useState(false);
 
+  const insets = useSafeAreaInsets();
   const [addressOpen, setAddressOpen] = useState(false);
   const [addressSeed, setAddressSeed] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -155,6 +161,8 @@ export default function Nexus() {
   const [trailsOpen, setTrailsOpen] = useState(false);
   const [todayOpen, setTodayOpen] = useState(false);
   const [communityOpen, setCommunityOpen] = useState(false);
+  const [readerOpen, setReaderOpen] = useState(false);
+  const [aiSummaryOpen, setAiSummaryOpen] = useState(false);
   const [today, setToday] = useState<CuratedPage>(() => getDailyPage());
   const [communityLookup, setCommunityLookup] =
     useState<CommunityLookup | null>(null);
@@ -538,6 +546,54 @@ export default function Nexus() {
     setMenuOpen(false);
     afterMenu(() => setCommunityOpen(true));
   }, [afterMenu]);
+
+  const openReader = useCallback(() => {
+    haptic.tap();
+    if (activeTabId) {
+      browserRefs.current.get(activeTabId)?.extractArticle();
+    }
+    setReaderOpen(true);
+  }, [activeTabId]);
+
+  const openAiSummary = useCallback(() => {
+    haptic.tap();
+    if (activeTabId) {
+      browserRefs.current.get(activeTabId)?.extractArticle();
+    }
+    setAiSummaryOpen(true);
+  }, [activeTabId]);
+
+  const startListen = useCallback(() => {
+    haptic.tap();
+    const article = snapshot.article;
+    if (article && article.text) {
+      speechService.start(article.title || snapshot.title, article.text);
+      toast.show('Reading aloud...', {
+        label: 'Stop',
+        onPress: () => speechService.stop(),
+      });
+    } else {
+      if (activeTabId) {
+        browserRefs.current.get(activeTabId)?.extractArticle();
+      }
+      toast.show('No readable article found on this page');
+    }
+  }, [activeTabId, snapshot.article, snapshot.title, toast]);
+
+  const openReaderAfterMenu = useCallback(() => {
+    setMenuOpen(false);
+    afterMenu(() => openReader());
+  }, [afterMenu, openReader]);
+
+  const openAiSummaryAfterMenu = useCallback(() => {
+    setMenuOpen(false);
+    afterMenu(() => openAiSummary());
+  }, [afterMenu, openAiSummary]);
+
+  const startListenAfterMenu = useCallback(() => {
+    setMenuOpen(false);
+    afterMenu(() => startListen());
+  }, [afterMenu, startListen]);
 
   const openCommunityThread = useCallback(
     (url: string) => {
@@ -1138,6 +1194,8 @@ export default function Nexus() {
               communityThreads={privateChrome ? [] : communityThreads}
               onOpenCommunity={openCommunity}
               onOpenPrivateInfo={openPrivateInfo}
+              onOpenReader={openReader}
+              onOpenAiSummary={openAiSummary}
               onBack={() => {
                 if (activeTabId)
                   browserRefs.current.get(activeTabId)?.goBack();
@@ -1200,6 +1258,9 @@ export default function Nexus() {
           privateTab={privateChrome}
           onOpenPrivateInfo={openPrivateInfoAfterMenu}
           onNewPrivateTab={openPrivateTabAfterMenu}
+          onOpenReader={openReaderAfterMenu}
+          onListen={startListenAfterMenu}
+          onOpenAiSummary={openAiSummaryAfterMenu}
         />
       </ThemeScope>
 
@@ -1267,6 +1328,32 @@ export default function Nexus() {
       </ThemeScope>
 
       {privateChrome && appState !== 'active' ? <PrivateVeil /> : null}
+
+      <AudioPlayerBar
+        bottomOffset={insets.bottom + (tabs.length > 0 ? 84 : 20)}
+        onOpenReader={snapshot.article ? openReader : undefined}
+      />
+
+      <ReaderSheet
+        visible={readerOpen}
+        onClose={() => setReaderOpen(false)}
+        article={snapshot.article ?? null}
+        onListen={startListen}
+        onSummary={() => {
+          setReaderOpen(false);
+          afterMenu(() => openAiSummary());
+        }}
+      />
+
+      <AiSummarySheet
+        visible={aiSummaryOpen}
+        onClose={() => setAiSummaryOpen(false)}
+        article={snapshot.article ?? null}
+        onOpenReader={() => {
+          setAiSummaryOpen(false);
+          afterMenu(() => openReader());
+        }}
+      />
     </View>
   );
 }

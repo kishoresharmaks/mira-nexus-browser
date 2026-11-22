@@ -18,6 +18,8 @@ type Props = {
   communityThreads?: CommunityThread[];
   onOpenCommunity?: () => void;
   onOpenPrivateInfo?: () => void;
+  onOpenReader?: () => void;
+  onOpenAiSummary?: () => void;
   onBack: () => void;
   onForward: () => void;
   onOpenAddress: () => void;
@@ -33,6 +35,8 @@ export function BrowserToolbar({
   communityThreads = [],
   onOpenCommunity,
   onOpenPrivateInfo,
+  onOpenReader,
+  onOpenAiSummary,
   onBack,
   onForward,
   onOpenAddress,
@@ -81,6 +85,43 @@ export function BrowserToolbar({
             threads={communityThreads}
             onPress={onOpenCommunity}
           />
+        </View>
+      ) : snapshot.article && snapshot.article.text.length > 250 && (onOpenReader || onOpenAiSummary) ? (
+        <View pointerEvents="box-none" style={styles.quickActionsRow}>
+          {onOpenReader ? (
+            <PressableScale
+              onPress={onOpenReader}
+              scaleTo={0.96}
+              style={[
+                styles.quickPill,
+                { backgroundColor: theme.surface, borderColor: theme.line },
+                softShadow(theme.mode, 'card'),
+              ]}
+              accessibilityLabel="Open in Reader Mode"
+            >
+              <Icon name="book" size={11} color={theme.accent} strokeWidth={2} />
+              <Text style={[styles.quickPillLabel, { color: theme.inkSoft }]}>
+                Reader
+              </Text>
+            </PressableScale>
+          ) : null}
+          {onOpenAiSummary ? (
+            <PressableScale
+              onPress={onOpenAiSummary}
+              scaleTo={0.96}
+              style={[
+                styles.quickPill,
+                { backgroundColor: theme.surface, borderColor: theme.line },
+                softShadow(theme.mode, 'card'),
+              ]}
+              accessibilityLabel="View AI Summary"
+            >
+              <Icon name="sparkle" size={11} color={theme.accent} strokeWidth={2} />
+              <Text style={[styles.quickPillLabel, { color: theme.inkSoft }]}>
+                Summary
+              </Text>
+            </PressableScale>
+          ) : null}
         </View>
       ) : null}
 
@@ -210,6 +251,28 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     paddingRight: 6,
     marginBottom: 8,
+  },
+  quickActionsRow: {
+    width: '100%',
+    maxWidth: 560,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 8,
+    paddingRight: 6,
+    marginBottom: 8,
+  },
+  quickPill: {
+    height: 29,
+    borderRadius: 14.5,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  quickPillLabel: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
   },
   privateRow: {
     width: '100%',

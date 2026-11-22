@@ -13,12 +13,31 @@ export type HistoryEntry = {
   visitedAt: number;
 };
 
+export type ExtractedArticle = {
+  title: string;
+  author: string;
+  text: string;
+  html: string;
+  url: string;
+  host: string;
+  wordCount: number;
+  readMinutes: number;
+};
+
+export type AiSummary = {
+  tldr: string;
+  takeaways: string[];
+  readingTimeMinutes: number;
+  timeSavedMinutes: number;
+};
+
 export type PageSnapshot = {
   url: string;
   title: string;
   canGoBack: boolean;
   canGoForward: boolean;
   loading: boolean;
+  article?: ExtractedArticle | null;
 };
 
 export type BrowserHandle = {
@@ -28,6 +47,7 @@ export type BrowserHandle = {
   stop: () => void;
   load: (url: string) => void;
   setActive: (active: boolean) => void;
+  extractArticle: () => void;
 };
 
 export type TrailPage = {

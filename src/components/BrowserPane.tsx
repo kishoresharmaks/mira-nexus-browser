@@ -20,6 +20,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
 import type { WebViewNavigation, WebViewProps } from 'react-native-webview';
+import { READER_EXTRACTION_SCRIPT, parseExtractedArticle } from '@/lib/reader';
 import { haptic } from '@/lib/haptics';
 import {
   cleanTitle,
@@ -241,6 +242,10 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
     setWebKey((value) => value + 1);
   }, [curtain, initialUrl]);
 
+  const extractArticle = useCallback(() => {
+    webRef.current?.injectJavaScript(READER_EXTRACTION_SCRIPT);
+  }, []);
+
   useImperativeHandle(
     ref,
     () => ({
@@ -257,8 +262,9 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
       setActive: (next: boolean) => {
         if (!next) pauseMedia();
       },
+      extractArticle,
     }),
-    [navigate, pauseMedia],
+    [extractArticle, navigate, pauseMedia],
   );
 
   const finishLoad = useCallback(() => {
@@ -319,6 +325,7 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
     setSnapshot((previous) => ({ ...previous, loading: false }));
     finishLoad();
     recordVisit(urlRef.current, titleRef.current);
+    extractArticle();
   };
 
   const handleError = (error: LoadError) => {
@@ -446,6 +453,18 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
           }
           onNavigationStateChange={handleNavigation}
           onLoadEnd={handleLoadEnd}
+          onMessage={(event) => {
+            try {
+              const data = JSON.parse(event.nativeEvent.data);
+              if (data && data.type === 'NEXUS_ARTICLE_EXTRACTED') {
+                const article = parseExtractedArticle(data.payload, urlRef.current);
+                setSnapshot((previous) => ({
+                  ...previous,
+                  article,
+                }));
+              }
+            } catch {}
+          }}
           onError={(event) => {
             const { url, description, code } = event.nativeEvent;
             if (code === -999) return;

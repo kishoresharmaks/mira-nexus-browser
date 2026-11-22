@@ -126,6 +126,7 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
       stop: () => {},
       load: navigate,
       setActive: () => {},
+      extractArticle: () => {},
     }),
     [navigate],
   );

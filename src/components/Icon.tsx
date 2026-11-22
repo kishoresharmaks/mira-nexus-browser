@@ -35,7 +35,11 @@ export type IconName =
   | 'edit'
   | 'archive'
   | 'message'
-  | 'settings';
+  | 'settings'
+  | 'book'
+  | 'volume'
+  | 'play'
+  | 'pause';
 
 function content(name: IconName, color: string): ReactNode {
   switch (name) {
@@ -265,6 +269,30 @@ function content(name: IconName, color: string): ReactNode {
           <Circle cx="17" cy="7" r="2.2" />
           <Path d="M20 17h-9.5" />
           <Circle cx="7" cy="17" r="2.2" />
+        </>
+      );
+    case 'book':
+      return (
+        <>
+          <Path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+          <Path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </>
+      );
+    case 'volume':
+      return (
+        <>
+          <Path d="M11 5 6 9H2v6h4l5 4V5Z" />
+          <Path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+          <Path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+        </>
+      );
+    case 'play':
+      return <Path d="m6 4 14 8-14 8V4Z" fill={color} />;
+    case 'pause':
+      return (
+        <>
+          <Rect x="6" y="4" width="4" height="16" rx="1" fill={color} />
+          <Rect x="14" y="4" width="4" height="16" rx="1" fill={color} />
         </>
       );
     default:
