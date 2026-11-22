@@ -15,6 +15,12 @@
 		-Server
 	}
 
+	# Serve the public privacy policy as a static file so Play Console can reach it.
+	handle /privacy.html {
+		root * /usr/share/caddy/public
+		file_server
+	}
+
 	# Forward the original Host header and the X-Forwarded-Host that instabox
 	# sets (the public host the client used). The app's same-origin CSRF check
 	# compares Origin against X-Forwarded-Host behind this reverse proxy.

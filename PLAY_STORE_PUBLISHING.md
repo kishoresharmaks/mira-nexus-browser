@@ -27,9 +27,11 @@ of the checklist, not as optional reading.
 | First upload and testing | [8.6](#86-upload-to-internal-testing), [8.7](#87-closed-testing-and-production) | 30 min + review |
 | Production rollout | [8.7](#87-closed-testing-and-production) | 10 min |
 
-Two placeholders must be replaced before you submit anything:
-`REPLACE_WITH_YOUR_EMAIL@example.com` and `REPLACE_WITH_YOUR_DOMAIN`. They appear
-in this file, `PRIVACY.md`, and `docs/privacy.html`.
+Two placeholders must be reviewed before you submit anything:
+`REPLACE_WITH_YOUR_EMAIL@example.com` must be replaced with a real support email in
+`PRIVACY.md` and `docs/privacy.html`. The privacy domain is already set to the
+deployed InstaBox URL (`8443-agq7z3cbkhepfciyjxeaj2wabi.instabox.tech`) for
+testing; replace it with your real domain before production submission.
 
 ---
 
@@ -49,7 +51,7 @@ in this file, `PRIVACY.md`, and `docs/privacy.html`.
 | Ads | **Yes** — one adaptive banner on the home screen, served by Google AdMob |
 | Account required | No |
 | Platforms | Android phone and tablet (portrait) |
-| Privacy policy | `https://REPLACE_WITH_YOUR_DOMAIN/privacy.html` |
+| Privacy policy | `https://8443-agq7z3cbkhepfciyjxeaj2wabi.instabox.tech/privacy.html` |
 | Support email | `REPLACE_WITH_YOUR_EMAIL@example.com` |
 
 Nexus is a general-purpose browser. It does not require a login and does not send
@@ -434,7 +436,9 @@ it.
 
 - [ ] Replace `REPLACE_WITH_YOUR_EMAIL@example.com` in **both** `PRIVACY.md` and
       `docs/privacy.html` with a monitored address.
-- [ ] Replace `REPLACE_WITH_YOUR_DOMAIN` in this file with the real URL.
+      The privacy domain is already set to the deployed InstaBox URL
+      (`https://8443-agq7z3cbkhepfciyjxeaj2wabi.instabox.tech/privacy.html`) for
+      testing; replace it with your real domain before production submission.
 - [ ] Open the hosted page on a phone and in dark mode.
 - [ ] Confirm the page loads with no network requests other than the document
       itself (browser dev tools → Network → reload).
