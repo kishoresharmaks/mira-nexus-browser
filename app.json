@@ -147,7 +147,8 @@
         {
           "userTrackingPermission": "Nexus asks for this only to show and measure the single home-screen ad. You can change your choice at any time in Settings."
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "extra": {
       "router": {

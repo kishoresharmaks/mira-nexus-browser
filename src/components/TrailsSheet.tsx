@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { haptic } from '@/lib/haptics';
 import {
+  searchTrails,
   trailDateLabel,
   trailDurationLabel,
   trailPageLabel,
@@ -30,6 +31,8 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   trails: Trail[];
+  trailsEnabled?: boolean;
+  onToggleTrailsEnabled?: (enabled: boolean) => void;
   onOpen: (url: string) => void;
   onResume: (trail: Trail) => void;
   onRename: (id: string, name: string) => void;
@@ -44,6 +47,8 @@ export function TrailsSheet({
   visible,
   onClose,
   trails,
+  trailsEnabled = true,
+  onToggleTrailsEnabled,
   onOpen,
   onResume,
   onRename,
@@ -51,6 +56,7 @@ export function TrailsSheet({
 }: Props) {
   const { theme } = useTheme();
   const { height } = useWindowDimensions();
+  const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -103,6 +109,8 @@ export function TrailsSheet({
     confirmTimer.current = setTimeout(() => setConfirmId(null), 3200);
   };
 
+  const displayTrails = searchTrails(trails, searchQuery);
+
   return (
     <BottomSheet visible={visible} onClose={onClose}>
       <View style={styles.header}>
@@ -127,27 +135,75 @@ export function TrailsSheet({
         />
       </View>
 
+      {/* Search & Tracking Toggle Row */}
+      <View style={styles.controlsBar}>
+        <View
+          style={[
+            styles.searchBox,
+            { backgroundColor: theme.surface, borderColor: theme.line },
+          ]}
+        >
+          <Icon name="search" size={14} color={theme.muted} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search trails by title or domain..."
+            placeholderTextColor={theme.muted}
+            style={[styles.searchInput, { color: theme.ink }]}
+            returnKeyType="search"
+            autoCapitalize="none"
+          />
+        </View>
+
+        {onToggleTrailsEnabled && (
+          <PressableScale
+            onPress={() => {
+              haptic.select();
+              onToggleTrailsEnabled(!trailsEnabled);
+            }}
+            style={[
+              styles.trackingToggle,
+              {
+                backgroundColor: trailsEnabled ? theme.accentSoft : theme.chip,
+                borderColor: trailsEnabled ? theme.accent : theme.line,
+              },
+            ]}
+            accessibilityLabel="Toggle trail tracking"
+          >
+            <Text
+              style={[
+                styles.trackingToggleText,
+                { color: trailsEnabled ? theme.accent : theme.muted },
+              ]}
+            >
+              {trailsEnabled ? 'Active' : 'Paused'}
+            </Text>
+          </PressableScale>
+        )}
+      </View>
+
       <ScrollView
         style={{ maxHeight: height * 0.62 }}
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {trails.length === 0 ? (
+        {displayTrails.length === 0 ? (
           <View style={styles.empty}>
             <View style={[styles.emptyOrb, { backgroundColor: theme.chip }]}>
               <Icon name="trail" size={26} color={theme.inkSoft} />
             </View>
             <Text style={[styles.emptyTitle, { color: theme.ink }]}>
-              No trail yet
+              {searchQuery ? 'No trails match your search' : 'No trail yet'}
             </Text>
             <Text style={[styles.emptyBody, { color: theme.muted }]}>
-              Start reading. Nexus groups pages into trails whenever you take a
-              pause of about half an hour.
+              {searchQuery
+                ? 'Try a different search query.'
+                : 'Start reading. Nexus groups pages into trails whenever you take a pause of about half an hour.'}
             </Text>
           </View>
         ) : (
-          trails.map((trail) => {
+          displayTrails.map((trail) => {
             const expanded = expandedId === trail.id;
             const editing = editingId === trail.id;
             const confirming = confirmId === trail.id;
@@ -390,6 +446,41 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sans,
     fontSize: 11.5,
     marginTop: 2,
+  },
+  controlsBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+    gap: 8,
+  },
+  searchBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: fonts.sans,
+    fontSize: 12.5,
+    padding: 0,
+  },
+  trackingToggle: {
+    paddingHorizontal: 10,
+    height: 36,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trackingToggleText: {
+    fontFamily: fonts.medium,
+    fontSize: 11.5,
   },
   scroll: {
     paddingHorizontal: 20,

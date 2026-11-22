@@ -60,6 +60,8 @@ type Props = {
   onOpenWindow?: (url: string, title?: string) => void;
   /** Notifies the shell when scroll direction changes to auto-hide the toolbar */
   onScrollChange?: (visible: boolean) => void;
+  /** Triggered when a file download is detected or requested */
+  onDownload?: (url: string) => void;
 };
 
 type LoadError = {
@@ -189,6 +191,7 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
     onGoHome,
     onOpenWindow,
     onScrollChange,
+    onDownload,
   },
   ref,
 ) {
@@ -468,6 +471,12 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
     const url = request.url;
     if (!url) return false;
 
+    const DOWNLOADABLE_EXT = /\.(pdf|zip|tar|gz|apk|dmg|iso|mp3|mp4|wav|ogg|csv|epub|mobi|7z|rar)(\?|$)/i;
+    if (DOWNLOADABLE_EXT.test(url) && onDownload) {
+      onDownload(url);
+      return false;
+    }
+
     if (/^https:/i.test(url)) return true;
 
     if (/^http:/i.test(url)) {
@@ -567,6 +576,11 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
             handleScrollDelta(currentY);
           }}
           onLoadStart={(event) => handleLoadStart(event.nativeEvent.url)}
+          onFileDownload={({ nativeEvent }) => {
+            if (nativeEvent?.downloadUrl && onDownload) {
+              onDownload(nativeEvent.downloadUrl);
+            }
+          }}
           onLoadProgress={(event) =>
             setProgress(Math.min(1, Math.max(0.04, event.nativeEvent.progress)))
           }

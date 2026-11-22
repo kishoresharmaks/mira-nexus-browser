@@ -1129,3 +1129,74 @@ Do not stop at planning. Continue through implementation and testing within the 
 10. **Vector Icon Set Expanded ([src/components/Icon.tsx](file:///d:/cllient/bike_map/src/components/Icon.tsx)):**
     - Added crisp SVG paths for `mic`, `qr`, `bookmark`, `folder`, `download`, `note`, `grid`, `image`, `newspaper`, `video`.
 
+---
+
+## Phase 3: Core Product Features Implementation
+- **Status:** **Completed & Tested**
+- **Verification:**
+  - `npx tsc --noEmit`: **0 errors (Pass)**
+  - `npm run lint` (`expo lint`): **0 errors, 0 warnings (Pass)**
+- **User Instruction Compliance:**
+  - Preserved all Phase 2 changes and editorial styling.
+  - Reused existing React Native & Expo SDK 58 architecture.
+  - No `react-native-webview` replacement.
+  - Zero user data or shortcut loss (backward-compatible sync into collections).
+  - No fake metrics or tracker statistics.
+  - Zero broad Android storage permissions requested (uses scoped `documentDirectory` + `expo-sharing`).
+  - No Expo / EAS push executed.
+
+### Implemented Feature Deliverables:
+
+1. **Feature 1: Smart Collections ([src/components/CollectionsSheet.tsx](file:///d:/cllient/bike_map/src/components/CollectionsSheet.tsx) & [src/lib/collections.ts](file:///d:/cllient/bike_map/src/lib/collections.ts)):**
+   - **Collections CRUD:** Create custom collections, Rename collections, Delete collections (with automatic bookmark migration to Favorites).
+   - **Bookmarks CRUD:** Add bookmarks to any collection (URL, title, collection picker, notes/reminder), Edit bookmark details, Delete bookmarks.
+   - **Search:** Real-time search across bookmark titles, URLs, hosts, and notes.
+   - **Duplicate Detection:** Real-time URL duplicate warning alert if a URL is already present in a collection.
+   - **Import & Export:**
+     - Full JSON backup export to clipboard or file sharing.
+     - Netscape HTML bookmark format export (`<!DOCTYPE NETSCAPE-Bookmark-file-1>`).
+     - JSON backup import parser with deduplication and collection creation.
+   - **Automatic Legacy Shortcut Preservation:** Hydrates user's existing `shortcuts` directly into the "Favorites" collection without modifying or resetting existing shortcuts.
+
+2. **Feature 2: Nexus Drop — Download Manager ([src/components/DownloadsSheet.tsx](file:///d:/cllient/bike_map/src/components/DownloadsSheet.tsx) & [src/lib/downloads.ts](file:///d:/cllient/bike_map/src/lib/downloads.ts)):**
+   - **Native Download Engine:** Integrated `expo-file-system/legacy` (`createDownloadResumable`) streaming downloads directly into the app's sandboxed `documentDirectory/downloads/` path.
+   - **WebView Download Interception:**
+     - `BrowserPane` listens to `onFileDownload` native events.
+     - `onShouldStartLoadWithRequest` sniffs binary / archive / document file extensions (`.pdf`, `.zip`, `.tar`, `.gz`, `.apk`, `.mp3`, `.mp4`, `.csv`, `.epub`, etc.) to trigger native downloads without breaking the browser.
+   - **Download Lifecycle & Controls:**
+     - Active downloads list with live percentage and animated progress track.
+     - Cancel active downloads via `cancelFileDownload` / task pause.
+     - Open & share downloaded files via `expo-sharing` (`Sharing.shareAsync`).
+     - Delete downloads from device storage via `FileSystem.deleteAsync`.
+     - Storage summary badge: calculates total bytes consumed by completed downloads.
+     - Manual URL download dialog: paste any direct URL to download in the background.
+
+3. **Feature 3: Web Notes ([src/components/NotesSheet.tsx](file:///d:/cllient/bike_map/src/components/NotesSheet.tsx) & [src/lib/notes.ts](file:///d:/cllient/bike_map/src/lib/notes.ts)):**
+   - **Notes CRUD:** Create, Edit, and Delete persistent notes with titles, rich content, and URL associations.
+   - **Context Awareness:** Automatically links notes to active webpage URL and host when browsing.
+   - **Search & Filters:** Search notes by query, or filter by "This Page" to quickly access notes linked to the current website.
+   - **Markdown Export:** Export all notes in formatted Markdown via clipboard or native sharing.
+   - **Local Isolation:** Persisted exclusively in local AsyncStorage under `nexus.notes.v1`.
+
+4. **Feature 4: Privacy Dashboard ([src/components/PrivacySheet.tsx](file:///d:/cllient/bike_map/src/components/PrivacySheet.tsx)):**
+   - **Verifiable Guards Displayed:**
+     - Google Safe Browsing client status.
+     - Strict HTTPS / Anti-Cleartext enforcement.
+     - Sandbox local filesystem isolation.
+     - Third-party tracking cookies blocked.
+     - 22 dangerous Android manifest permissions stripped.
+   - **Active Page Security Status:** Real-time TLS badge ("TLS Encrypted" vs "Insecure") based on the current webpage URL.
+   - **Web Permissions Policy Grid:** Camera, Microphone, GPS Location, Filesystem, Push Alerts, and Contacts verified as Blocked.
+   - **Data & Storage Controls:**
+     - Clear Web Cache.
+     - Clear Site Cookies & Session Data.
+     - Clear Browsing History.
+     - One-tap Open Private Tab.
+
+5. **Feature 5: Browsing Trails Improvements ([src/components/TrailsSheet.tsx](file:///d:/cllient/bike_map/src/components/TrailsSheet.tsx) & [src/lib/trails.ts](file:///d:/cllient/bike_map/src/lib/trails.ts)):**
+   - **Search Trails:** Search previous trails by name, date, domain, or visited page URL.
+   - **Tracking Toggle:** Toggle trail tracking On/Off via `nexus.trails.enabled.v1` persistent setting.
+   - **Restore Session:** Reopens all pages in a trail as active browser tabs simultaneously.
+   - **Session Grouping & CRUD:** Rename trails, delete individual trails, and preserve full session timelines.
+
+

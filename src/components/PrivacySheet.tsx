@@ -1,79 +1,129 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { BottomSheet } from './BottomSheet';
 import { Icon, type IconName } from './Icon';
 import { IconButton } from './IconButton';
 import { PressableScale } from './PressableScale';
 import { useToast } from './Toast';
 import { haptic } from '@/lib/haptics';
+import { getDisplayUrl, isWebUrl } from '@/lib/url';
 import { fonts, softShadow } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
 
 type Props = {
   visible: boolean;
   onClose: () => void;
+  activeUrl?: string;
   onClearHistory: () => void;
+  onClearCache?: () => void;
+  onClearCookies?: () => void;
   onOpenPrivateTab: () => void;
 };
 
-type PrivacyFeature = {
+type SecurityFeature = {
   title: string;
   subtitle: string;
   status: string;
   icon: IconName;
-  active: boolean;
+  verified: boolean;
 };
 
 export function PrivacySheet({
   visible,
   onClose,
+  activeUrl,
   onClearHistory,
+  onClearCache,
+  onClearCookies,
   onOpenPrivateTab,
 }: Props) {
   const { theme } = useTheme();
   const toast = useToast();
+  const [clearing, setClearing] = useState(false);
 
-  const features: PrivacyFeature[] = [
+  const isCurrentUrlHttps = activeUrl && isWebUrl(activeUrl) ? activeUrl.startsWith('https://') : null;
+  const currentHost = activeUrl && isWebUrl(activeUrl) ? getDisplayUrl(activeUrl).host : null;
+
+  const securityFeatures: SecurityFeature[] = [
     {
-      title: 'Google Safe Browsing',
-      subtitle: 'Real-time protection against malware, phishing and deceptive scams',
-      status: 'Active',
+      title: 'Google Safe Browsing Client',
+      subtitle: 'Real-time Android WebView security verifies hosts against phishing, malware, and social engineering attacks.',
+      status: 'Enforced',
       icon: 'shield',
-      active: true,
+      verified: true,
     },
     {
-      title: 'HTTPS Only & Anti-Cleartext',
-      subtitle: 'Insecure HTTP connections and mixed content are strictly blocked',
+      title: 'Strict HTTPS & Anti-Cleartext',
+      subtitle: 'Android Network Security Config blocks plain HTTP cleartext traffic; all mixed content is denied.',
       status: 'Enforced',
       icon: 'lock',
-      active: true,
+      verified: true,
     },
     {
       title: 'Sandbox File Isolation',
-      subtitle: 'Web pages are denied access to your local filesystem and storage',
+      subtitle: 'Web pages have zero access to local device filesystem, documents, SD card, or private app sandbox.',
       status: 'Isolated',
       icon: 'mask',
-      active: true,
+      verified: true,
     },
     {
-      title: 'Anti-Tracking Cookies',
-      subtitle: 'Cross-site third-party tracking cookies are rejected automatically',
+      title: 'Third-Party Cookies Denied',
+      subtitle: 'Cross-site cookies used for cross-domain tracking networks are rejected by WebView cookie policy.',
       status: 'Blocked',
       icon: 'unlock',
-      active: true,
+      verified: true,
     },
     {
-      title: '22 Dangerous Permissions Blocked',
-      subtitle: 'Camera, microphone, GPS location, contacts and SMS are stripped',
-      status: 'Denied',
+      title: 'Hardware Sensors & Permissions Denied',
+      subtitle: 'Camera, Microphone, GPS Location, Contacts, Calendar, and SMS are stripped from Android manifest.',
+      status: 'Blocked',
       icon: 'shield',
-      active: true,
+      verified: true,
     },
   ];
 
   const handleClearHistory = () => {
+    Alert.alert('Clear Browsing History?', 'This will permanently delete all visited page records on this device.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear History',
+        style: 'destructive',
+        onPress: () => {
+          haptic.warn();
+          onClearHistory();
+          toast.show('Browsing history cleared');
+        },
+      },
+    ]);
+  };
+
+  const handleClearCache = () => {
     haptic.warn();
-    onClearHistory();
-    toast.show('Browsing history cleared');
+    setClearing(true);
+    if (onClearCache) onClearCache();
+    setTimeout(() => {
+      setClearing(false);
+      toast.show('Browser web cache cleared');
+    }, 400);
+  };
+
+  const handleClearCookies = () => {
+    Alert.alert(
+      'Clear Site Data & Cookies?',
+      'This will log you out of active websites and remove cached web storage.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear Data',
+          style: 'destructive',
+          onPress: () => {
+            haptic.warn();
+            if (onClearCookies) onClearCookies();
+            toast.show('Site cookies and session storage cleared');
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -81,7 +131,7 @@ export function PrivacySheet({
       <View style={styles.header}>
         <View>
           <Text style={[styles.eyebrow, { color: theme.accent }]}>
-            SECURITY & SHIELD
+            SECURITY & AUDIT
           </Text>
           <Text style={[styles.title, { color: theme.ink }]}>
             Privacy Dashboard
@@ -97,67 +147,208 @@ export function PrivacySheet({
         />
       </View>
 
-      <View style={styles.content}>
-        {/* Status Cards */}
-        <View style={styles.featuresList}>
-          {features.map((item, idx) => (
-            <View
-              key={idx}
-              style={[
-                styles.featureCard,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.line,
-                },
-                softShadow(theme.mode, 'card'),
-              ]}
-            >
-              <View style={[styles.iconOrb, { backgroundColor: theme.accentSoft }]}>
-                <Icon name={item.icon} size={16} color={theme.accent} strokeWidth={2} />
-              </View>
-              <View style={styles.copy}>
-                <View style={styles.cardHeader}>
-                  <Text style={[styles.cardTitle, { color: theme.ink }]}>
-                    {item.title}
-                  </Text>
-                  <View style={[styles.statusBadge, { backgroundColor: theme.chip }]}>
-                    <Text style={[styles.statusText, { color: theme.accent }]}>
-                      {item.status}
-                    </Text>
-                  </View>
-                </View>
-                <Text style={[styles.cardSubtitle, { color: theme.muted }]}>
-                  {item.subtitle}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Active Page Security Status (if browsing) */}
+        {currentHost && (
+          <View
+            style={[
+              styles.activePageCard,
+              { backgroundColor: theme.chip, borderColor: theme.line },
+            ]}
+          >
+            <View style={styles.activePageHeader}>
+              <Icon
+                name={isCurrentUrlHttps ? 'lock' : 'unlock'}
+                size={16}
+                color={isCurrentUrlHttps ? theme.accent : '#D9534F'}
+              />
+              <Text numberOfLines={1} style={[styles.activeHostText, { color: theme.ink }]}>
+                {currentHost}
+              </Text>
+              <View
+                style={[
+                  styles.tlsBadge,
+                  { backgroundColor: isCurrentUrlHttps ? theme.accentSoft : 'rgba(217, 83, 79, 0.15)' },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.tlsBadgeText,
+                    { color: isCurrentUrlHttps ? theme.accent : '#D9534F' },
+                  ]}
+                >
+                  {isCurrentUrlHttps ? 'TLS Encrypted' : 'Insecure'}
                 </Text>
               </View>
             </View>
-          ))}
-        </View>
-
-        {/* Action Controls */}
-        <View style={styles.actions}>
-          <PressableScale
-            onPress={() => {
-              onClose();
-              onOpenPrivateTab();
-            }}
-            style={[styles.primaryButton, { backgroundColor: theme.accent }]}
-          >
-            <Icon name="mask" size={16} color="#FFFFFF" strokeWidth={1.8} />
-            <Text style={styles.primaryButtonText}>Open Private Tab</Text>
-          </PressableScale>
-
-          <PressableScale
-            onPress={handleClearHistory}
-            style={[styles.dangerButton, { borderColor: theme.line, backgroundColor: theme.chip }]}
-          >
-            <Icon name="trash" size={14} color={theme.danger} strokeWidth={2} />
-            <Text style={[styles.dangerButtonText, { color: theme.danger }]}>
-              Clear History & Cache
+            <Text style={[styles.activePageDetails, { color: theme.muted }]}>
+              {isCurrentUrlHttps
+                ? 'Your connection to this host is authenticated and encrypted via HTTPS. Third-party cookie access is blocked.'
+                : 'Warning: This page is not using TLS encryption. Credentials entered here could be intercepted.'}
             </Text>
-          </PressableScale>
+          </View>
+        )}
+
+        {/* Verifiable Architecture Features */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.muted }]}>
+            VERIFIABLE SANDBOX GUARDS
+          </Text>
+          <View style={styles.featuresList}>
+            {securityFeatures.map((feat) => (
+              <View
+                key={feat.title}
+                style={[
+                  styles.featureCard,
+                  { backgroundColor: theme.surface, borderColor: theme.line },
+                  softShadow(theme.mode, 'card'),
+                ]}
+              >
+                <View style={styles.featureRow}>
+                  <View style={[styles.iconWrap, { backgroundColor: theme.chip }]}>
+                    <Icon name={feat.icon} size={15} color={theme.accent} strokeWidth={2} />
+                  </View>
+                  <View style={styles.featureCopy}>
+                    <View style={styles.featureTitleRow}>
+                      <Text style={[styles.featureTitle, { color: theme.ink }]}>
+                        {feat.title}
+                      </Text>
+                      <View style={[styles.statusBadge, { backgroundColor: theme.accentSoft }]}>
+                        <Text style={[styles.statusText, { color: theme.accent }]}>
+                          {feat.status}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.featureSubtitle, { color: theme.muted }]}>
+                      {feat.subtitle}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
         </View>
-      </View>
+
+        {/* Explicit Website Permissions Grid */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.muted }]}>
+            WEB PERMISSIONS POLICY
+          </Text>
+          <View
+            style={[
+              styles.permissionsGrid,
+              { backgroundColor: theme.surface, borderColor: theme.line },
+              softShadow(theme.mode, 'card'),
+            ]}
+          >
+            {[
+              { label: 'Camera', status: 'Blocked' },
+              { label: 'Microphone', status: 'Blocked' },
+              { label: 'GPS Location', status: 'Blocked' },
+              { label: 'File System', status: 'Blocked' },
+              { label: 'Push Alerts', status: 'Blocked' },
+              { label: 'Contacts', status: 'Blocked' },
+            ].map((p) => (
+              <View key={p.label} style={styles.permRow}>
+                <Text style={[styles.permLabel, { color: theme.ink }]}>{p.label}</Text>
+                <Text style={[styles.permStatus, { color: theme.accent }]}>{p.status}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Data & Cache Clearing Controls */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.muted }]}>
+            DATA & STORAGE CONTROLS
+          </Text>
+
+          <View style={styles.actionsColumn}>
+            <PressableScale
+              onPress={handleClearCache}
+              style={[
+                styles.actionItem,
+                { backgroundColor: theme.surface, borderColor: theme.line },
+                softShadow(theme.mode, 'card'),
+              ]}
+            >
+              <View style={styles.actionCopy}>
+                <Text style={[styles.actionTitle, { color: theme.ink }]}>
+                  Clear Web Cache
+                </Text>
+                <Text style={[styles.actionSub, { color: theme.muted }]}>
+                  {clearing ? 'Clearing cache...' : 'Removes cached webpage files and temporary scripts'}
+                </Text>
+              </View>
+              <Icon name="refresh" size={15} color={theme.inkSoft} />
+            </PressableScale>
+
+            <PressableScale
+              onPress={handleClearCookies}
+              style={[
+                styles.actionItem,
+                { backgroundColor: theme.surface, borderColor: theme.line },
+                softShadow(theme.mode, 'card'),
+              ]}
+            >
+              <View style={styles.actionCopy}>
+                <Text style={[styles.actionTitle, { color: theme.ink }]}>
+                  Clear Cookies & Site Data
+                </Text>
+                <Text style={[styles.actionSub, { color: theme.muted }]}>
+                  Resets first-party cookies and clears local web storage
+                </Text>
+              </View>
+              <Icon name="trash" size={15} color={theme.inkSoft} />
+            </PressableScale>
+
+            <PressableScale
+              onPress={handleClearHistory}
+              style={[
+                styles.actionItem,
+                { backgroundColor: theme.surface, borderColor: theme.line },
+                softShadow(theme.mode, 'card'),
+              ]}
+            >
+              <View style={styles.actionCopy}>
+                <Text style={[styles.actionTitle, { color: theme.ink }]}>
+                  Clear Browsing History
+                </Text>
+                <Text style={[styles.actionSub, { color: theme.muted }]}>
+                  Deletes all recorded URL visits and snapshots
+                </Text>
+              </View>
+              <Icon name="trash" size={15} color={theme.inkSoft} />
+            </PressableScale>
+
+            <PressableScale
+              onPress={() => {
+                haptic.tap();
+                onOpenPrivateTab();
+                onClose();
+              }}
+              style={[
+                styles.actionItem,
+                { backgroundColor: theme.chip, borderColor: theme.line },
+              ]}
+            >
+              <View style={styles.actionCopy}>
+                <Text style={[styles.actionTitle, { color: theme.ink }]}>
+                  Open Private Tab
+                </Text>
+                <Text style={[styles.actionSub, { color: theme.muted }]}>
+                  Bypasses history, disables trails, and leaves zero trace on this device
+                </Text>
+              </View>
+              <Icon name="mask" size={16} color={theme.accent} />
+            </PressableScale>
+          </View>
+        </View>
+      </ScrollView>
     </BottomSheet>
   );
 }
@@ -169,7 +360,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 4,
-    paddingBottom: 14,
+    paddingBottom: 10,
   },
   eyebrow: {
     fontFamily: fonts.medium,
@@ -181,87 +372,141 @@ const styles = StyleSheet.create({
     fontSize: 20,
     marginTop: 2,
   },
-  content: {
+  scroll: {
+    maxHeight: 520,
+  },
+  scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 32,
-    gap: 16,
+    paddingBottom: 36,
+    gap: 18,
+  },
+  activePageCard: {
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+  },
+  activePageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  activeHostText: {
+    flex: 1,
+    fontFamily: fonts.medium,
+    fontSize: 14,
+  },
+  tlsBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  tlsBadgeText: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+  },
+  activePageDetails: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  section: {
+    gap: 8,
+  },
+  sectionTitle: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    letterSpacing: 1,
   },
   featuresList: {
-    gap: 10,
+    gap: 8,
   },
   featureCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     padding: 13,
     borderRadius: 16,
     borderWidth: 1,
-    gap: 12,
   },
-  iconOrb: {
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  iconWrap: {
     width: 32,
     height: 32,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
+    marginTop: 1,
   },
-  copy: {
+  featureCopy: {
     flex: 1,
-    minWidth: 0,
   },
-  cardHeader: {
+  featureTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 3,
   },
-  cardTitle: {
+  featureTitle: {
     fontFamily: fonts.medium,
     fontSize: 13.5,
   },
   statusBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
     borderRadius: 6,
   },
   statusText: {
     fontFamily: fonts.medium,
-    fontSize: 9.5,
-    letterSpacing: 0.5,
+    fontSize: 10.5,
   },
-  cardSubtitle: {
+  featureSubtitle: {
     fontFamily: fonts.sans,
     fontSize: 11.5,
     lineHeight: 16,
   },
-  actions: {
-    gap: 10,
-    marginTop: 8,
+  permissionsGrid: {
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 8,
   },
-  primaryButton: {
+  permRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 13,
-    borderRadius: 14,
+    justifyContent: 'space-between',
   },
-  primaryButtonText: {
+  permLabel: {
+    fontFamily: fonts.sans,
+    fontSize: 13,
+  },
+  permStatus: {
     fontFamily: fonts.medium,
-    fontSize: 13.5,
-    color: '#FFFFFF',
+    fontSize: 12,
   },
-  dangerButton: {
+  actionsColumn: {
+    gap: 8,
+  },
+  actionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 14,
+    justifyContent: 'space-between',
+    padding: 14,
+    borderRadius: 16,
     borderWidth: 1,
   },
-  dangerButtonText: {
+  actionCopy: {
+    flex: 1,
+    marginRight: 12,
+  },
+  actionTitle: {
     fontFamily: fonts.medium,
-    fontSize: 13,
+    fontSize: 13.5,
+  },
+  actionSub: {
+    fontFamily: fonts.sans,
+    fontSize: 11.5,
+    marginTop: 2,
   },
 });

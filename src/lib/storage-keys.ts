@@ -6,6 +6,11 @@ export const STORAGE_KEYS = {
   community: 'nexus.community.v1',
   search: 'nexus.search.v1',
   catalog: 'nexus.catalog.v1',
+  collections: 'nexus.collections.v1',
+  bookmarks: 'nexus.bookmarks.v1',
+  downloads: 'nexus.downloads.v1',
+  notes: 'nexus.notes.v1',
+  trailsEnabled: 'nexus.trails.enabled.v1',
 } as const;
 
 export const MAX_TABS = 5;

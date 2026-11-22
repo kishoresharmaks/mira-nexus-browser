@@ -200,3 +200,25 @@ export function normalizeTrails(value: unknown): Trail[] {
     .sort((a, b) => b.endedAt - a.endedAt)
     .slice(0, TRAIL_LIMIT);
 }
+
+export function normalizeTrailsEnabled(value: unknown): boolean {
+  return value !== false;
+}
+
+export function searchTrails(trails: Trail[], query: string): Trail[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return trails;
+
+  return trails.filter((t) => {
+    const titleMatch = (t.name || generatedTrailTitle(t.startedAt)).toLowerCase().includes(q);
+    if (titleMatch) return true;
+
+    return t.pages.some(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        p.url.toLowerCase().includes(q) ||
+        p.host.toLowerCase().includes(q),
+    );
+  });
+}
+

@@ -5,6 +5,50 @@ export type Shortcut = {
   host: string;
 };
 
+export type Collection = {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  createdAt: number;
+  isSystem?: boolean;
+};
+
+export type Bookmark = {
+  id: string;
+  url: string;
+  title: string;
+  host: string;
+  collectionId: string;
+  description?: string;
+  notes?: string;
+  createdAt: number;
+};
+
+export type DownloadItem = {
+  id: string;
+  url: string;
+  filename: string;
+  fileUri: string;
+  fileSize: number;
+  mimeType?: string;
+  progress: number;
+  status: 'downloading' | 'completed' | 'failed' | 'cancelled';
+  error?: string;
+  startedAt: number;
+  completedAt?: number;
+};
+
+export type WebNote = {
+  id: string;
+  url: string;
+  host: string;
+  title: string;
+  content: string;
+  createdAt: number;
+  updatedAt: number;
+};
+
 export type HistoryEntry = {
   id: string;
   title: string;

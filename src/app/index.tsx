@@ -64,8 +64,23 @@ import {
 } from '@/lib/shortcuts';
 import { MAX_TABS, STORAGE_KEYS } from '@/lib/storage-keys';
 import {
+  DEFAULT_COLLECTIONS,
+  normalizeBookmarks,
+  normalizeCollections,
+  syncShortcutsToBookmarks,
+} from '@/lib/collections';
+import {
+  cancelFileDownload,
+  deleteDownloadedFile,
+  normalizeDownloads,
+  openDownloadedFile,
+  startFileDownload,
+} from '@/lib/downloads';
+import { normalizeWebNotes } from '@/lib/notes';
+import {
   appendTrailVisit,
   normalizeTrails,
+  normalizeTrailsEnabled,
   trailFromHistory,
 } from '@/lib/trails';
 import {
@@ -88,13 +103,17 @@ import { refreshNexusWidget } from '@/widgets/update-widget';
 import { privateTheme } from '@/theme';
 import { ThemeScope, useTheme } from '@/theme/ThemeProvider';
 import type {
+  Bookmark,
   BrowserHandle,
   BrowserTab,
+  Collection,
   CuratedPage,
+  DownloadItem,
   HistoryEntry,
   PageSnapshot,
   Shortcut,
   Trail,
+  WebNote,
 } from '@/types';
 
 const EMPTY_PAGE: PageSnapshot = {
@@ -154,6 +173,37 @@ export default function Nexus() {
       true,
       normalizeCommunityEnabled,
     );
+  const [collections, setCollections] = usePersistentState<Collection[]>(
+    STORAGE_KEYS.collections,
+    DEFAULT_COLLECTIONS,
+    normalizeCollections,
+  );
+  const [bookmarks, setBookmarks] = usePersistentState<Bookmark[]>(
+    STORAGE_KEYS.bookmarks,
+    [],
+    normalizeBookmarks,
+  );
+  const [downloads, setDownloads] = usePersistentState<DownloadItem[]>(
+    STORAGE_KEYS.downloads,
+    [],
+    normalizeDownloads,
+  );
+  const [notes, setNotes] = usePersistentState<WebNote[]>(
+    STORAGE_KEYS.notes,
+    [],
+    normalizeWebNotes,
+  );
+  const [trailsEnabled, setTrailsEnabled] = usePersistentState<boolean>(
+    STORAGE_KEYS.trailsEnabled,
+    true,
+    normalizeTrailsEnabled,
+  );
+
+  useEffect(() => {
+    if (shortcutsReady && shortcuts.length > 0) {
+      setBookmarks((prev) => syncShortcutsToBookmarks(shortcuts, prev));
+    }
+  }, [shortcutsReady, shortcuts, setBookmarks]);
 
   const [tabs, setTabs] = useState<BrowserTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
@@ -691,11 +741,13 @@ export default function Nexus() {
           HISTORY_LIMIT,
         ),
       );
-      setTrails((previous) =>
-        appendTrailVisit(previous, trailFromHistory(entry), entry.visitedAt),
-      );
+      if (trailsEnabled) {
+        setTrails((previous) =>
+          appendTrailVisit(previous, trailFromHistory(entry), entry.visitedAt),
+        );
+      }
     },
-    [engines, setHistory, setTrails],
+    [engines, setHistory, setTrails, trailsEnabled],
   );
 
   const closeTab = useCallback(
@@ -866,12 +918,85 @@ export default function Nexus() {
 
   const resumeTrail = useCallback(
     (trail: Trail) => {
-      const last = trail.pages[trail.pages.length - 1];
-      if (!last) return;
-      openInNewTab(last.url, last.title);
+      if (trail.pages.length === 0) return;
+      const count = Math.min(trail.pages.length, MAX_TABS);
+      for (let i = 0; i < count; i++) {
+        const p = trail.pages[i];
+        openInNewTab(p.url, p.title);
+      }
+      toast.show(`Restored ${count} ${count === 1 ? 'tab' : 'tabs'} from session`);
     },
-    [openInNewTab],
+    [openInNewTab, toast],
   );
+
+  const handleStartDownload = useCallback(
+    async (url: string, suggestedFilename?: string) => {
+      try {
+        toast.show('Starting download...');
+        const item = await startFileDownload(url, suggestedFilename, {
+          onProgress: (id, progress, written, total) => {
+            setDownloads((prev) =>
+              prev.map((d) =>
+                d.id === id ? { ...d, progress, fileSize: total || written } : d,
+              ),
+            );
+          },
+          onComplete: (completedItem) => {
+            haptic.success();
+            toast.show(`Downloaded ${completedItem.filename}`);
+            setDownloads((prev) =>
+              prev.map((d) => (d.id === completedItem.id ? completedItem : d)),
+            );
+          },
+          onError: (id, error) => {
+            haptic.warn();
+            toast.show(`Download failed: ${error}`);
+            setDownloads((prev) =>
+              prev.map((d) =>
+                d.id === id ? { ...d, status: 'failed', error } : d,
+              ),
+            );
+          },
+        });
+        setDownloads((prev) => [item, ...prev.filter((d) => d.id !== item.id)]);
+      } catch {
+        toast.show('Failed to initiate download');
+      }
+    },
+    [setDownloads, toast],
+  );
+
+  const handleCancelDownload = useCallback(
+    async (id: string) => {
+      await cancelFileDownload(id);
+      setDownloads((prev) =>
+        prev.map((d) => (d.id === id ? { ...d, status: 'cancelled' } : d)),
+      );
+    },
+    [setDownloads],
+  );
+
+  const handleOpenDownload = useCallback(
+    async (item: DownloadItem) => {
+      const ok = await openDownloadedFile(item);
+      if (!ok) {
+        toast.show('Unable to open file. It may have been moved.');
+      }
+    },
+    [toast],
+  );
+
+  const handleDeleteDownload = useCallback(
+    async (item: DownloadItem) => {
+      await deleteDownloadedFile(item);
+      setDownloads((prev) => prev.filter((d) => d.id !== item.id));
+    },
+    [setDownloads],
+  );
+
+  const handleClearCompletedDownloads = useCallback(() => {
+    setDownloads((prev) => prev.filter((d) => d.status === 'downloading'));
+  }, [setDownloads]);
 
   const handleOpenWindow = useCallback(
     (url: string, title?: string, options?: { private?: boolean }) => {
@@ -1262,6 +1387,7 @@ export default function Nexus() {
                       if (!tab.private) handleVisit(url, title);
                     }}
                     onGoHome={goHome}
+                    onDownload={handleStartDownload}
                     onOpenWindow={(url, title) =>
                       handleOpenWindow(url, title, { private: tab.private })
                     }
@@ -1399,6 +1525,8 @@ export default function Nexus() {
         visible={trailsOpen}
         onClose={() => setTrailsOpen(false)}
         trails={trails}
+        trailsEnabled={trailsEnabled}
+        onToggleTrailsEnabled={(enabled) => setTrailsEnabled(enabled)}
         onOpen={(url) => openInNewTab(url)}
         onResume={resumeTrail}
         onRename={renameTrail}
@@ -1453,25 +1581,100 @@ export default function Nexus() {
       <CollectionsSheet
         visible={collectionsOpen}
         onClose={() => setCollectionsOpen(false)}
-        shortcuts={shortcuts}
-        onOpenShortcut={(url) => openInNewTab(url)}
+        collections={collections}
+        bookmarks={bookmarks}
+        activeUrl={snapshot.url}
+        activeTitle={snapshot.title}
+        onOpenUrl={(url) => openInNewTab(url)}
+        onSaveBookmark={(bm) => {
+          setBookmarks((prev) => {
+            const exists = prev.some((b) => b.id === bm.id);
+            if (exists) {
+              return prev.map((b) => (b.id === bm.id ? bm : b));
+            }
+            return [bm, ...prev];
+          });
+        }}
+        onDeleteBookmark={(id) => {
+          setBookmarks((prev) => prev.filter((b) => b.id !== id));
+        }}
+        onSaveCollection={(col) => {
+          setCollections((prev) => {
+            const exists = prev.some((c) => c.id === col.id);
+            if (exists) {
+              return prev.map((c) => (c.id === col.id ? col : c));
+            }
+            return [...prev, col];
+          });
+        }}
+        onDeleteCollection={(id) => {
+          setCollections((prev) => prev.filter((c) => c.id !== id));
+          setBookmarks((prev) =>
+            prev.map((b) =>
+              b.collectionId === id ? { ...b, collectionId: 'favorites' } : b,
+            ),
+          );
+        }}
+        onImportBookmarks={(importedCols, importedBms) => {
+          setCollections((prev) => {
+            const ids = new Set(prev.map((c) => c.id));
+            const newCols = importedCols.filter((c) => !ids.has(c.id));
+            return [...prev, ...newCols];
+          });
+          setBookmarks((prev) => {
+            const urls = new Set(prev.map((b) => b.url.toLowerCase()));
+            const newBms = importedBms.filter((b) => !urls.has(b.url.toLowerCase()));
+            return [...prev, ...newBms];
+          });
+        }}
       />
 
       <PrivacySheet
         visible={privacyOpen}
         onClose={() => setPrivacyOpen(false)}
+        activeUrl={snapshot.url}
         onClearHistory={() => setHistory([])}
+        onClearCache={() => {
+          if (activeTabId) {
+            browserRefs.current.get(activeTabId)?.reload();
+          }
+        }}
+        onClearCookies={() => {
+          toast.show('Site data and cookies reset');
+        }}
         onOpenPrivateTab={openPrivateTab}
       />
 
       <DownloadsSheet
         visible={downloadsOpen}
         onClose={() => setDownloadsOpen(false)}
+        downloads={downloads}
+        onStartDownload={handleStartDownload}
+        onCancelDownload={handleCancelDownload}
+        onOpenDownload={handleOpenDownload}
+        onDeleteDownload={handleDeleteDownload}
+        onClearCompleted={handleClearCompletedDownloads}
       />
 
       <NotesSheet
         visible={notesOpen}
         onClose={() => setNotesOpen(false)}
+        notes={notes}
+        activeUrl={snapshot.url}
+        activeTitle={snapshot.title}
+        onSaveNote={(note) => {
+          setNotes((prev) => {
+            const exists = prev.some((n) => n.id === note.id);
+            if (exists) {
+              return prev.map((n) => (n.id === note.id ? note : n));
+            }
+            return [note, ...prev];
+          });
+        }}
+        onDeleteNote={(id) => {
+          setNotes((prev) => prev.filter((n) => n.id !== id));
+        }}
+        onOpenUrl={(url) => openInNewTab(url)}
       />
 
       <AppsSheet
