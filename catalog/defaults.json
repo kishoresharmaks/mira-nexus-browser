@@ -4,10 +4,10 @@
   "publishedAt": "2026-10-27T00:00:00.000Z",
   "defaultEngineId": "duckduckgo",
   "ads": {
-    "enabled": false,
-    "testMode": true,
+    "enabled": true,
+    "testMode": false,
     "layout": "inline",
-    "androidUnitId": "",
+    "androidUnitId": "ca-app-pub-3076513882745753/7545779992",
     "iosUnitId": ""
   },
   "engines": [
