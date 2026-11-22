@@ -9,7 +9,8 @@ export const READER_EXTRACTION_SCRIPT = `
 (function() {
   try {
     var selectors = [
-      'article', '[role="main"]', 'main', '.post-content', '.article-content',
+      'article', '[role="main"]', 'main', '.prose', '[class*="prose"]',
+      '.post-content', '.article-content',
       '.entry-content', '.content-article', '#article-body', '.story-body',
       '.post', '.article', '#content'
     ];
@@ -62,29 +63,33 @@ export const READER_EXTRACTION_SCRIPT = `
 
     var words = plainText.split(/\\s+/).filter(Boolean).length;
 
-    window.ReactNativeWebView.postMessage(JSON.stringify({
-      type: 'NEXUS_ARTICLE_EXTRACTED',
-      payload: {
-        title: title,
-        author: author,
-        text: plainText,
-        html: clone.innerHTML,
-        url: window.location.href,
-        wordCount: words
-      }
-    }));
+    if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'NEXUS_ARTICLE_EXTRACTED',
+        payload: {
+          title: title,
+          author: author,
+          text: plainText,
+          html: clone.innerHTML,
+          url: window.location.href,
+          wordCount: words
+        }
+      }));
+    }
   } catch (err) {
-    window.ReactNativeWebView.postMessage(JSON.stringify({
-      type: 'NEXUS_ARTICLE_EXTRACTED',
-      payload: {
-        title: document.title || '',
-        author: '',
-        text: document.body ? (document.body.innerText || '') : '',
-        html: '',
-        url: window.location.href,
-        wordCount: 0
-      }
-    }));
+    if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'NEXUS_ARTICLE_EXTRACTED',
+        payload: {
+          title: document.title || '',
+          author: '',
+          text: document.body ? (document.body.innerText || '') : '',
+          html: '',
+          url: window.location.href,
+          wordCount: 0
+        }
+      }));
+    }
   }
 })();
 true;

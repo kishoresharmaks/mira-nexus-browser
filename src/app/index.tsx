@@ -629,7 +629,8 @@ export default function Nexus() {
           current.title === next.title &&
           current.canGoBack === next.canGoBack &&
           current.canGoForward === next.canGoForward &&
-          current.loading === next.loading
+          current.loading === next.loading &&
+          current.article === next.article
         ) {
           return tab;
         }
