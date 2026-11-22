@@ -73,23 +73,28 @@ export function AdsProvider({ children }: { children: ReactNode }) {
       setModule(loaded);
 
       try {
-        // UMP must run before initialize: the SDK may preload inventory on
-        // startup. On iOS, ATT comes after the UMP form.
-        const consent = await loaded.AdsConsent.gatherConsent();
-        if (!alive) return;
-        setPrivacyOptionsRequired(
-          consent.privacyOptionsRequirementStatus ===
-            loaded.AdsConsentPrivacyOptionsRequirementStatus.REQUIRED,
-        );
-
-        if (Platform.OS === 'ios') {
-          await requestTrackingPermission();
+        try {
+          // UMP must run before initialize: the SDK may preload inventory on
+          // startup. On iOS, ATT comes after the UMP form.
+          const consent = await loaded.AdsConsent.gatherConsent();
           if (!alive) return;
-        }
+          setPrivacyOptionsRequired(
+            consent.privacyOptionsRequirementStatus ===
+              loaded.AdsConsentPrivacyOptionsRequirementStatus.REQUIRED,
+          );
 
-        if (!consent.canRequestAds) {
-          setPhase('blocked');
-          return;
+          if (Platform.OS === 'ios') {
+            await requestTrackingPermission();
+            if (!alive) return;
+          }
+
+          if (!consent.canRequestAds) {
+            setPhase('blocked');
+            return;
+          }
+        } catch {
+          // If UMP consent gathering fails (e.g. no form configured in AdMob console),
+          // continue to initialize so ads can still load.
         }
 
         await loaded.default().setRequestConfiguration({
