@@ -53,6 +53,7 @@ type Props = {
   onOpenVoiceSearch?: () => void;
   onOpenQrScanner?: () => void;
   onOpenAi: () => void;
+  onOpenApps?: () => void;
   onOpenCollections: () => void;
   onOpenDownloads: () => void;
   onOpenNotes: () => void;
@@ -91,6 +92,7 @@ export function HomeScreen({
   onOpenVoiceSearch,
   onOpenQrScanner,
   onOpenAi,
+  onOpenApps,
   onOpenCollections,
   onOpenDownloads,
   onOpenNotes,
@@ -371,7 +373,11 @@ export function HomeScreen({
           onOpenCollections();
         }}
         onPressApps={() => {
-          onOpenDownloads();
+          if (onOpenApps) {
+            onOpenApps();
+          } else {
+            onOpenDownloads();
+          }
         }}
       />
     </View>

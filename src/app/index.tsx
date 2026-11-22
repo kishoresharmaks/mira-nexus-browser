@@ -1290,6 +1290,7 @@ export default function Nexus() {
               openAddress('', true);
             }
           }}
+          onOpenApps={() => setAppsOpen(true)}
           onOpenCollections={() => setCollectionsOpen(true)}
           onOpenDownloads={() => setDownloadsOpen(true)}
           onOpenNotes={() => setNotesOpen(true)}
