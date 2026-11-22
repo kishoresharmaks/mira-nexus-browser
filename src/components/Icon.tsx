@@ -39,7 +39,17 @@ export type IconName =
   | 'book'
   | 'volume'
   | 'play'
-  | 'pause';
+  | 'pause'
+  | 'mic'
+  | 'qr'
+  | 'bookmark'
+  | 'folder'
+  | 'download'
+  | 'note'
+  | 'grid'
+  | 'image'
+  | 'newspaper'
+  | 'video';
 
 function content(name: IconName, color: string): ReactNode {
   switch (name) {
@@ -293,6 +303,81 @@ function content(name: IconName, color: string): ReactNode {
         <>
           <Rect x="6" y="4" width="4" height="16" rx="1" fill={color} />
           <Rect x="14" y="4" width="4" height="16" rx="1" fill={color} />
+        </>
+      );
+    case 'mic':
+      return (
+        <>
+          <Path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+          <Path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+          <Path d="M12 19v3" />
+        </>
+      );
+    case 'qr':
+      return (
+        <>
+          <Rect width="5" height="5" x="3" y="3" rx="1" />
+          <Rect width="5" height="5" x="16" y="3" rx="1" />
+          <Rect width="5" height="5" x="3" y="16" rx="1" />
+          <Path d="M21 16h-3a2 2 0 0 0-2 2v3" />
+          <Path d="M21 21v.01" />
+          <Path d="M12 7v3a2 2 0 0 1-2 2H7" />
+          <Path d="M12 12v6" />
+        </>
+      );
+    case 'bookmark':
+      return <Path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />;
+    case 'folder':
+      return (
+        <Path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+      );
+    case 'download':
+      return (
+        <>
+          <Path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <Path d="m7 10 5 5 5-5" />
+          <Path d="M12 15V3" />
+        </>
+      );
+    case 'note':
+      return (
+        <>
+          <Path d="M16 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <Path d="M14 2v6h6" />
+          <Path d="M8 13h8" />
+          <Path d="M8 17h6" />
+        </>
+      );
+    case 'grid':
+      return (
+        <>
+          <Rect width="7" height="7" x="3" y="3" rx="1.5" />
+          <Rect width="7" height="7" x="14" y="3" rx="1.5" />
+          <Rect width="7" height="7" x="14" y="14" rx="1.5" />
+          <Rect width="7" height="7" x="3" y="14" rx="1.5" />
+        </>
+      );
+    case 'image':
+      return (
+        <>
+          <Rect width="18" height="18" x="3" y="3" rx="2" />
+          <Circle cx="9" cy="9" r="2" />
+          <Path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+        </>
+      );
+    case 'newspaper':
+      return (
+        <>
+          <Path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2" />
+          <Path d="M18 14h-8" />
+          <Path d="M15 18h-5" />
+        </>
+      );
+    case 'video':
+      return (
+        <>
+          <Path d="m22 8-6 4 6 4V8Z" />
+          <Rect width="14" height="12" x="2" y="6" rx="2" />
         </>
       );
     default:

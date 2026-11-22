@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   Animated,
   Easing,
@@ -7,16 +7,14 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAds } from '@/lib/ads-provider';
 import { useCatalogConfig } from '@/lib/catalog-provider';
 import { haptic } from '@/lib/haptics';
-import { relativeTime } from '@/lib/time';
 import { getDisplayUrl } from '@/lib/url';
 import { useAnimatedValue } from '@/lib/useAnimatedValue';
-import { fonts, layout, privateTheme, softShadow } from '@/theme';
+import { fonts } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
 import type {
   BrowserTab,
@@ -25,15 +23,20 @@ import type {
   Shortcut,
   Trail,
 } from '@/types';
-import { BrandMark } from './BrandMark';
 import { Favicon } from './Favicon';
 import { HomeAdSlot } from './HomeAdSlot';
 import { Icon } from './Icon';
-import { IconButton } from './IconButton';
 import { PressableScale } from './PressableScale';
 import { ScreenBackdrop } from './ScreenBackdrop';
-import { TodayCard } from './TodayCard';
-import { TrailCard } from './TrailCard';
+import { ContinueReading } from './home/ContinueReading';
+import { DiscoverySection } from './home/DiscoverySection';
+import { HomeBottomNavigation, type NavItem } from './home/HomeBottomNavigation';
+import { HomeHeader } from './home/HomeHeader';
+import { HomeHero } from './home/HomeHero';
+import type { SearchCategory } from './home/SearchCategories';
+import { SmartSearch } from './home/SmartSearch';
+import { TrailsSection } from './home/TrailsSection';
+import { YourWebGrid } from './home/YourWebGrid';
 
 type Props = {
   shortcuts: Shortcut[];
@@ -44,8 +47,16 @@ type Props = {
   privateTabCount: number;
   today: CuratedPage;
   todayLabel: string;
+  curatedPages?: CuratedPage[];
   adsVisible: boolean;
-  onOpenSearch: () => void;
+  onOpenSearch: (category?: SearchCategory) => void;
+  onOpenVoiceSearch?: () => void;
+  onOpenQrScanner?: () => void;
+  onOpenAi: () => void;
+  onOpenCollections: () => void;
+  onOpenDownloads: () => void;
+  onOpenNotes: () => void;
+  onOpenPrivacy: () => void;
   onOpenPrivateTab: () => void;
   onOpenPrivateTabs: () => void;
   onOpenHistory: () => void;
@@ -61,6 +72,8 @@ type Props = {
   onToggleTheme: () => void;
   onRemoveShortcut: (shortcut: Shortcut) => void;
   onResetShortcuts: () => void;
+  onRemoveHistoryItem?: (id: string) => void;
+  onSavePage?: (page: CuratedPage) => void;
 };
 
 export function HomeScreen({
@@ -72,8 +85,16 @@ export function HomeScreen({
   privateTabCount,
   today,
   todayLabel,
+  curatedPages,
   adsVisible,
   onOpenSearch,
+  onOpenVoiceSearch,
+  onOpenQrScanner,
+  onOpenAi,
+  onOpenCollections,
+  onOpenDownloads,
+  onOpenNotes,
+  onOpenPrivacy,
   onOpenPrivateTab,
   onOpenPrivateTabs,
   onOpenHistory,
@@ -89,285 +110,100 @@ export function HomeScreen({
   onToggleTheme,
   onRemoveShortcut,
   onResetShortcuts,
+  onRemoveHistoryItem,
+  onSavePage,
 }: Props) {
-  const { theme, mode } = useTheme();
-  const { activeEngine, engines } = useCatalogConfig();
+  const { theme } = useTheme();
+  const { engines } = useCatalogConfig();
   const { ads, showRewardedAd } = useAds();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  const [editing, setEditing] = useState(false);
-  const [anchoredAdHeight, setAnchoredAdHeight] = useState(0);
+  const [activeBottomNav, setActiveBottomNav] = useState<NavItem>('home');
 
-  const displaySize = Math.min(60, Math.max(43, width * 0.132));
-  const recent = history.slice(0, 3);
-  const latestTrail = trails[0];
+  const discoveryPages = curatedPages && curatedPages.length > 0
+    ? curatedPages
+    : [today];
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
       <ScreenBackdrop />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[
           styles.scroll,
           {
             paddingTop: insets.top + 8,
-            paddingBottom:
-              34 + (anchoredAdHeight > 0 ? anchoredAdHeight : insets.bottom),
+            paddingBottom: insets.bottom + 90, // Leave room for floating bottom nav
           },
         ]}
       >
         <View style={styles.content}>
+          {/* Section 1: Header */}
           <Reveal delay={0}>
-            <View style={styles.header}>
-              <View style={styles.brand}>
-                <BrandMark
-                  size={23}
-                  color={theme.ink}
-                  accent={theme.accent}
-                  strokeWidth={1.65}
-                />
-                <Text style={[styles.wordmark, { color: theme.ink }]}>Nexus</Text>
-              </View>
-              <View style={styles.headerActions}>
-                <IconButton
-                  icon="mask"
-                  label="Open a private tab"
-                  variant="surface"
-                  size={38}
-                  color={theme.accent}
-                  onPress={onOpenPrivateTab}
-                />
-                <IconButton
-                  icon="clock"
-                  label="Open history"
-                  variant="surface"
-                  size={38}
-                  onPress={onOpenHistory}
-                />
-                <IconButton
-                  icon={mode === 'dark' ? 'sun' : 'moon'}
-                  label={mode === 'dark' ? 'Use light theme' : 'Use dark theme'}
-                  variant="surface"
-                  size={38}
-                  onPress={onToggleTheme}
-                />
-                <IconButton
-                  icon="settings"
-                  label="Search settings"
-                  variant="surface"
-                  size={38}
-                  onPress={onOpenSettings}
-                />
-              </View>
-            </View>
+            <HomeHeader
+              onOpenAi={onOpenAi}
+              onOpenHistory={onOpenHistory}
+              onToggleTheme={onToggleTheme}
+              onOpenSettings={onOpenSettings}
+            />
           </Reveal>
 
-          <Reveal delay={60}>
-            <View style={styles.hero}>
-              <View style={styles.eyebrowRow}>
-                <View style={[styles.eyebrowLine, { backgroundColor: theme.accent }]} />
-                <Text style={[styles.eyebrow, { color: theme.muted }]}>
-                  THE QUIET WEB
-                </Text>
-              </View>
-              <Text
-                style={[
-                  styles.headline,
-                  {
-                    color: theme.ink,
-                    fontSize: displaySize,
-                    lineHeight: displaySize * 0.95,
-                  },
-                ]}
-              >
-                The web,{'\n'}
-                <Text style={[styles.headlineItalic, { fontFamily: fonts.serifItalic }]}>
-                  uncluttered
-                </Text>
-                <Text style={{ color: theme.accent }}>.</Text>
-              </Text>
-              <Text style={[styles.subline, { color: theme.muted }]}>
-                Search, read, and wander — without the feed.
-              </Text>
-            </View>
+          {/* Section 2: Hero */}
+          <Reveal delay={50}>
+            <HomeHero />
           </Reveal>
 
-          <Reveal delay={140}>
-            <PressableScale
-              onPress={() => {
-                haptic.tap();
-                onOpenSearch();
+          {/* Section 3: Smart Search */}
+          <Reveal delay={100}>
+            <SmartSearch
+              onOpenSearch={onOpenSearch}
+              onOpenVoiceSearch={onOpenVoiceSearch}
+              onOpenQrScanner={onOpenQrScanner}
+              onOpenEnginePicker={onOpenSettings}
+              privateTabCount={privateTabCount}
+              onOpenPrivateTabs={onOpenPrivateTabs}
+            />
+          </Reveal>
+
+          {/* Section 4: Your Web (6-item feature grid + pinned sites) */}
+          <Reveal delay={150}>
+            <YourWebGrid
+              shortcuts={shortcuts}
+              onOpenCollections={onOpenCollections}
+              onOpenHistory={onOpenHistory}
+              onOpenTrails={onOpenTrails}
+              onOpenDownloads={onOpenDownloads}
+              onOpenNotes={onOpenNotes}
+              onOpenPrivacy={onOpenPrivacy}
+              onOpenShortcut={(url) => {
+                if (ads.rewardedEnabled) {
+                  showRewardedAd(() => onOpenUrl(url));
+                } else {
+                  onOpenUrl(url);
+                }
               }}
-              accessibilityLabel="Search or enter a website"
-              style={[
-                styles.searchDock,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.line,
-                },
-                softShadow(theme.mode, 'dock'),
-              ]}
-            >
-              <View style={[styles.searchIcon, { backgroundColor: theme.accentSoft }]}>
-                <Icon name="globe" size={20} color={theme.accent} />
-              </View>
-              <View style={styles.searchCopy}>
-                <Text style={[styles.searchTitle, { color: theme.ink }]}>
-                  Search or enter a website
-                </Text>
-                <Text style={[styles.searchHint, { color: theme.muted }]}>
-                  Private results · {activeEngine.name}
-                </Text>
-              </View>
-              <View style={[styles.searchGo, { backgroundColor: theme.accent }]}>
-                <Icon
-                  name="arrowRight"
-                  size={19}
-                  color={theme.accentInk}
-                  strokeWidth={2.1}
-                />
-              </View>
-            </PressableScale>
-
-            {privateTabCount > 0 ? (
-              <PressableScale
-                onPress={() => {
-                  haptic.tap();
-                  onOpenPrivateTabs();
-                }}
-                scaleTo={0.985}
-                accessibilityLabel={`Private tabs, ${privateTabCount} open. Opens the tab shelf.`}
-                style={[
-                  styles.privateStrip,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: theme.line,
-                  },
-                ]}
-              >
-                <View
-                  style={[
-                    styles.privateStripIcon,
-                    { backgroundColor: privateTheme.accentSoft },
-                  ]}
-                >
-                  <Icon
-                    name="mask"
-                    size={17}
-                    color={privateTheme.accent}
-                    strokeWidth={1.7}
-                  />
-                </View>
-                <View style={styles.privateStripCopy}>
-                  <Text style={[styles.privateStripTitle, { color: theme.ink }]}>
-                    Private tabs
-                  </Text>
-                  <Text style={[styles.privateStripHint, { color: theme.muted }]}>
-                    {privateTabCount} open · no history
-                  </Text>
-                </View>
-                <Icon
-                  name="chevronRight"
-                  size={15}
-                  color={theme.faint}
-                  strokeWidth={2}
-                />
-              </PressableScale>
-            ) : null}
+              onRemoveShortcut={onRemoveShortcut}
+              onResetShortcuts={onResetShortcuts}
+            />
           </Reveal>
 
+          {/* Section 5: Discover Today */}
           <Reveal delay={200}>
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionLabel, { color: theme.muted }]}>
-                  TODAY&apos;S PAGE
-                </Text>
-                <Pressable
-                  onPress={() => {
-                    haptic.tap();
-                    onOpenTodayArchive();
-                  }}
-                  hitSlop={10}
-                  style={styles.seeAll}
-                  accessibilityRole="button"
-                  accessibilityLabel="Open the daily page archive"
-                >
-                  <Text style={[styles.sectionAction, { color: theme.inkSoft }]}>
-                    Archive
-                  </Text>
-                  <Icon
-                    name="archive"
-                    size={12}
-                    color={theme.faint}
-                    strokeWidth={2}
-                  />
-                </Pressable>
-              </View>
-              <View style={styles.todayWrap}>
-                <TodayCard
-                  page={today}
-                  dateLabel={todayLabel}
-                  onPress={() => {
-                    haptic.tap();
-                    onOpenToday();
-                  }}
-                />
-              </View>
-            </View>
+            <DiscoverySection
+              pages={discoveryPages}
+              todayLabel={todayLabel}
+              onOpenPage={onOpenUrl}
+              onSavePage={onSavePage}
+              onOpenArchive={onOpenTodayArchive}
+            />
           </Reveal>
 
           <HomeAdSlot layout="inline" visible={adsVisible} />
 
-          {latestTrail ? (
-            <Reveal delay={260}>
-              <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                  <Text style={[styles.sectionLabel, { color: theme.muted }]}>
-                    TRAILS
-                  </Text>
-                  <Pressable
-                    onPress={() => {
-                      haptic.tap();
-                      onOpenTrails();
-                    }}
-                    hitSlop={10}
-                    style={styles.seeAll}
-                    accessibilityRole="button"
-                    accessibilityLabel="See all trails"
-                  >
-                    <Text
-                      style={[styles.sectionAction, { color: theme.inkSoft }]}
-                    >
-                      See all
-                    </Text>
-                    <Icon
-                      name="chevronRight"
-                      size={13}
-                      color={theme.faint}
-                      strokeWidth={2}
-                    />
-                  </Pressable>
-                </View>
-                <View style={styles.trailWrap}>
-                  <TrailCard
-                    trail={latestTrail}
-                    onPress={() => {
-                      haptic.tap();
-                      onResumeTrail(latestTrail);
-                    }}
-                    onOpenAll={() => {
-                      haptic.tap();
-                      onOpenTrails();
-                    }}
-                  />
-                </View>
-              </View>
-            </Reveal>
-          ) : null}
-
+          {/* Open Tabs Horizontal Strip (if tabs open) */}
           {tabs.length > 0 ? (
-            <Reveal delay={315}>
-              <View style={styles.section}>
+            <Reveal delay={240}>
+              <View style={styles.tabsSection}>
                 <View style={styles.sectionHeader}>
                   <View style={styles.sectionLabelRow}>
                     <Text style={[styles.sectionLabel, { color: theme.muted }]}>
@@ -429,7 +265,7 @@ export function HomeScreen({
                           {
                             backgroundColor: theme.surface,
                             borderColor: active ? theme.accent : theme.line,
-                            borderWidth: active ? 1.3 : StyleSheet.hairlineWidth,
+                            borderWidth: active ? 1.4 : StyleSheet.hairlineWidth,
                           },
                         ]}
                       >
@@ -497,304 +333,82 @@ export function HomeScreen({
             </Reveal>
           ) : null}
 
-          <Reveal delay={370}>
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionLabel, { color: theme.muted }]}>
-                  SHORTCUTS
-                </Text>
-                {shortcuts.length > 0 ? (
-                  <Pressable
-                    onPress={() => {
-                      haptic.select();
-                      setEditing((value) => !value);
-                    }}
-                    hitSlop={10}
-                    accessibilityRole="button"
-                  >
-                    <Text
-                      style={[
-                        styles.sectionAction,
-                        { color: editing ? theme.accent : theme.inkSoft },
-                      ]}
-                    >
-                      {editing ? 'Done' : 'Edit'}
-                    </Text>
-                  </Pressable>
-                ) : null}
-              </View>
-
-              {shortcuts.length > 0 ? (
-                <View style={styles.shortcutGrid}>
-                  {shortcuts.map((shortcut) => (
-                    <ShortcutItem
-                      key={shortcut.id}
-                      shortcut={shortcut}
-                      editing={editing}
-                      onPress={() => {
-                        if (editing) {
-                          haptic.warn();
-                          onRemoveShortcut(shortcut);
-                        } else {
-                          haptic.tap();
-                          if (ads.rewardedEnabled) {
-                            showRewardedAd(() => {
-                              onOpenUrl(shortcut.url);
-                            });
-                          } else {
-                            onOpenUrl(shortcut.url);
-                          }
-                        }
-                      }}
-                    />
-                  ))}
-                </View>
-              ) : (
-                <View
-                  style={[
-                    styles.emptyShortcuts,
-                    { backgroundColor: theme.surface, borderColor: theme.line },
-                  ]}
-                >
-                  <View style={[styles.emptyIcon, { backgroundColor: theme.chip }]}>
-                    <Icon name="plus" size={18} color={theme.inkSoft} />
-                  </View>
-                  <View style={styles.emptyCopy}>
-                    <Text style={[styles.emptyTitle, { color: theme.ink }]}>
-                      Make it yours
-                    </Text>
-                    <Text style={[styles.emptyBody, { color: theme.muted }]}>
-                      Pin pages from the browser menu and they will wait for you here.
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {editing ? (
-                <View style={styles.editFooter}>
-                  <Text style={[styles.editHint, { color: theme.muted }]}>
-                    Tap a shortcut to remove it.
-                  </Text>
-                  <Pressable
-                    onPress={() => {
-                      haptic.select();
-                      onResetShortcuts();
-                    }}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                  >
-                    <Text style={[styles.restore, { color: theme.accent }]}>
-                      Restore defaults
-                    </Text>
-                  </Pressable>
-                </View>
-              ) : null}
-            </View>
+          {/* Section 6: Trails */}
+          <Reveal delay={280}>
+            <TrailsSection
+              trails={trails}
+              onResumeTrail={onResumeTrail}
+              onOpenTrails={onOpenTrails}
+            />
           </Reveal>
 
-          <Reveal delay={430}>
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={[styles.sectionLabel, { color: theme.muted }]}>RECENT</Text>
-                {history.length > 0 ? (
-                  <Pressable
-                    onPress={() => {
-                      haptic.tap();
-                      onOpenHistory();
-                    }}
-                    hitSlop={10}
-                    style={styles.seeAll}
-                    accessibilityRole="button"
-                    accessibilityLabel="See all history"
-                  >
-                    <Text style={[styles.sectionAction, { color: theme.inkSoft }]}>
-                      See all
-                    </Text>
-                    <Icon
-                      name="chevronRight"
-                      size={13}
-                      color={theme.faint}
-                      strokeWidth={2}
-                    />
-                  </Pressable>
-                ) : null}
-              </View>
-
-              {recent.length > 0 ? (
-                <View
-                  style={[
-                    styles.recentCard,
-                    { backgroundColor: theme.surface, borderColor: theme.line },
-                    softShadow(theme.mode),
-                  ]}
-                >
-                  {recent.map((entry, index) => (
-                    <Pressable
-                      key={entry.id}
-                      onPress={() => {
-                        haptic.tap();
-                        onOpenUrl(entry.url);
-                      }}
-                      style={({ pressed }) => [
-                        styles.recentRow,
-                        index > 0
-                          ? {
-                              borderTopWidth: StyleSheet.hairlineWidth,
-                              borderTopColor: theme.line,
-                            }
-                          : null,
-                        pressed ? { opacity: 0.7 } : null,
-                      ]}
-                      accessibilityRole="link"
-                      accessibilityLabel={`Open ${entry.title}`}
-                    >
-                      <Favicon
-                        host={entry.host}
-                        title={entry.title}
-                        size={34}
-                      />
-                      <View style={styles.recentCopy}>
-                        <Text
-                          numberOfLines={1}
-                          style={[styles.recentTitle, { color: theme.ink }]}
-                        >
-                          {entry.title}
-                        </Text>
-                        <Text
-                          numberOfLines={1}
-                          style={[styles.recentMeta, { color: theme.muted }]}
-                        >
-                          {entry.host} · {relativeTime(entry.visitedAt)}
-                        </Text>
-                      </View>
-                      <Icon
-                        name="arrowUpRight"
-                        size={15}
-                        color={theme.faint}
-                        strokeWidth={1.9}
-                      />
-                    </Pressable>
-                  ))}
-                </View>
-              ) : (
-                <View
-                  style={[
-                    styles.emptyRecent,
-                    { backgroundColor: theme.surface, borderColor: theme.line },
-                  ]}
-                >
-                  <View style={[styles.emptyIcon, { backgroundColor: theme.chip }]}>
-                    <Icon name="clock" size={18} color={theme.inkSoft} />
-                  </View>
-                  <View style={styles.emptyCopy}>
-                    <Text style={[styles.emptyTitle, { color: theme.ink }]}>
-                      No pages yet
-                    </Text>
-                    <Text style={[styles.emptyBody, { color: theme.muted }]}>
-                      The places you wander will show up here, on this device only.
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-          </Reveal>
-
-          <Reveal delay={500}>
-            <View style={styles.footer}>
-              <Icon name="shield" size={14} color={theme.faint} strokeWidth={1.7} />
-              <Text style={[styles.footerText, { color: theme.faint }]}>
-                No account. No feed. Your history stays yours.
-              </Text>
-            </View>
+          {/* Section 7: Continue Reading (Recent history) */}
+          <Reveal delay={320}>
+            <ContinueReading
+              history={history}
+              onOpenPage={onOpenUrl}
+              onOpenHistory={onOpenHistory}
+              onRemoveItem={onRemoveHistoryItem}
+            />
           </Reveal>
         </View>
       </ScrollView>
-      <HomeAdSlot
-        layout="anchored"
-        visible={adsVisible}
-        onHeightChange={setAnchoredAdHeight}
+
+      {/* Section 8: Homepage Floating Bottom Navigation */}
+      <HomeBottomNavigation
+        activeTab={activeBottomNav}
+        tabCount={tabs.length}
+        onPressHome={() => {
+          setActiveBottomNav('home');
+        }}
+        onPressTabs={() => {
+          onOpenTabs();
+        }}
+        onPressAi={() => {
+          onOpenAi();
+        }}
+        onPressBookmarks={() => {
+          onOpenCollections();
+        }}
+        onPressApps={() => {
+          onOpenDownloads();
+        }}
       />
-    </View>
-  );
-}
-
-function ShortcutItem({
-  shortcut,
-  editing,
-  onPress,
-}: {
-  shortcut: Shortcut;
-  editing: boolean;
-  onPress: () => void;
-}) {
-  const { theme } = useTheme();
-
-  return (
-    <View style={styles.shortcutItem}>
-      <PressableScale
-        onPress={onPress}
-        style={[
-          styles.shortcutTile,
-          { backgroundColor: theme.surface, borderColor: theme.line },
-          softShadow(theme.mode),
-        ]}
-        accessibilityLabel={editing ? `Remove ${shortcut.title}` : `Open ${shortcut.title}`}
-      >
-        <Favicon host={shortcut.host} title={shortcut.title} size={28} plain />
-        {editing ? (
-          <View
-            style={[
-              styles.removeBadge,
-              { backgroundColor: theme.accent, borderColor: theme.surface },
-            ]}
-          >
-            <Icon name="close" size={9} color={theme.accentInk} strokeWidth={2.6} />
-          </View>
-        ) : null}
-      </PressableScale>
-      <Text
-        numberOfLines={1}
-        style={[styles.shortcutLabel, { color: theme.inkSoft }]}
-      >
-        {shortcut.title}
-      </Text>
     </View>
   );
 }
 
 function Reveal({
   children,
-  delay,
+  delay = 0,
 }: {
   children: ReactNode;
-  delay: number;
+  delay?: number;
 }) {
-  const progress = useAnimatedValue(0);
+  const opacity = useAnimatedValue(0);
+  const translateY = useAnimatedValue(12);
 
-  useEffect(() => {
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: 620,
-      delay,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [delay, progress]);
+  useState(() => {
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 360,
+        delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 360,
+        delay,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  });
 
   return (
-    <Animated.View
-      style={{
-        opacity: progress,
-        transform: [
-          {
-            translateY: progress.interpolate({
-              inputRange: [0, 1],
-              outputRange: [16, 0],
-            }),
-          },
-        ],
-      }}
-    >
+    <Animated.View style={{ opacity, transform: [{ translateY }] }}>
       {children}
     </Animated.View>
   );
@@ -805,355 +419,85 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scroll: {
-    flexGrow: 1,
+    paddingHorizontal: 16,
   },
   content: {
+    maxWidth: 580,
     width: '100%',
-    maxWidth: layout.maxContentWidth,
     alignSelf: 'center',
-    paddingHorizontal: layout.screenPadding,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 38,
-  },
-  brand: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
-  wordmark: {
-    fontFamily: fonts.serif,
-    fontSize: 26,
-    letterSpacing: 0.1,
-    includeFontPadding: false,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
-  hero: {
-    marginTop: 40,
-  },
-  eyebrowRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 15,
-  },
-  eyebrowLine: {
-    width: 17,
-    height: 1.5,
-    borderRadius: 1,
-  },
-  eyebrow: {
-    fontFamily: fonts.semibold,
-    fontSize: 10,
-    letterSpacing: 1.75,
-  },
-  headline: {
-    fontFamily: fonts.serif,
-    letterSpacing: -1.25,
-    includeFontPadding: false,
-  },
-  headlineItalic: {
-    letterSpacing: -0.7,
-  },
-  subline: {
-    fontFamily: fonts.sans,
-    fontSize: 14.5,
-    lineHeight: 21,
-    marginTop: 14,
-    maxWidth: 330,
-  },
-  searchDock: {
-    marginTop: 30,
-    borderRadius: 24,
-    borderWidth: StyleSheet.hairlineWidth,
-    minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-    gap: 12,
-  },
-  searchIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  searchTitle: {
-    fontFamily: fonts.medium,
-    fontSize: 15,
-  },
-  searchHint: {
-    fontFamily: fonts.sans,
-    fontSize: 11.5,
-  },
-  searchGo: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  privateStrip: {
-    marginTop: 10,
-    minHeight: 56,
-    borderRadius: 18,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 11,
-    paddingVertical: 9,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-  },
-  privateStripIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  privateStripCopy: {
-    flex: 1,
-    gap: 1,
-  },
-  privateStripTitle: {
-    fontFamily: fonts.medium,
-    fontSize: 13.5,
-  },
-  privateStripHint: {
-    fontFamily: fonts.sans,
-    fontSize: 11,
-  },
-  section: {
-    marginTop: 34,
+  tabsSection: {
+    marginBottom: 26,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 20,
-  },
-  sectionLabel: {
-    fontFamily: fonts.semibold,
-    fontSize: 10.5,
-    letterSpacing: 1.65,
-  },
-  sectionAction: {
-    fontFamily: fonts.medium,
-    fontSize: 12.5,
-  },
-  seeAll: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  todayWrap: {
-    marginTop: 14,
-  },
-  trailWrap: {
-    marginTop: 14,
+    marginBottom: 10,
+    paddingHorizontal: 2,
   },
   sectionLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 8,
+  },
+  sectionLabel: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    letterSpacing: 1.2,
   },
   countBadge: {
-    minWidth: 19,
-    height: 19,
-    borderRadius: 9.5,
-    paddingHorizontal: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    borderRadius: 8,
   },
   countText: {
-    fontFamily: fonts.semibold,
-    fontSize: 9.5,
+    fontFamily: fonts.medium,
+    fontSize: 11,
+  },
+  seeAll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  sectionAction: {
+    fontFamily: fonts.medium,
+    fontSize: 11.5,
   },
   tabStrip: {
     gap: 8,
-    paddingTop: 12,
-    paddingRight: 4,
+    paddingVertical: 2,
   },
   tabChip: {
-    height: 40,
-    maxWidth: 178,
-    borderRadius: 20,
-    paddingRight: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    borderRadius: 18,
+    paddingLeft: 10,
+    paddingRight: 6,
+    height: 42,
+    gap: 6,
   },
   tabChipBody: {
-    flexShrink: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    paddingLeft: 10,
-    alignSelf: 'stretch',
+    maxWidth: 160,
   },
   tabActiveDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   tabChipText: {
-    flexShrink: 1,
     fontFamily: fonts.medium,
-    fontSize: 11.5,
-    maxWidth: 88,
+    fontSize: 12.5,
   },
   tabChipClose: {
     width: 22,
     height: 22,
     borderRadius: 11,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 1,
-  },
-  shortcutGrid: {
-    marginTop: 18,
-    width: '100%',
-    maxWidth: 440,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: 18,
-  },
-  shortcutItem: {
-    width: '23.2%',
-    alignItems: 'center',
-  },
-  shortcutTile: {
-    width: 58,
-    height: 58,
-    borderRadius: 19,
-    borderWidth: StyleSheet.hairlineWidth,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  removeBadge: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-  },
-  shortcutLabel: {
-    fontFamily: fonts.medium,
-    fontSize: 11.5,
-    marginTop: 8,
-    maxWidth: 84,
-    textAlign: 'center',
-  },
-  editFooter: {
-    marginTop: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  editHint: {
-    fontFamily: fonts.sans,
-    fontSize: 11.5,
-    flex: 1,
-  },
-  restore: {
-    fontFamily: fonts.semibold,
-    fontSize: 11.5,
-  },
-  emptyShortcuts: {
-    marginTop: 18,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  emptyRecent: {
-    marginTop: 16,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-  },
-  emptyIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyCopy: {
-    flex: 1,
-    gap: 3,
-  },
-  emptyTitle: {
-    fontFamily: fonts.medium,
-    fontSize: 14,
-  },
-  emptyBody: {
-    fontFamily: fonts.sans,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  recentCard: {
-    marginTop: 16,
-    borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
-    overflow: 'hidden',
-  },
-  recentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 11,
-  },
-  recentCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  recentTitle: {
-    fontFamily: fonts.medium,
-    fontSize: 14,
-  },
-  recentMeta: {
-    fontFamily: fonts.sans,
-    fontSize: 11.5,
-  },
-  footer: {
-    marginTop: 36,
-    paddingTop: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  footerText: {
-    fontFamily: fonts.sans,
-    fontSize: 11,
-    letterSpacing: 0.1,
   },
 });

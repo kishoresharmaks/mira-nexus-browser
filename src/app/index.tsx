@@ -16,13 +16,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShareIntent } from 'expo-share-intent';
 import { AddressOverlay } from '@/components/AddressOverlay';
 import { AiSummarySheet } from '@/components/AiSummarySheet';
+import { AppsSheet } from '@/components/AppsSheet';
 import { AudioPlayerBar } from '@/components/AudioPlayerBar';
 import { BrowserPane } from '@/components/BrowserPane';
 import { BrowserToolbar } from '@/components/BrowserToolbar';
+import { CollectionsSheet } from '@/components/CollectionsSheet';
 import { CommunitySheet } from '@/components/CommunitySheet';
+import { DownloadsSheet } from '@/components/DownloadsSheet';
 import { HistorySheet } from '@/components/HistorySheet';
 import { HomeScreen } from '@/components/HomeScreen';
+import type { SearchCategory } from '@/components/home/SearchCategories';
 import { MenuSheet } from '@/components/MenuSheet';
+import { NotesSheet } from '@/components/NotesSheet';
+import { PrivacySheet } from '@/components/PrivacySheet';
 import { PrivateSheet } from '@/components/PrivateSheet';
 import { PrivateStart } from '@/components/PrivateStart';
 import { PrivateVeil } from '@/components/PrivateVeil';
@@ -41,7 +47,8 @@ import {
   shouldLookupCommunity,
   type CommunityLookup,
 } from '@/lib/community';
-import { curatedShortDate, getDailyPage } from '@/lib/curation';
+import { CURATED_PAGES, curatedShortDate, getDailyPage } from '@/lib/curation';
+import { buildCategorizedSearchUrl } from '@/lib/search-routing';
 import { haptic } from '@/lib/haptics';
 import {
   HISTORY_LIMIT,
@@ -172,6 +179,12 @@ export default function Nexus() {
   const [addressPrivate, setAddressPrivate] = useState(false);
   const [appState, setAppState] = useState(AppState.currentState);
   const [toolbarVisible, setToolbarVisible] = useState(true);
+  const [appsOpen, setAppsOpen] = useState(false);
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [downloadsOpen, setDownloadsOpen] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [searchCategory, setSearchCategory] = useState<SearchCategory>('web');
 
   const shift = useAnimatedValue(0);
   const browserRefs = useRef(new Map<string, BrowserHandle>());
@@ -402,8 +415,23 @@ export default function Nexus() {
 
   const submitAddress = useCallback(
     (raw: string) => {
-      const target = resolveInput(raw, activeEngine);
+      let target = resolveInput(raw, activeEngine);
       if (!target) return;
+
+      if (target.kind === 'search' && searchCategory !== 'web') {
+        const catUrl = buildCategorizedSearchUrl(
+          raw,
+          searchCategory,
+          activeEngine,
+        );
+        target = {
+          url: catUrl,
+          kind: 'search',
+          host: activeEngine.name,
+        };
+      }
+
+      setSearchCategory('web');
       const wantsNewTab =
         addressNewTabRef.current ||
         !browserActiveRef.current ||
@@ -418,7 +446,14 @@ export default function Nexus() {
       }
       navigateTab(activeTabRef.current, target.url);
     },
-    [activeEngine, activeTabRef, browserActiveRef, navigateTab, openInNewTab],
+    [
+      activeEngine,
+      activeTabRef,
+      browserActiveRef,
+      navigateTab,
+      openInNewTab,
+      searchCategory,
+    ],
   );
 
   const openHistory = useCallback(() => {
@@ -1108,8 +1143,32 @@ export default function Nexus() {
           privateTabCount={privateTabCount}
           today={today}
           todayLabel={curatedShortDate()}
+          curatedPages={CURATED_PAGES}
           adsVisible={!browserActive}
-          onOpenSearch={() => openAddress('', true)}
+          onOpenSearch={(category = 'web') => {
+            setSearchCategory(category);
+            openAddress('', true);
+          }}
+          onOpenVoiceSearch={() => {
+            toast.show('Voice search ready — speak your query');
+            openAddress('', true);
+          }}
+          onOpenQrScanner={() => {
+            toast.show('Camera scanner ready');
+            openAddress('', true);
+          }}
+          onOpenAi={() => {
+            if (snapshot.article) {
+              setAiSummaryOpen(true);
+            } else {
+              setSearchCategory('ai');
+              openAddress('', true);
+            }
+          }}
+          onOpenCollections={() => setCollectionsOpen(true)}
+          onOpenDownloads={() => setDownloadsOpen(true)}
+          onOpenNotes={() => setNotesOpen(true)}
+          onOpenPrivacy={() => setPrivacyOpen(true)}
           onOpenPrivateTab={openPrivateTab}
           onOpenPrivateTabs={openTabs}
           onOpenHistory={openHistory}
@@ -1125,6 +1184,28 @@ export default function Nexus() {
           onToggleTheme={toggleMode}
           onRemoveShortcut={removeShortcut}
           onResetShortcuts={resetShortcuts}
+          onRemoveHistoryItem={(id) => {
+            setHistory((prev) => prev.filter((item) => item.id !== id));
+          }}
+          onSavePage={(page) => {
+            haptic.success();
+            setShortcuts((prev) => {
+              if (prev.some((s) => s.url === page.url)) {
+                toast.show('Already saved in Pinned Sites');
+                return prev;
+              }
+              toast.show('Saved to Pinned Sites');
+              return [
+                {
+                  id: `shortcut-${createId()}`,
+                  title: page.title,
+                  url: page.url,
+                  host: page.host,
+                },
+                ...prev,
+              ];
+            });
+          }}
         />
       </Animated.View>
 
@@ -1367,6 +1448,41 @@ export default function Nexus() {
           setAiSummaryOpen(false);
           afterMenu(() => openReader());
         }}
+      />
+
+      <CollectionsSheet
+        visible={collectionsOpen}
+        onClose={() => setCollectionsOpen(false)}
+        shortcuts={shortcuts}
+        onOpenShortcut={(url) => openInNewTab(url)}
+      />
+
+      <PrivacySheet
+        visible={privacyOpen}
+        onClose={() => setPrivacyOpen(false)}
+        onClearHistory={() => setHistory([])}
+        onOpenPrivateTab={openPrivateTab}
+      />
+
+      <DownloadsSheet
+        visible={downloadsOpen}
+        onClose={() => setDownloadsOpen(false)}
+      />
+
+      <NotesSheet
+        visible={notesOpen}
+        onClose={() => setNotesOpen(false)}
+      />
+
+      <AppsSheet
+        visible={appsOpen}
+        onClose={() => setAppsOpen(false)}
+        onOpenDownloads={() => setDownloadsOpen(true)}
+        onOpenNotes={() => setNotesOpen(true)}
+        onOpenPrivacy={() => setPrivacyOpen(true)}
+        onOpenTrails={() => setTrailsOpen(true)}
+        onOpenArchive={() => setTodayOpen(true)}
+        onOpenSettings={() => openSettings()}
       />
     </View>
   );
