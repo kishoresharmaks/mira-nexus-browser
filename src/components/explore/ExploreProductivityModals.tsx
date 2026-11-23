@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Modal,
   Platform,
   ScrollView,
@@ -7,6 +8,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { Icon } from '../Icon';
@@ -31,6 +33,7 @@ export type ActiveModal =
 type Props = {
   activeModal: ActiveModal;
   currentUrl?: string;
+  articleHtml?: string;
   onClose: () => void;
 };
 
@@ -567,7 +570,7 @@ function DeveloperToolsView({
   currentUrl,
   onClose,
 }: {
-  type: 'devinfo' | 'urlinspector' | 'pagesource';
+  type: 'devinfo' | 'urlinspector';
   currentUrl?: string;
   onClose: () => void;
 }) {
@@ -606,7 +609,7 @@ function DeveloperToolsView({
     <View style={styles.modalContent}>
       <View style={styles.modalTop}>
         <Text style={[styles.modalTitle, { color: theme.ink }]}>
-          {type === 'devinfo' ? 'Website & Runtime Info' : type === 'urlinspector' ? 'URL Inspector' : 'Page Source'}
+          {type === 'devinfo' ? 'Website & Runtime Info' : 'URL Inspector'}
         </Text>
         <IconButton icon="close" label="Close" size={32} iconSize={15} onPress={onClose} />
       </View>
@@ -664,17 +667,6 @@ function DeveloperToolsView({
             )}
           </View>
         )}
-
-        {type === 'pagesource' && (
-          <View>
-            <Text style={[styles.inputLabel, { color: theme.muted }]}>VIEW SOURCE PREVIEW</Text>
-            <View style={[styles.sourceBox, { backgroundColor: theme.chip }]}>
-              <Text style={[styles.sourceText, { color: theme.ink }]}>
-                {`<!DOCTYPE html>\n<html>\n  <head>\n    <title>${urlData.hostname}</title>\n    <meta name="viewport" content="width=device-width" />\n  </head>\n  <body>\n    <!-- Page rendered via Secure WebView -->\n    <div id="root">\n      <!-- ${urlData.href} -->\n    </div>\n  </body>\n</html>`}
-              </Text>
-            </View>
-          </View>
-        )}
       </ScrollView>
 
       <View style={styles.modalButtons}>
@@ -694,16 +686,324 @@ function DeveloperToolsView({
 }
 
 // -------------------------------------------------------------
+// 7. PAGE SOURCE VIEWER (REAL RAW HTML WITH CORS FALLBACKS)
+// -------------------------------------------------------------
+async function fetchPageSource(
+  targetUrl: string,
+  signal: AbortSignal,
+): Promise<string> {
+  // 1. Direct fetch (native Android / iOS or CORS-enabled endpoints on web)
+  try {
+    const directRes = await fetch(targetUrl, {
+      signal,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+        Accept:
+          'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+    });
+    if (directRes.ok) {
+      const text = await directRes.text();
+      if (text && text.trim().length > 0) return text;
+    }
+  } catch {
+    // Direct fetch failed (e.g. browser CORS restriction on web).
+    // Gracefully continue to CORS proxies.
+  }
+
+  // 2. CORS Proxy 1: AllOrigins raw
+  try {
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+    const proxyRes = await fetch(proxyUrl, { signal });
+    if (proxyRes.ok) {
+      const text = await proxyRes.text();
+      if (text && text.trim().length > 0) return text;
+    }
+  } catch {
+    // Try next proxy
+  }
+
+  // 3. CORS Proxy 2: AllOrigins JSON endpoint
+  try {
+    const jsonProxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+    const jsonRes = await fetch(jsonProxyUrl, { signal });
+    if (jsonRes.ok) {
+      const data = await jsonRes.json();
+      if (data && typeof data.contents === 'string' && data.contents.trim().length > 0) {
+        return data.contents;
+      }
+    }
+  } catch {
+    // Try next proxy
+  }
+
+  // 4. CORS Proxy 3: CodeTabs
+  try {
+    const codetabsUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
+    const codeRes = await fetch(codetabsUrl, { signal });
+    if (codeRes.ok) {
+      const text = await codeRes.text();
+      if (text && text.trim().length > 0) return text;
+    }
+  } catch {
+    // All proxies failed
+  }
+
+  throw new Error('Unable to fetch source directly or via web proxies (CORS blocked).');
+}
+
+function PageSourceView({
+  currentUrl,
+  articleHtml,
+  onClose,
+}: {
+  currentUrl?: string;
+  articleHtml?: string;
+  onClose: () => void;
+}) {
+  const { theme } = useTheme();
+  const { height } = useWindowDimensions();
+  const toast = useToast();
+  const [source, setSource] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [wrapLines, setWrapLines] = useState(true);
+  const [showingFallback, setShowingFallback] = useState(false);
+
+  const hostname = useMemo(() => {
+    if (!currentUrl) return '';
+    try {
+      return new URL(currentUrl).hostname;
+    } catch {
+      return currentUrl;
+    }
+  }, [currentUrl]);
+
+  const fetchSource = useCallback(async () => {
+    if (!currentUrl || !/^https?:\/\//i.test(currentUrl)) {
+      if (articleHtml) {
+        setSource(articleHtml);
+        setShowingFallback(true);
+      } else {
+        setError('No active web page loaded. Open a website in the browser to view its source code.');
+      }
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      setShowingFallback(false);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 16000);
+
+      const html = await fetchPageSource(currentUrl, controller.signal);
+      clearTimeout(timeoutId);
+
+      setSource(html);
+    } catch (err) {
+      if (articleHtml && articleHtml.trim().length > 0) {
+        setSource(articleHtml);
+        setShowingFallback(true);
+      } else {
+        setError(err instanceof Error ? err.message : 'Cross-Origin (CORS) restriction blocked loading the raw source.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUrl, articleHtml]);
+
+  useEffect(() => {
+    fetchSource();
+  }, [fetchSource]);
+
+  const { lineCount, formattedSize } = useMemo(() => {
+    if (!source) return { lineCount: 0, formattedSize: '0 B' };
+    const lines = source.split('\n').length;
+    const bytes = source.length;
+    let sizeStr = `${bytes} B`;
+    if (bytes >= 1024 * 1024) {
+      sizeStr = `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    } else if (bytes >= 1024) {
+      sizeStr = `${(bytes / 1024).toFixed(1)} KB`;
+    }
+    return { lineCount: lines, formattedSize: sizeStr };
+  }, [source]);
+
+  const filteredSource = useMemo(() => {
+    if (!searchQuery.trim() || !source) return source;
+    const query = searchQuery.toLowerCase();
+    const lines = source.split('\n');
+    const matched = lines.filter((l) => l.toLowerCase().includes(query));
+    return matched.length > 0
+      ? `/* Found ${matched.length} matching lines for "${searchQuery}" */\n\n` + matched.join('\n')
+      : `/* No lines found matching "${searchQuery}" */`;
+  }, [searchQuery, source]);
+
+  const copySource = async () => {
+    if (!source) return;
+    haptic.success();
+    await Clipboard.setStringAsync(source);
+    toast.show('Full page source copied to clipboard');
+  };
+
+  return (
+    <View style={styles.modalContent}>
+      {/* Header */}
+      <View style={styles.modalTop}>
+        <View style={{ flex: 1, marginRight: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Text style={[styles.modalTitle, { color: theme.ink }]}>Page Source</Text>
+            {showingFallback ? (
+              <View style={[styles.badge, { backgroundColor: theme.accentSoft }]}>
+                <Text style={[styles.badgeText, { color: theme.accent }]}>DOM Snapshot</Text>
+              </View>
+            ) : null}
+          </View>
+          {hostname ? (
+            <Text numberOfLines={1} style={[styles.sourceHost, { color: theme.muted }]}>
+              {hostname}
+            </Text>
+          ) : null}
+        </View>
+        <IconButton icon="close" label="Close" size={32} iconSize={15} onPress={onClose} />
+      </View>
+
+      {/* Toolbar: Stats & Line-wrap Toggle */}
+      <View style={styles.sourceMetaRow}>
+        <View style={[styles.sourceStatBadge, { backgroundColor: theme.chip }]}>
+          <Icon name="fileText" size={12} color={theme.muted} />
+          <Text style={[styles.sourceStatText, { color: theme.inkSoft }]}>
+            {loading ? 'Fetching source...' : `${lineCount} lines · ${formattedSize}`}
+          </Text>
+        </View>
+
+        <PressableScale
+          onPress={() => setWrapLines((prev) => !prev)}
+          style={[styles.wrapToggle, { backgroundColor: theme.chip }]}
+          accessibilityLabel="Toggle line wrap"
+        >
+          <Icon name="code" size={12} color={theme.inkSoft} />
+          <Text style={[styles.wrapToggleText, { color: theme.inkSoft }]}>
+            {wrapLines ? 'Wrap: On' : 'Wrap: Off'}
+          </Text>
+        </PressableScale>
+      </View>
+
+      {/* Search Filter Input */}
+      {!loading && !error && source ? (
+        <View style={[styles.sourceSearchRow, { backgroundColor: theme.chip, borderColor: theme.line }]}>
+          <Icon name="search" size={13} color={theme.faint} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Search tags, classes, text..."
+            placeholderTextColor={theme.faint}
+            style={[styles.sourceSearchInput, { color: theme.ink }]}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 ? (
+            <PressableScale onPress={() => setSearchQuery('')} style={{ padding: 2 }}>
+              <Icon name="close" size={12} color={theme.muted} />
+            </PressableScale>
+          ) : null}
+        </View>
+      ) : null}
+
+      {/* Content Area */}
+      {loading ? (
+        <View style={[styles.sourceLoadingBox, { backgroundColor: theme.chip, height: 260 }]}>
+          <ActivityIndicator size="small" color={theme.accent} />
+          <Text style={[styles.sourceLoadingText, { color: theme.muted }]}>
+            Fetching complete page source from server...
+          </Text>
+        </View>
+      ) : error ? (
+        <View style={[styles.sourceErrorBox, { backgroundColor: theme.chip, borderColor: theme.line }]}>
+          <Icon name="shield" size={24} color="#D9534F" />
+          <Text style={[styles.sourceErrorTitle, { color: theme.ink }]}>
+            Unable to Load Page Source
+          </Text>
+          <Text style={[styles.sourceErrorDesc, { color: theme.muted }]}>
+            {error}
+          </Text>
+          <PressableScale
+            onPress={fetchSource}
+            style={[styles.retryBtn, { backgroundColor: theme.accent }]}
+          >
+            <Text style={styles.retryBtnText}>Retry</Text>
+          </PressableScale>
+        </View>
+      ) : (
+        <ScrollView
+          style={{ maxHeight: Math.min(380, height * 0.52) }}
+          horizontal={!wrapLines}
+          showsVerticalScrollIndicator={true}
+          showsHorizontalScrollIndicator={!wrapLines}
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          <View style={[styles.sourceBox, { backgroundColor: theme.chip }]}>
+            <Text
+              selectable
+              style={[
+                styles.sourceText,
+                { color: theme.ink },
+                !wrapLines && { flexShrink: 0 },
+              ]}
+            >
+              {filteredSource}
+            </Text>
+          </View>
+        </ScrollView>
+      )}
+
+      {/* Actions */}
+      <View style={styles.modalButtons}>
+        <PressableScale
+          onPress={copySource}
+          disabled={!source || loading}
+          style={[
+            styles.actionButton,
+            { backgroundColor: !source || loading ? theme.chip : theme.accent },
+          ]}
+        >
+          <Icon name="copy" size={14} color={!source || loading ? theme.faint : '#FFFFFF'} />
+          <Text
+            style={{
+              color: !source || loading ? theme.faint : '#FFFFFF',
+              fontFamily: fonts.medium,
+              fontSize: 12,
+              marginLeft: 4,
+            }}
+          >
+            Copy Full Source
+          </Text>
+        </PressableScale>
+      </View>
+    </View>
+  );
+}
+
+// -------------------------------------------------------------
 // MAIN MODAL ORCHESTRATOR
 // -------------------------------------------------------------
 export function ExploreProductivityModals({
   activeModal,
   currentUrl,
+  articleHtml,
   onClose,
 }: Props) {
   const { theme } = useTheme();
+  const { width, height } = useWindowDimensions();
 
   if (activeModal === 'none') return null;
+
+  const isPageSource = activeModal === 'pagesource';
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
@@ -711,7 +1011,13 @@ export function ExploreProductivityModals({
         <View
           style={[
             styles.card,
-            { backgroundColor: theme.surface, borderColor: theme.line },
+            {
+              backgroundColor: theme.surface,
+              borderColor: theme.line,
+              maxWidth: isPageSource ? Math.min(640, width - 28) : 400,
+              maxHeight: isPageSource ? Math.min(620, height * 0.85) : undefined,
+              padding: isPageSource ? 16 : 20,
+            },
             softShadow(theme.mode, 'card'),
           ]}
         >
@@ -720,8 +1026,15 @@ export function ExploreProductivityModals({
           {activeModal === 'wordcounter' && <WordCounterView onClose={onClose} />}
           {activeModal === 'timer' && <FocusTimerView onClose={onClose} />}
           {activeModal === 'clipboard' && <ClipboardToolsView onClose={onClose} />}
-          {(activeModal === 'devinfo' || activeModal === 'urlinspector' || activeModal === 'pagesource') && (
+          {(activeModal === 'devinfo' || activeModal === 'urlinspector') && (
             <DeveloperToolsView type={activeModal} currentUrl={currentUrl} onClose={onClose} />
+          )}
+          {activeModal === 'pagesource' && (
+            <PageSourceView
+              currentUrl={currentUrl}
+              articleHtml={articleHtml}
+              onClose={onClose}
+            />
           )}
         </View>
       </View>
@@ -936,9 +1249,109 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   sourceText: {
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     fontSize: 11,
     lineHeight: 16,
+  },
+  sourceMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  sourceStatBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  sourceStatText: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+  },
+  sourceHost: {
+    fontFamily: fonts.sans,
+    fontSize: 11.5,
+    marginTop: 2,
+  },
+  badge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  badgeText: {
+    fontFamily: fonts.semibold,
+    fontSize: 9.5,
+  },
+  wrapToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  wrapToggleText: {
+    fontFamily: fonts.medium,
+    fontSize: 11,
+  },
+  sourceSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 34,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  sourceSearchInput: {
+    flex: 1,
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    paddingVertical: 0,
+  },
+  sourceLoadingBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    borderRadius: 12,
+    gap: 12,
+  },
+  sourceLoadingText: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  sourceErrorBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  sourceErrorTitle: {
+    fontFamily: fonts.semibold,
+    fontSize: 14,
+  },
+  sourceErrorDesc: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 17,
+  },
+  retryBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 10,
+    marginTop: 6,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontFamily: fonts.medium,
+    fontSize: 12,
   },
   modalButtons: {
     flexDirection: 'row',

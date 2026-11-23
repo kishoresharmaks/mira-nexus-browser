@@ -4,6 +4,7 @@ import {
   type Filter,
   type MongoClientOptions,
 } from 'mongodb';
+import { createHash } from 'node:crypto';
 import { promises as dnsPromises, setServers as setDnsServers } from 'node:dns';
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
@@ -33,6 +34,19 @@ export type VersionSnapshot = {
     totalProviders: number;
     activeCategories: number;
   };
+  publishedBy?: string;
+  description?: string;
+  checksum?: string;
+};
+
+export type AuditLogEntry = {
+  id: string;
+  action: 'publish' | 'rollback' | 'save_draft';
+  revision: number;
+  actor: string;
+  timestamp: string;
+  description: string;
+  metadata?: Record<string, unknown>;
 };
 
 type CatalogDocument = {
@@ -41,6 +55,7 @@ type CatalogDocument = {
   draft: Catalog;
   published: StoreState['published'];
   history?: VersionSnapshot[];
+  auditLogs?: AuditLogEntry[];
   savedAt: string | null;
   updatedAt: string;
 };
@@ -358,6 +373,43 @@ export async function saveDraft(draft: Catalog): Promise<WriteResult> {
   return { ok: true, savedAt };
 }
 
+export type PublishOptions = {
+  publishedBy?: string;
+  description?: string;
+};
+
+function normalizeSnapshot(raw: any): VersionSnapshot {
+  const catalog = raw.catalog ?? raw.snapshot;
+  const totalProviders = catalog?.categories
+    ? Object.values(catalog.categories).reduce(
+        (acc: number, cat: any) => acc + (cat?.providers?.length ?? 0),
+        0,
+      )
+    : (catalog?.engines?.length ?? 0);
+  const activeCategories = catalog?.categories
+    ? Object.values(catalog.categories).filter((cat: any) => cat?.enabled).length
+    : (catalog?.engines?.length ? 1 : 0);
+
+  const checksum =
+    raw.checksum ??
+    (catalog
+      ? createHash('sha256').update(JSON.stringify(catalog)).digest('hex')
+      : undefined);
+
+  return {
+    revision: Number(raw.revision),
+    publishedAt: String(raw.publishedAt || ''),
+    catalog,
+    summary: raw.summary ?? {
+      totalProviders,
+      activeCategories,
+    },
+    publishedBy: raw.publishedBy ?? 'admin',
+    description: raw.description ?? `Published revision ${raw.revision}`,
+    checksum,
+  };
+}
+
 /**
  * Publishing is a compare-and-set on the revision the editor reviewed. Two
  * tabs cannot both publish revision 5: the second write matches no document
@@ -366,6 +418,7 @@ export async function saveDraft(draft: Catalog): Promise<WriteResult> {
 export async function publishState(
   state: StoreState,
   expectedRevision: number,
+  options?: PublishOptions,
 ): Promise<WriteResult> {
   const savedAt = new Date().toISOString();
   const mode = storageMode();
@@ -378,14 +431,46 @@ export async function publishState(
     (cat) => cat.enabled,
   ).length;
 
+  const catalogPayload = JSON.stringify(state.published);
+  const checksum = state.published
+    ? createHash('sha256').update(catalogPayload).digest('hex')
+    : undefined;
+
   const snapshot: VersionSnapshot | null = state.published
     ? {
         revision: state.published.revision,
         publishedAt: state.published.publishedAt,
-        catalog: JSON.parse(JSON.stringify(state.published)),
+        catalog: JSON.parse(catalogPayload),
         summary: {
           totalProviders,
           activeCategories,
+        },
+        publishedBy: options?.publishedBy ?? 'admin',
+        description:
+          options?.description ??
+          (expectedRevision === 0
+            ? 'Initial publish'
+            : `Update from revision ${expectedRevision}`),
+        checksum,
+      }
+    : null;
+
+  const auditEntry: AuditLogEntry | null = state.published
+    ? {
+        id: `audit-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        action: options?.description?.toLowerCase().includes('rollback')
+          ? 'rollback'
+          : 'publish',
+        revision: state.published.revision,
+        actor: options?.publishedBy ?? 'admin',
+        timestamp: savedAt,
+        description:
+          options?.description ?? `Published revision ${state.published.revision}`,
+        metadata: {
+          previousRevision: expectedRevision,
+          totalProviders,
+          activeCategories,
+          checksum,
         },
       }
     : null;
@@ -397,7 +482,9 @@ export async function publishState(
     }
     const currentHistory = await getVersionHistory();
     const history = [...currentHistory, ...(snapshot ? [snapshot] : [])].slice(-50);
-    const payload = `${JSON.stringify({ ...state, history }, null, 2)}\n`;
+    const currentAudit = await getAuditLogs();
+    const auditLogs = [...currentAudit, ...(auditEntry ? [auditEntry] : [])].slice(-100);
+    const payload = `${JSON.stringify({ ...state, history, auditLogs }, null, 2)}\n`;
     await writeFile(LOCAL_PATH, payload, 'utf8');
     return { ok: true, savedAt };
   }
@@ -424,13 +511,21 @@ export async function publishState(
       storeVersion: 1,
     },
   };
+  const pushes: any = {};
   if (snapshot) {
-    update.$push = {
-      history: {
-        $each: [snapshot],
-        $slice: -50,
-      },
+    pushes.history = {
+      $each: [snapshot],
+      $slice: -50,
     };
+  }
+  if (auditEntry) {
+    pushes.auditLogs = {
+      $each: [auditEntry],
+      $slice: -100,
+    };
+  }
+  if (Object.keys(pushes).length > 0) {
+    update.$push = pushes;
   }
 
   const result = await collection.updateOne(filter, update);
@@ -447,7 +542,8 @@ export async function getVersionHistory(): Promise<VersionSnapshot[]> {
     try {
       const raw = await readFile(LOCAL_PATH, 'utf8');
       const parsed = JSON.parse(raw);
-      return Array.isArray(parsed?.history) ? parsed.history : [];
+      const rawHistory = Array.isArray(parsed?.history) ? parsed.history : [];
+      return rawHistory.map(normalizeSnapshot);
     } catch {
       return [];
     }
@@ -459,7 +555,8 @@ export async function getVersionHistory(): Promise<VersionSnapshot[]> {
         { _id: MONGO_DOCUMENT_ID },
         { projection: { history: 1 } },
       );
-      return Array.isArray(doc?.history) ? doc.history : [];
+      const rawHistory = Array.isArray(doc?.history) ? doc.history : [];
+      return rawHistory.map(normalizeSnapshot);
     } catch {
       return [];
     }
@@ -467,7 +564,36 @@ export async function getVersionHistory(): Promise<VersionSnapshot[]> {
   return [];
 }
 
-export async function rollbackToVersion(targetRevision: number): Promise<{
+export async function getAuditLogs(): Promise<AuditLogEntry[]> {
+  const mode = storageMode();
+  if (mode === 'file') {
+    try {
+      const raw = await readFile(LOCAL_PATH, 'utf8');
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed?.auditLogs) ? parsed.auditLogs : [];
+    } catch {
+      return [];
+    }
+  }
+  if (mode === 'mongodb') {
+    try {
+      const collection = await mongoCollection();
+      const doc = await collection.findOne(
+        { _id: MONGO_DOCUMENT_ID },
+        { projection: { auditLogs: 1 } },
+      );
+      return Array.isArray(doc?.auditLogs) ? doc.auditLogs : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+export async function rollbackToVersion(
+  targetRevision: number,
+  options?: { rolledBackBy?: string; description?: string },
+): Promise<{
   ok: boolean;
   newRevision: number;
   savedAt: string;
@@ -478,27 +604,50 @@ export async function rollbackToVersion(targetRevision: number): Promise<{
     throw new Error(`Revision ${targetRevision} was not found in version history.`);
   }
 
+  const rawCatalog = target.catalog;
+  if (!rawCatalog || (!Array.isArray(rawCatalog.engines) && !rawCatalog.categories)) {
+    throw new Error(`Snapshot revision ${targetRevision} contains invalid or corrupted catalog data.`);
+  }
+
+  // Validate integrity checksum if available
+  if (target.checksum) {
+    const computed = createHash('sha256').update(JSON.stringify(rawCatalog)).digest('hex');
+    if (computed !== target.checksum) {
+      throw new Error(`Snapshot revision ${targetRevision} integrity check failed: checksum mismatch.`);
+    }
+  }
+
   const currentState = await readState();
-  const nextRevision = (currentState.published?.revision ?? 0) + 1;
+  const currentRevision = currentState.published?.revision ?? 0;
+  const nextRevision = currentRevision + 1;
   const now = new Date().toISOString();
 
-  const restoredDraft: Catalog = JSON.parse(JSON.stringify(target.catalog));
+  const restoredDraft: Catalog = JSON.parse(JSON.stringify(rawCatalog));
   const restoredPublished: StoreState['published'] = {
     ...restoredDraft,
     revision: nextRevision,
     publishedAt: now,
   };
 
+  const actor = options?.rolledBackBy ?? 'admin';
+  const desc =
+    options?.description ??
+    `Rollback to revision ${targetRevision} (restored as revision ${nextRevision})`;
+
   const writeRes = await publishState(
     {
       draft: restoredDraft,
       published: restoredPublished,
     },
-    currentState.published?.revision ?? 0,
+    currentRevision,
+    {
+      publishedBy: actor,
+      description: desc,
+    },
   );
 
   if (!writeRes.ok) {
-    throw new Error('Rollback conflicted with another concurrent publish. Please reload.');
+    throw new Error('Rollback conflicted with another concurrent publish. Please reload the catalog desk.');
   }
 
   return {

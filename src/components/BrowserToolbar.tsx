@@ -27,6 +27,7 @@ type Props = {
   onForward: () => void;
   onOpenAddress: () => void;
   onOpenTabs: () => void;
+  onOpenExplore?: () => void;
   onOpenMenu: () => void;
   onCopy: () => void;
 };
@@ -45,6 +46,7 @@ export function BrowserToolbar({
   onForward,
   onOpenAddress,
   onOpenTabs,
+  onOpenExplore,
   onOpenMenu,
   onCopy,
 }: Props) {
@@ -244,6 +246,19 @@ export function BrowserToolbar({
           </Text>
         </PressableScale>
 
+        {onOpenExplore ? (
+          <IconButton
+            icon="compass"
+            label="Explore tools"
+            size={38}
+            iconSize={19}
+            onPress={() => {
+              haptic.tap();
+              onOpenExplore();
+            }}
+          />
+        ) : null}
+
         <IconButton
           icon="more"
           label="Open page menu"
@@ -344,8 +359,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 12,
-    marginHorizontal: 2,
+    paddingHorizontal: 10,
+    marginHorizontal: 1,
   },
   addressText: {
     flexShrink: 1,
@@ -359,14 +374,14 @@ const styles = StyleSheet.create({
   },
   tabsButton: {
     height: 34,
-    minWidth: 44,
+    minWidth: 40,
     borderRadius: 17,
     borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 9,
+    paddingHorizontal: 7,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 3,
     marginHorizontal: 1,
   },
   tabsCount: {

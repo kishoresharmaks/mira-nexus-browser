@@ -21,7 +21,11 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid version number' }, { status: 400 });
     }
 
-    const result = await rollbackToVersion(targetRev);
+    const actor =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      'admin';
+
+    const result = await rollbackToVersion(targetRev, { rolledBackBy: actor });
 
     return NextResponse.json({
       ok: true,

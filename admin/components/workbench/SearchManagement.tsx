@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import {
   SEARCH_CATEGORIES,
   buildSearchUrl,
@@ -10,6 +10,7 @@ import {
   type SearchCategoriesConfig,
   type SearchProvider,
 } from '@/lib/catalog';
+import { AddProviderModal } from './AddProviderModal';
 import { SearchProviderEditor } from './SearchProviderEditor';
 
 type Props = {
@@ -18,7 +19,7 @@ type Props = {
   busy: boolean;
   onSelectProvider: (id: string) => void;
   onUpdateProvider: (category: SearchCategoryKey, providerId: string, patch: Partial<SearchProvider>) => void;
-  onAddProvider: (category: SearchCategoryKey) => void;
+  onAddProvider: (category: SearchCategoryKey, template?: Partial<SearchProvider>) => void;
   onDeleteProvider: (category: SearchCategoryKey, providerId: string) => void;
   onMakeDefault: (category: SearchCategoryKey, providerId: string) => void;
   onUpdateCategory: (category: SearchCategoryKey, patch: Partial<SearchCategoryConfig>) => void;
@@ -37,6 +38,8 @@ export function SearchManagement({
 }: Props) {
   const [activeCategoryKey, setActiveCategoryKey] = useState<SearchCategoryKey>('web');
   const [searchFilter, setSearchFilter] = useState('');
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<'list' | 'editor'>('list');
   const editorRef = useRef<HTMLDivElement>(null);
 
   const activeCategory = categories[activeCategoryKey] ?? {
@@ -61,26 +64,52 @@ export function SearchManagement({
 
   const handleSelectProvider = (id: string) => {
     onSelectProvider(id);
-    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 64rem)').matches) {
+    setMobileView('editor');
+    if (typeof window !== 'undefined') {
       window.requestAnimationFrame(() => {
         editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     }
   };
 
-  const handleAdd = () => {
+  const handleOpenAdd = () => {
+    setIsAddModalOpen(true);
+  };
+
+  const handleModalAdd = (data: {
+    category: SearchCategoryKey;
+    name: string;
+    searchUrl: string;
+    suggestUrl?: string;
+    note?: string;
+    priority: number;
+    countries: string[];
+    providerType: 'external' | 'api';
+  }) => {
+    setIsAddModalOpen(false);
+    setActiveCategoryKey(data.category);
     setSearchFilter('');
-    onAddProvider(activeCategoryKey);
+    onAddProvider(data.category, {
+      name: data.name,
+      searchUrl: data.searchUrl,
+      suggestUrl: data.suggestUrl,
+      note: data.note,
+      priority: data.priority,
+      countries: data.countries,
+      providerType: data.providerType,
+      enabled: true,
+    });
+    setMobileView('editor');
     if (typeof window !== 'undefined') {
       window.requestAnimationFrame(() => {
-        editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        editorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     }
   };
 
   return (
     <div className="search-management">
-      {/* Responsive Category Tabs Navigation */}
+      {/* Category Tabs Navigation */}
       <nav className="search-category-nav" aria-label="Search Categories">
         {SEARCH_CATEGORIES.map((cat) => {
           const catConfig = categories[cat.key];
@@ -98,8 +127,10 @@ export function SearchManagement({
               data-enabled={isEnabled ? 'true' : 'false'}
               onClick={() => {
                 setActiveCategoryKey(cat.key);
-                if (catConfig?.providers?.[0]) {
-                  onSelectProvider(catConfig.providers[0].id);
+                setSearchFilter('');
+                const first = catConfig?.providers?.[0];
+                if (first) {
+                  onSelectProvider(first.id);
                 }
               }}
             >
@@ -162,16 +193,49 @@ export function SearchManagement({
             type="button"
             className="btn btn-primary btn-small"
             disabled={busy}
-            onClick={handleAdd}
+            onClick={handleOpenAdd}
           >
             + Add Provider
           </button>
         </div>
       </div>
 
+      {/* Mobile / Narrow Screen Tab Switcher */}
+      <div className="search-mobile-tabs" style={{ display: 'none', marginBottom: '1rem', gap: '0.5rem' }}>
+        <button
+          type="button"
+          className="btn btn-small"
+          style={{
+            flex: 1,
+            background: mobileView === 'list' ? 'var(--color-accent)' : 'var(--color-sheet)',
+            color: mobileView === 'list' ? '#fff' : 'var(--color-ink)',
+            borderColor: 'var(--color-rule)',
+          }}
+          onClick={() => setMobileView('list')}
+        >
+          Providers List ({filteredProviders.length})
+        </button>
+        <button
+          type="button"
+          className="btn btn-small"
+          style={{
+            flex: 1,
+            background: mobileView === 'editor' ? 'var(--color-accent)' : 'var(--color-sheet)',
+            color: mobileView === 'editor' ? '#fff' : 'var(--color-ink)',
+            borderColor: 'var(--color-rule)',
+          }}
+          onClick={() => setMobileView('editor')}
+        >
+          Provider Details
+        </button>
+      </div>
+
       {/* Grid: Providers List & Provider Editor */}
-      <div className="work-grid">
-        <div className="panel">
+      <div className="work-grid search-grid">
+        {/* Providers Table Panel */}
+        <div
+          className={`panel search-panel-list ${mobileView === 'editor' ? 'search-mobile-hidden' : ''}`}
+        >
           <div className="panel-head">
             <div>
               <h3 className="panel-title" style={{ fontSize: '1.1rem' }}>
@@ -181,33 +245,33 @@ export function SearchManagement({
                 {providers.filter((p) => p.enabled).length} live of {providers.length} total.
               </p>
             </div>
-            {filteredProviders.length > 0 ? (
-              <div className="panel-actions">
-                <button
-                  type="button"
-                  className="btn btn-quiet btn-small"
-                  onClick={handleAdd}
-                  disabled={busy}
-                >
-                  + Add
-                </button>
-              </div>
-            ) : null}
+            <div className="panel-actions">
+              <button
+                type="button"
+                className="btn btn-quiet btn-small"
+                onClick={handleOpenAdd}
+                disabled={busy}
+              >
+                + Add
+              </button>
+            </div>
           </div>
 
           {filteredProviders.length === 0 ? (
             <div className="empty">
               <p className="empty-title">No providers found.</p>
               <p className="empty-copy">
-                {searchFilter ? 'No providers matched your filter query.' : `Add a provider to enable ${activeCategoryKey} search.`}
+                {searchFilter
+                  ? 'No providers matched your filter query.'
+                  : `Add a search provider to enable ${activeCategoryKey} search.`}
               </p>
               <button
                 type="button"
                 className="btn btn-primary btn-small"
-                onClick={handleAdd}
+                onClick={handleOpenAdd}
                 disabled={busy}
               >
-                Add Provider
+                + Add Provider
               </button>
             </div>
           ) : (
@@ -222,7 +286,7 @@ export function SearchManagement({
                 </thead>
                 <tbody>
                   {filteredProviders.map((p) => {
-                    const isSelected = p.id === selectedProviderId;
+                    const isSelected = p.id === (selectedProvider?.id ?? selectedProviderId);
                     const isDefault = p.id === activeCategory.defaultProvider;
                     const monogram = (p.name || p.id).slice(0, 2).toUpperCase();
 
@@ -253,7 +317,7 @@ export function SearchManagement({
                                 className="row-name"
                                 onClick={() => handleSelectProvider(p.id)}
                                 aria-current={isSelected ? 'true' : undefined}
-                                style={{ textAlign: 'left' }}
+                                style={{ textAlign: 'left', cursor: 'pointer' }}
                               >
                                 {p.name || 'Untitled provider'}
                               </button>
@@ -308,9 +372,24 @@ export function SearchManagement({
         </div>
 
         {/* Selected Provider Editor */}
-        <div className="editor" ref={editorRef}>
+        <div
+          className={`editor search-editor-panel ${mobileView === 'list' ? 'search-mobile-hidden' : ''}`}
+          ref={editorRef}
+        >
+          {/* Mobile Back Button */}
+          <div className="search-mobile-back" style={{ display: 'none', marginBottom: '0.75rem' }}>
+            <button
+              type="button"
+              className="btn btn-quiet btn-small"
+              onClick={() => setMobileView('list')}
+            >
+              ← Back to Providers List
+            </button>
+          </div>
+
           {selectedProvider ? (
             <SearchProviderEditor
+              key={selectedProvider.id}
               provider={selectedProvider}
               isDefault={selectedProvider.id === activeCategory.defaultProvider}
               busy={busy}
@@ -326,8 +405,8 @@ export function SearchManagement({
               </p>
               <button
                 type="button"
-                className="btn btn-quiet btn-small"
-                onClick={handleAdd}
+                className="btn btn-primary btn-small"
+                onClick={handleOpenAdd}
                 disabled={busy}
               >
                 + Add Provider
@@ -336,6 +415,16 @@ export function SearchManagement({
           )}
         </div>
       </div>
+
+      {/* Add Provider Modal */}
+      <AddProviderModal
+        isOpen={isAddModalOpen}
+        category={activeCategoryKey}
+        defaultPriority={(providers.length ?? 0) + 1}
+        busy={busy}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleModalAdd}
+      />
     </div>
   );
 }

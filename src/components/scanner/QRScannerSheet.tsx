@@ -36,6 +36,7 @@ type Props = {
   visible: boolean;
   onClose: () => void;
   onOpenUrl: (url: string) => void;
+  onSearchText?: (query: string) => void;
 };
 
 const SCREEN = Dimensions.get('window');
@@ -119,7 +120,12 @@ function parseQRContent(data: string): ParsedQR {
   };
 }
 
-export function QRScannerSheet({ visible, onClose, onOpenUrl }: Props) {
+export function QRScannerSheet({
+  visible,
+  onClose,
+  onOpenUrl,
+  onSearchText,
+}: Props) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
   const toast = useToast();
@@ -181,6 +187,18 @@ export function QRScannerSheet({ visible, onClose, onOpenUrl }: Props) {
     const url = scannedResult.raw;
     onClose();
     onOpenUrl(url);
+  };
+
+  const handleSearchText = () => {
+    if (!scannedResult || !scannedResult.raw) return;
+    haptic.tap();
+    const query = scannedResult.raw;
+    onClose();
+    if (onSearchText) {
+      onSearchText(query);
+    } else {
+      onOpenUrl(query);
+    }
   };
 
   const handleScanAgain = () => {
@@ -363,6 +381,18 @@ export function QRScannerSheet({ visible, onClose, onOpenUrl }: Props) {
                           Open in Browser
                         </Text>
                         <Icon name="arrowRight" size={15} color={theme.accentInk} strokeWidth={2.2} />
+                      </PressableScale>
+                    ) : scannedResult.type === 'text' && onSearchText ? (
+                      <PressableScale
+                        onPress={handleSearchText}
+                        scaleTo={0.96}
+                        style={[styles.primaryActionBtn, { backgroundColor: theme.accent }]}
+                        accessibilityLabel="Search scanned text with Nexus"
+                      >
+                        <Text style={[styles.primaryActionBtnText, { color: theme.accentInk }]}>
+                          Search Web
+                        </Text>
+                        <Icon name="search" size={15} color={theme.accentInk} strokeWidth={2.2} />
                       </PressableScale>
                     ) : (
                       <PressableScale

@@ -16,6 +16,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 type Props = {
   visible: boolean;
   currentUrl?: string;
+  articleHtml?: string;
   onClose: () => void;
   onOpenSearch: (category?: 'web' | 'ai' | 'images' | 'news' | 'videos') => void;
   onOpenVoiceSearch?: () => void;
@@ -44,6 +45,7 @@ type CategoryFilter =
 export function ExploreSheet({
   visible,
   currentUrl,
+  articleHtml,
   onClose,
   onOpenSearch,
   onOpenVoiceSearch,
@@ -464,6 +466,7 @@ export function ExploreSheet({
       <ExploreProductivityModals
         activeModal={activeModal}
         currentUrl={currentUrl}
+        articleHtml={articleHtml}
         onClose={() => setActiveModal('none')}
       />
     </BottomSheet>

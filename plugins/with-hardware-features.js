@@ -43,6 +43,31 @@ module.exports = function withHardwareFeatures(config) {
       }
     }
 
+    // Ensure CAMERA and RECORD_AUDIO permissions survive configuration regeneration without tools:node="remove"
+    manifest['uses-permission'] = manifest['uses-permission'] ?? [];
+    const runtimePermissions = [
+      'android.permission.CAMERA',
+      'android.permission.RECORD_AUDIO',
+    ];
+
+    for (const permName of runtimePermissions) {
+      const existing = manifest['uses-permission'].find(
+        (item) => item?.$?.['android:name'] === permName,
+      );
+
+      if (existing) {
+        if (existing.$?.['tools:node'] === 'remove') {
+          delete existing.$['tools:node'];
+        }
+      } else {
+        manifest['uses-permission'].push({
+          $: {
+            'android:name': permName,
+          },
+        });
+      }
+    }
+
     return manifestConfig;
   });
 };

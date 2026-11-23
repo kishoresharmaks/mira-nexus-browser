@@ -4,7 +4,6 @@ import { Icon } from '../Icon';
 import { PressableScale } from '../PressableScale';
 import { SearchCategories, type SearchCategory } from './SearchCategories';
 import { useCatalogConfig } from '@/lib/catalog-provider';
-import { getActiveCategoryProvider } from '@/lib/search-routing';
 import { haptic } from '@/lib/haptics';
 import { fonts, softShadow } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -27,10 +26,10 @@ export function SmartSearch({
   onOpenPrivateTabs,
 }: Props) {
   const { theme } = useTheme();
-  const { activeEngine, categories } = useCatalogConfig();
+  const { activeEngine, getCategoryActiveProvider } = useCatalogConfig();
   const [category, setCategory] = useState<SearchCategory>('web');
 
-  const currentProvider = getActiveCategoryProvider(category, activeEngine, categories);
+  const currentProvider = getCategoryActiveProvider(category);
   const providerName = currentProvider?.name ?? activeEngine.name;
 
   const isPrivateEngine =

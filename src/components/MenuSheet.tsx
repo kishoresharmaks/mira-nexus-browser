@@ -34,6 +34,7 @@ type Props = {
   onOpenTabs: () => void;
   onOpenTrails: () => void;
   onOpenCommunity: () => void;
+  onOpenExplore?: () => void;
   onOpenSettings: () => void;
   onCloseTab: () => void;
   tabCount: number;
@@ -65,6 +66,7 @@ export function MenuSheet({
   onOpenTabs,
   onOpenTrails,
   onOpenCommunity,
+  onOpenExplore,
   onOpenSettings,
   onCloseTab,
   tabCount,
@@ -222,6 +224,13 @@ export function MenuSheet({
             label="Home"
             onPress={() => run(onGoHome)}
           />
+          {onOpenExplore ? (
+            <SheetAction
+              icon="compass"
+              label="Explore"
+              onPress={() => run(onOpenExplore)}
+            />
+          ) : null}
         </View>
 
         <View style={[styles.divider, { backgroundColor: theme.line }]} />
@@ -245,6 +254,28 @@ export function MenuSheet({
             strokeWidth={1.9}
           />
         </PressableScale>
+
+        {onOpenExplore ? (
+          <PressableScale
+            onPress={() => run(onOpenExplore)}
+            style={styles.listRow}
+            accessibilityLabel="Open explore hub"
+          >
+            <View style={[styles.rowIcon, { backgroundColor: theme.surfaceAlt }]}>
+              <Icon name="compass" size={18} color={theme.inkSoft} />
+            </View>
+            <Text style={[styles.rowLabel, { color: theme.ink }]}>Explore</Text>
+            <Text style={[styles.rowMeta, { color: theme.faint }]}>
+              Tools & Hub
+            </Text>
+            <Icon
+              name="chevronRight"
+              size={16}
+              color={theme.faint}
+              strokeWidth={1.9}
+            />
+          </PressableScale>
+        ) : null}
 
         {!privateTab ? (
           <>

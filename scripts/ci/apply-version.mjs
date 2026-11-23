@@ -45,6 +45,8 @@ if (versionCode > 2_100_000_000) {
 }
 
 const appJsonPath = join(process.cwd(), 'app.json');
+const packageJsonPath = join(process.cwd(), 'package.json');
+
 let config;
 try {
   config = JSON.parse(readFileSync(appJsonPath, 'utf8'));
@@ -59,4 +61,14 @@ config.expo.version = version;
 config.expo.android = { ...(config.expo.android ?? {}), versionCode };
 
 writeFileSync(appJsonPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8');
-console.log(`apply-version: app.json is now ${version} (${versionCode})`);
+
+// Synchronize package.json to prevent version divergence
+try {
+  const pkg = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+  pkg.version = version;
+  writeFileSync(packageJsonPath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
+} catch (error) {
+  fail(`could not sync package.json: ${error.message}`);
+}
+
+console.log(`apply-version: app.json & package.json are now synchronized to ${version} (${versionCode})`);

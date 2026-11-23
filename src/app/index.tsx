@@ -50,7 +50,7 @@ import {
   type CommunityLookup,
 } from '@/lib/community';
 import { CURATED_PAGES, curatedShortDate, getDailyPage } from '@/lib/curation';
-import { buildCategorizedSearchUrl } from '@/lib/search-routing';
+import { resolveCategorizedSearch } from '@/lib/search-routing';
 import { haptic } from '@/lib/haptics';
 import {
   HISTORY_LIMIT,
@@ -154,7 +154,13 @@ function createTab(
 export default function Nexus() {
   const { theme, toggleMode } = useTheme();
   const toast = useToast();
-  const { activeEngine, engines, todayPages, categories } = useCatalogConfig();
+  const {
+    activeEngine,
+    engines,
+    todayPages,
+    categories,
+    selectedCategoryProviders,
+  } = useCatalogConfig();
 
   const [shortcuts, setShortcuts, shortcutsReady] = usePersistentState<
     Shortcut[]
@@ -468,25 +474,44 @@ export default function Nexus() {
   }, []);
 
   const submitAddress = useCallback(
-    (raw: string) => {
-      let target = resolveInput(raw, activeEngine);
+    (
+      raw: string,
+      category: SearchCategory = searchCategory,
+      providerId?: string,
+    ) => {
+      const trimmed = raw.trim();
+      if (!trimmed) return;
+
+      const target = resolveInput(trimmed, activeEngine);
       if (!target) return;
 
-      if (target.kind === 'search') {
-        const catUrl = buildCategorizedSearchUrl(
-          raw,
-          searchCategory,
+      let destinationUrl: string;
+
+      if (target.kind === 'url') {
+        destinationUrl = target.url;
+      } else {
+        const preferredId = providerId ?? selectedCategoryProviders[category];
+        const resolution = resolveCategorizedSearch(
+          trimmed,
+          category,
           activeEngine,
           categories,
+          preferredId,
         );
-        target = {
-          url: catUrl,
-          kind: 'search',
-          host: activeEngine.name,
-        };
+
+        if (!resolution.success) {
+          toast.show(resolution.error);
+          if (resolution.fallbackUrl) {
+            destinationUrl = resolution.fallbackUrl;
+          } else {
+            return;
+          }
+        } else {
+          destinationUrl = resolution.url;
+        }
       }
 
-      setSearchCategory('web');
+      setSearchCategory(category);
       const wantsNewTab =
         addressNewTabRef.current ||
         !browserActiveRef.current ||
@@ -496,10 +521,10 @@ export default function Nexus() {
       setAddressOpen(false);
 
       if (wantsNewTab || !activeTabRef.current) {
-        openInNewTab(target.url);
+        openInNewTab(destinationUrl);
         return;
       }
-      navigateTab(activeTabRef.current, target.url);
+      navigateTab(activeTabRef.current, destinationUrl);
     },
     [
       activeEngine,
@@ -509,6 +534,8 @@ export default function Nexus() {
       navigateTab,
       openInNewTab,
       searchCategory,
+      selectedCategoryProviders,
+      toast,
     ],
   );
 
@@ -641,6 +668,11 @@ export default function Nexus() {
   const openCommunityAfterMenu = useCallback(() => {
     setMenuOpen(false);
     afterMenu(() => setCommunityOpen(true));
+  }, [afterMenu]);
+
+  const openExploreAfterMenu = useCallback(() => {
+    setMenuOpen(false);
+    afterMenu(() => setExploreOpen(true));
   }, [afterMenu]);
 
   const openReader = useCallback(() => {
@@ -1460,6 +1492,7 @@ export default function Nexus() {
               }}
               onOpenAddress={() => openAddress(addressValue)}
               onOpenTabs={openTabs}
+              onOpenExplore={() => setExploreOpen(true)}
               onOpenMenu={() => {
                 haptic.tap();
                 setMenuOpen(true);
@@ -1477,6 +1510,7 @@ export default function Nexus() {
           history={history}
           shortcuts={shortcuts}
           privateTab={addressPrivate}
+          initialCategory={searchCategory}
           onClose={closeAddress}
           onSubmit={submitAddress}
         />
@@ -1501,6 +1535,7 @@ export default function Nexus() {
           onOpenTabs={openTabsAfterMenu}
           onOpenTrails={openTrailsAfterMenu}
           onOpenCommunity={openCommunityAfterMenu}
+          onOpenExplore={openExploreAfterMenu}
           onOpenSettings={openSettings}
           onCloseTab={() => {
             if (activeTabId) closeTab(activeTabId);
@@ -1715,6 +1750,7 @@ export default function Nexus() {
       <ExploreSheet
         visible={exploreOpen}
         currentUrl={snapshot.url}
+        articleHtml={snapshot.article?.html}
         onClose={() => setExploreOpen(false)}
         onOpenSearch={(category = 'web') => {
           setSearchCategory(category);
@@ -1736,10 +1772,11 @@ export default function Nexus() {
 
       <VoiceSearchSheet
         visible={voiceSearchOpen}
+        category={searchCategory}
         onClose={() => setVoiceSearchOpen(false)}
-        onSubmit={(query) => {
+        onSubmit={(query, cat) => {
           setVoiceSearchOpen(false);
-          submitAddress(query);
+          submitAddress(query, cat ?? searchCategory);
         }}
       />
 
@@ -1749,6 +1786,10 @@ export default function Nexus() {
         onOpenUrl={(url) => {
           setQrScannerOpen(false);
           openInNewTab(url);
+        }}
+        onSearchText={(query) => {
+          setQrScannerOpen(false);
+          submitAddress(query, searchCategory);
         }}
       />
     </View>

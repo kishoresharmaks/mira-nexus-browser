@@ -62,7 +62,12 @@ export function getFilenameFromUrl(url: string, suggested?: string): string {
 }
 
 function sanitizeFilename(name: string): string {
-  return name.replace(/[/\\?%*:|"<>]/g, '_').slice(0, 120);
+  // Strip control chars, dangerous path separators, and leading dots to prevent directory traversal
+  const cleaned = name
+    .replace(/[/\\?%*:|"<>]/g, '_')
+    .replace(/^\.+/, '')
+    .trim();
+  return (cleaned || `download-${Date.now().toString(36)}`).slice(0, 120);
 }
 
 export function formatBytes(bytes: number): string {

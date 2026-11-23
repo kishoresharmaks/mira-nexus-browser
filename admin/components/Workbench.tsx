@@ -14,6 +14,7 @@ import {
   coerceCatalog,
   formatUtcDateTime,
   liveCounts,
+  slugify,
   uniqueId,
   validateCatalog,
   type AdsConfig,
@@ -283,7 +284,10 @@ export function Workbench({
     });
   };
 
-  const addProvider = (category: SearchCategoryKey) => {
+  const addProvider = (
+    category: SearchCategoryKey,
+    template?: Partial<SearchProvider>,
+  ) => {
     beginEdit();
     const cat = draft.categories[category] ?? {
       enabled: true,
@@ -301,17 +305,27 @@ export function Workbench({
     if (draft.engines) {
       for (const e of draft.engines) existingIds.add(e.id);
     }
-    const newId = uniqueId(`${category}-provider`, existingIds);
+    const slugBase = template?.name
+      ? slugify(template.name, `${category}-provider`)
+      : `${category}-provider`;
+    const newId = uniqueId(slugBase, existingIds);
+    const rawSearchUrl =
+      template?.searchUrl?.trim() || 'https://example.com/search?q={query}';
+
     const newProvider: SearchProvider = {
       id: newId,
-      name: 'New Provider',
+      name: template?.name?.trim() || 'New Provider',
       category,
-      searchUrl: 'https://example.com/search?q={query}',
-      note: '',
-      enabled: true,
-      priority: (cat.providers?.length ?? 0) + 1,
-      countries: ['ALL'],
-      providerType: 'external',
+      searchUrl: rawSearchUrl,
+      suggestUrl: template?.suggestUrl?.trim() || undefined,
+      note: template?.note?.trim() || '',
+      enabled: template?.enabled !== false,
+      priority: template?.priority ?? ((cat.providers?.length ?? 0) + 1),
+      countries:
+        template?.countries && template.countries.length > 0
+          ? template.countries
+          : ['ALL'],
+      providerType: template?.providerType ?? 'external',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -338,7 +352,9 @@ export function Workbench({
           ? updatedProviders.map((p) => ({
               id: p.id,
               name: p.name,
-              searchUrl: p.searchUrl.replace(/\{query\}/g, '%s'),
+              searchUrl: p.searchUrl.includes('%s')
+                ? p.searchUrl
+                : p.searchUrl.replace(/\{query\}/g, '%s'),
               note: p.note,
               enabled: p.enabled,
             }))

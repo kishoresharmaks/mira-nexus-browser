@@ -1952,3 +1952,19 @@ h4 {
   }
 }
 
+@media (max-width: 64rem) {
+  .search-mobile-tabs {
+    display: flex !important;
+  }
+  .search-mobile-back {
+    display: block !important;
+  }
+  .search-panel-list.search-mobile-hidden {
+    display: none !important;
+  }
+  .search-editor-panel.search-mobile-hidden {
+    display: none !important;
+  }
+}
+
+

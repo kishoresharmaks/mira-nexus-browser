@@ -28,12 +28,14 @@ export function VersionRollbackModal({
   const [versions, setVersions] = useState<VersionItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [rollingBackRev, setRollingBackRev] = useState<number | null>(null);
+  const [confirmingVersion, setConfirmingVersion] = useState<VersionItem | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     setLoading(true);
     setError(null);
+    setConfirmingVersion(null);
     fetch('/api/v1/admin/search/versions')
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -67,6 +69,7 @@ export function VersionRollbackModal({
       setError(err?.message || 'Rollback failed');
     } finally {
       setRollingBackRev(null);
+      setConfirmingVersion(null);
     }
   };
 
@@ -124,76 +127,130 @@ export function VersionRollbackModal({
           </div>
         ) : null}
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem' }}>
-          {loading ? (
-            <p style={{ color: 'var(--color-muted)', textAlign: 'center', padding: '2rem 0' }}>
-              Loading version history…
+        {confirmingVersion ? (
+          <div
+            style={{
+              margin: '1.25rem',
+              padding: '1.25rem',
+              background: 'var(--color-paper-2)',
+              border: '1px solid var(--color-rule)',
+              borderRadius: '6px',
+            }}
+          >
+            <h3 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: 'var(--color-ink)' }}>
+              Confirm Rollback to Revision v{confirmingVersion.revision}
+            </h3>
+            <p style={{ fontSize: '0.9rem', color: 'var(--color-ink-soft)', marginBottom: '0.75rem', lineHeight: 1.5 }}>
+              You are about to restore the catalog configuration from{' '}
+              <strong>v{confirmingVersion.revision}</strong> (published on{' '}
+              {formatUtcDateTime(confirmingVersion.publishedAt)}).
             </p>
-          ) : versions.length === 0 ? (
-            <div className="empty">
-              <p className="empty-title">No revision history found.</p>
-              <p className="empty-copy">
-                Past versions will be archived here each time a draft is published.
+            <div
+              style={{
+                fontSize: '0.85rem',
+                color: 'var(--color-muted)',
+                marginBottom: '1rem',
+                padding: '0.5rem 0.75rem',
+                background: 'var(--color-sheet)',
+                borderRadius: '4px',
+                border: '1px solid var(--color-rule)',
+              }}
+            >
+              <div><strong>Providers:</strong> {confirmingVersion.summary?.totalProviders ?? 0} total</div>
+              <div><strong>Active Categories:</strong> {confirmingVersion.summary?.activeCategories ?? 0} active</div>
+              <div><strong>New Published Revision:</strong> v{currentRevision + 1} (revision will never decrease)</div>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-quiet btn-small"
+                disabled={Boolean(rollingBackRev)}
+                onClick={() => setConfirmingVersion(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-small"
+                disabled={Boolean(rollingBackRev)}
+                onClick={() => handleRollback(confirmingVersion.revision)}
+              >
+                {rollingBackRev === confirmingVersion.revision ? 'Restoring…' : `Confirm & Publish v${currentRevision + 1}`}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ flex: 1, overflowY: 'auto', padding: '1rem 1.25rem' }}>
+            {loading ? (
+              <p style={{ color: 'var(--color-muted)', textAlign: 'center', padding: '2rem 0' }}>
+                Loading version history…
               </p>
-            </div>
-          ) : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th scope="col">Revision</th>
-                    <th scope="col">Published At</th>
-                    <th scope="col">Providers</th>
-                    <th scope="col">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {versions.map((ver) => {
-                    const isCurrent = ver.revision === currentRevision;
-                    return (
-                      <tr key={ver.revision}>
-                        <td>
-                          <strong>v{ver.revision}</strong>
-                          {isCurrent ? (
-                            <span
-                              style={{
-                                marginLeft: '0.5rem',
-                                fontSize: '0.65rem',
-                                background: 'var(--color-accent)',
-                                color: '#fff',
-                                padding: '0.1rem 0.35rem',
-                                borderRadius: '3px',
-                              }}
+            ) : versions.length === 0 ? (
+              <div className="empty">
+                <p className="empty-title">No revision history found.</p>
+                <p className="empty-copy">
+                  Past versions will be archived here each time a draft is published.
+                </p>
+              </div>
+            ) : (
+              <div className="table-wrap">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">Revision</th>
+                      <th scope="col">Published At</th>
+                      <th scope="col">Providers</th>
+                      <th scope="col">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {versions.map((ver) => {
+                      const isCurrent = ver.revision === currentRevision;
+                      return (
+                        <tr key={ver.revision}>
+                          <td>
+                            <strong>v{ver.revision}</strong>
+                            {isCurrent ? (
+                              <span
+                                style={{
+                                  marginLeft: '0.5rem',
+                                  fontSize: '0.65rem',
+                                  background: 'var(--color-accent)',
+                                  color: '#fff',
+                                  padding: '0.1rem 0.35rem',
+                                  borderRadius: '3px',
+                                }}
+                              >
+                                Current
+                              </span>
+                            ) : null}
+                          </td>
+                          <td style={{ fontSize: '0.85rem' }}>
+                            {formatUtcDateTime(ver.publishedAt)}
+                          </td>
+                          <td style={{ fontSize: '0.85rem' }}>
+                            {ver.summary ? `${ver.summary.totalProviders} providers` : '—'}
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="btn btn-quiet btn-small"
+                              disabled={isCurrent || Boolean(rollingBackRev)}
+                              onClick={() => setConfirmingVersion(ver)}
+                              style={{ fontSize: '0.8rem' }}
                             >
-                              Current
-                            </span>
-                          ) : null}
-                        </td>
-                        <td style={{ fontSize: '0.85rem' }}>
-                          {formatUtcDateTime(ver.publishedAt)}
-                        </td>
-                        <td style={{ fontSize: '0.85rem' }}>
-                          {ver.summary ? `${ver.summary.totalProviders} providers` : '—'}
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="btn btn-quiet btn-small"
-                            disabled={isCurrent || Boolean(rollingBackRev)}
-                            onClick={() => handleRollback(ver.revision)}
-                            style={{ fontSize: '0.8rem' }}
-                          >
-                            {rollingBackRev === ver.revision ? 'Restoring…' : 'Rollback'}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                              Rollback
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         <div style={{ padding: '0.75rem 1.25rem', borderTop: '1px solid var(--color-rule)', display: 'flex', justifyContent: 'flex-end' }}>
           <button type="button" className="btn btn-quiet btn-small" onClick={onClose}>

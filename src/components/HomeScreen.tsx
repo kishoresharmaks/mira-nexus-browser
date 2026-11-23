@@ -198,9 +198,12 @@ export function HomeScreen({
             <DiscoverySection
               pages={discoveryPages}
               todayLabel={todayLabel}
+              history={history}
               onOpenPage={onOpenUrl}
               onSavePage={onSavePage}
               onOpenArchive={onOpenTodayArchive}
+              onOpenTrails={onOpenTrails}
+              onOpenCollections={onOpenCollections}
             />
           </Reveal>
 

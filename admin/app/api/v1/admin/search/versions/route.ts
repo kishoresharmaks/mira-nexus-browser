@@ -21,6 +21,9 @@ export async function GET(request: Request) {
         revision: v.revision,
         publishedAt: v.publishedAt,
         summary: v.summary,
+        publishedBy: v.publishedBy,
+        description: v.description,
+        checksum: v.checksum,
       })).reverse(), // newest first
     });
   } catch (error) {

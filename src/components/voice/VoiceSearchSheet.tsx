@@ -17,6 +17,7 @@ import type {
   ExpoSpeechRecognitionErrorEvent,
   ExpoSpeechRecognitionResultEvent,
 } from 'expo-speech-recognition';
+import type { SearchCategoryKey } from '@/lib/catalog';
 import { haptic } from '@/lib/haptics';
 import { useAnimatedValue } from '@/lib/useAnimatedValue';
 import { fonts, softShadow } from '@/theme';
@@ -37,15 +38,21 @@ type VoiceState =
 
 type Props = {
   visible: boolean;
+  category?: SearchCategoryKey;
   onClose: () => void;
-  onSubmit: (query: string) => void;
+  onSubmit: (query: string, category?: SearchCategoryKey) => void;
 };
 
 // Safe retrieval of native module without crashing in Expo Go or Web
 const NativeSpeechRecognition: any =
   Platform.OS !== 'web' ? requireOptionalNativeModule('ExpoSpeechRecognition') : null;
 
-export function VoiceSearchSheet({ visible, onClose, onSubmit }: Props) {
+export function VoiceSearchSheet({
+  visible,
+  category = 'web',
+  onClose,
+  onSubmit,
+}: Props) {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -55,6 +62,15 @@ export function VoiceSearchSheet({ visible, onClose, onSubmit }: Props) {
   const [transcript, setTranscript] = useState('');
   const [interimText, setInterimText] = useState('');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isOnDevice, setIsOnDevice] = useState(false);
+
+  useEffect(() => {
+    if (NativeSpeechRecognition?.supportsOnDeviceRecognition) {
+      try {
+        setIsOnDevice(Boolean(NativeSpeechRecognition.supportsOnDeviceRecognition()));
+      } catch {}
+    }
+  }, []);
 
   // Pulse animation for listening state
   const pulseAnim = useAnimatedValue(1);
@@ -175,6 +191,10 @@ export function VoiceSearchSheet({ visible, onClose, onSubmit }: Props) {
         lang: 'en-US',
         interimResults: true,
         continuous: false,
+        requiresOnDeviceRecognition: false,
+        androidIntentOptions: {
+          EXTRA_PREFER_OFFLINE: true,
+        },
       });
     } catch (err: unknown) {
       stopPulse();
@@ -237,7 +257,7 @@ export function VoiceSearchSheet({ visible, onClose, onSubmit }: Props) {
     haptic.tap();
     abortRecognition();
     onClose();
-    onSubmit(finalQuery);
+    onSubmit(finalQuery, category);
   };
 
   const handleOpenSettings = async () => {
@@ -429,7 +449,17 @@ export function VoiceSearchSheet({ visible, onClose, onSubmit }: Props) {
                   style={[styles.submitBtn, { backgroundColor: theme.accent }]}
                   accessibilityLabel="Search recognized query"
                 >
-                  <Text style={[styles.submitText, { color: theme.accentInk }]}>Search Web</Text>
+                  <Text style={[styles.submitText, { color: theme.accentInk }]}>
+                    {category === 'ai'
+                      ? 'Search AI'
+                      : category === 'images'
+                        ? 'Search Images'
+                        : category === 'news'
+                          ? 'Search News'
+                          : category === 'videos'
+                            ? 'Search Videos'
+                            : 'Search Web'}
+                  </Text>
                   <Icon name="arrowRight" size={16} color={theme.accentInk} strokeWidth={2.4} />
                 </PressableScale>
               </View>
@@ -443,6 +473,18 @@ export function VoiceSearchSheet({ visible, onClose, onSubmit }: Props) {
                 <Icon name="refresh" size={15} color={theme.accentInk} strokeWidth={2} />
                 <Text style={[styles.actionBtnText, { color: theme.accentInk }]}>Try Again</Text>
               </PressableScale>
+            ) : null}
+
+            {/* Privacy Disclosure */}
+            {voiceState !== 'unsupported' && voiceState !== 'denied' ? (
+              <View style={styles.privacyNoteRow}>
+                <Icon name="shield" size={11} color={theme.faint} strokeWidth={1.8} />
+                <Text style={[styles.privacyNote, { color: theme.faint }]}>
+                  {isOnDevice
+                    ? 'On-device recognition · Audio stays on device'
+                    : 'Speech service · No recordings stored or profiled'}
+                </Text>
+              </View>
             ) : null}
           </View>
         </View>
@@ -607,5 +649,15 @@ const styles = StyleSheet.create({
   submitText: {
     fontFamily: fonts.semibold,
     fontSize: 13.5,
+  },
+  privacyNoteRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 14,
+  },
+  privacyNote: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
   },
 });

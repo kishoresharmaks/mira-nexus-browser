@@ -1,4 +1,10 @@
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { Icon, type IconName } from '../Icon';
 import { PressableScale } from '../PressableScale';
 import { useCatalogConfig } from '@/lib/catalog-provider';
@@ -12,9 +18,15 @@ export type SearchCategory = SearchCategoryKey;
 type Props = {
   activeCategory: SearchCategory;
   onSelectCategory: (category: SearchCategory) => void;
+  containerStyle?: StyleProp<ViewStyle>;
+  compact?: boolean;
 };
 
-const CATEGORIES: { id: SearchCategory; label: string; icon: IconName }[] = [
+export const SEARCH_CATEGORY_ITEMS: {
+  id: SearchCategory;
+  label: string;
+  icon: IconName;
+}[] = [
   { id: 'web', label: 'Web', icon: 'globe' },
   { id: 'ai', label: 'AI', icon: 'sparkle' },
   { id: 'images', label: 'Images', icon: 'image' },
@@ -25,11 +37,13 @@ const CATEGORIES: { id: SearchCategory; label: string; icon: IconName }[] = [
 export function SearchCategories({
   activeCategory,
   onSelectCategory,
+  containerStyle,
+  compact = false,
 }: Props) {
   const { theme } = useTheme();
   const { activeCategories } = useCatalogConfig();
 
-  const visibleCategories = CATEGORIES.filter((cat) =>
+  const visibleCategories = SEARCH_CATEGORY_ITEMS.filter((cat) =>
     activeCategories ? activeCategories.includes(cat.id) : true,
   );
 
@@ -37,7 +51,8 @@ export function SearchCategories({
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[styles.container, containerStyle]}
+      keyboardShouldPersistTaps="handled"
     >
       {visibleCategories.map((cat) => {
         const active = cat.id === activeCategory;
@@ -51,9 +66,11 @@ export function SearchCategories({
             scaleTo={0.96}
             style={[
               styles.pill,
+              compact && styles.pillCompact,
               {
                 backgroundColor: active ? theme.surface : 'transparent',
-                borderColor: active ? theme.line : 'transparent',
+                borderColor: active ? theme.accent : theme.line,
+                borderWidth: active ? 1.5 : StyleSheet.hairlineWidth,
               },
             ]}
             accessibilityRole="tab"
@@ -62,13 +79,14 @@ export function SearchCategories({
           >
             <Icon
               name={cat.icon}
-              size={13}
+              size={compact ? 12 : 13}
               color={active ? theme.accent : theme.muted}
-              strokeWidth={active ? 2.2 : 1.8}
+              strokeWidth={active ? 2.3 : 1.8}
             />
             <Text
               style={[
                 styles.label,
+                compact && styles.labelCompact,
                 {
                   color: active ? theme.ink : theme.muted,
                   fontFamily: active ? fonts.semibold : fonts.sans,
@@ -88,7 +106,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     paddingVertical: 4,
     marginBottom: 8,
   },
@@ -99,9 +117,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
-    borderWidth: 1,
+  },
+  pillCompact: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 5,
   },
   label: {
     fontSize: 12,
+  },
+  labelCompact: {
+    fontSize: 11,
   },
 });

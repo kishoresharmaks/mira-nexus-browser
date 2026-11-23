@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAds } from '@/lib/ads-provider';
+import type { SearchCategoryKey } from '@/lib/catalog';
 import { useCatalogConfig } from '@/lib/catalog-provider';
 import { haptic } from '@/lib/haptics';
 import { relativeTime } from '@/lib/time';
@@ -24,8 +25,10 @@ import { fonts, layout, softShadow } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
 import type { HistoryEntry, Shortcut } from '@/types';
 import { Favicon } from './Favicon';
-import { Icon } from './Icon';
+import { SearchCategories } from './home/SearchCategories';
+import { Icon, type IconName } from './Icon';
 import { IconButton } from './IconButton';
+import { PressableScale } from './PressableScale';
 import { ScreenBackdrop } from './ScreenBackdrop';
 
 type Suggestion = {
@@ -52,8 +55,13 @@ type Props = {
   shortcuts: Shortcut[];
   /** Private mode hides stored history and speaks in the private palette. */
   privateTab?: boolean;
+  initialCategory?: SearchCategoryKey;
   onClose: () => void;
-  onSubmit: (value: string) => void;
+  onSubmit: (
+    value: string,
+    category?: SearchCategoryKey,
+    providerId?: string,
+  ) => void;
 };
 
 export function AddressOverlay({
@@ -62,23 +70,37 @@ export function AddressOverlay({
   history,
   shortcuts,
   privateTab = false,
+  initialCategory = 'web',
   onClose,
   onSubmit,
 }: Props) {
   const { theme, mode } = useTheme();
-  const { activeEngine } = useCatalogConfig();
+  const {
+    activeEngine,
+    categories,
+    getCategoryActiveProvider,
+    getCategoryProviders,
+    selectCategoryProvider,
+  } = useCatalogConfig();
   const { ads, showRewardedAd } = useAds();
   const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(visible);
   const [query, setQuery] = useState(initialValue);
+  const [category, setCategory] = useState<SearchCategoryKey>(initialCategory);
   const animation = useAnimatedValue(0);
   const inputRef = useRef<TextInputInstance>(null);
   const focusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const activeProvider = getCategoryActiveProvider(category);
+  const categoryProviders = getCategoryProviders(category);
+  const isCategoryEnabled = categories?.[category]?.enabled !== false;
+  const providerName = activeProvider?.name ?? activeEngine.name;
 
   useEffect(() => {
     if (visible) {
       setMounted(true);
       setQuery(initialValue);
+      setCategory(initialCategory || 'web');
       // Intentionally keyed on visibility: the seed is captured when opening so
       // page loads underneath cannot overwrite what the person is typing.
       animation.setValue(0);
@@ -103,7 +125,7 @@ export function AddressOverlay({
     }).start(({ finished }) => {
       if (finished) setMounted(false);
     });
-  }, [visible]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [visible, initialCategory]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!mounted) return null;
 
@@ -148,12 +170,31 @@ export function AddressOverlay({
     .slice(0, 4);
   const hasMatches = shortcutSuggestions.length > 0 || historySuggestions.length > 0;
 
-  const submit = (value: string) => {
+  const submit = (
+    value: string,
+    submitCat: SearchCategoryKey = category,
+    submitProviderId?: string,
+  ) => {
     const next = value.trim();
     if (!next) return;
     haptic.tap();
     Keyboard.dismiss();
-    onSubmit(next);
+    onSubmit(next, submitCat, submitProviderId ?? activeProvider?.id);
+  };
+
+  const getCategoryIcon = (cat: SearchCategoryKey): IconName => {
+    switch (cat) {
+      case 'ai':
+        return 'sparkle';
+      case 'images':
+        return 'image';
+      case 'news':
+        return 'newspaper';
+      case 'videos':
+        return 'video';
+      default:
+        return 'globe';
+    }
   };
 
   return (
@@ -197,20 +238,22 @@ export function AddressOverlay({
             ]}
           >
             <Icon
-              name={privateTab ? 'mask' : 'search'}
+              name={privateTab ? 'mask' : getCategoryIcon(category)}
               size={18}
-              color={privateTab ? theme.accent : theme.muted}
+              color={privateTab ? theme.accent : theme.accent}
               strokeWidth={1.9}
             />
             <TextInput
               ref={inputRef}
               value={query}
               onChangeText={setQuery}
-              onSubmitEditing={() => submit(query)}
+              onSubmitEditing={() => submit(query, category, activeProvider?.id)}
               placeholder={
                 privateTab
                   ? 'Search or enter a link'
-                  : 'Search or enter a website'
+                  : category === 'ai'
+                    ? 'Ask Nexus AI or search...'
+                    : `Search ${category} or enter a website`
               }
               placeholderTextColor={theme.faint}
               style={[styles.input, focusRingReset, { color: theme.ink }]}
@@ -242,7 +285,7 @@ export function AddressOverlay({
             ) : null}
           </View>
           <Pressable
-            onPress={() => submit(query)}
+            onPress={() => submit(query, category, activeProvider?.id)}
             disabled={!trimmed}
             style={[
               styles.goButton,
@@ -260,6 +303,89 @@ export function AddressOverlay({
           </Pressable>
         </View>
 
+        {/* Categories Selector */}
+        <View style={styles.categoriesBar}>
+          <SearchCategories
+            activeCategory={category}
+            onSelectCategory={(nextCat) => setCategory(nextCat)}
+            compact
+            containerStyle={styles.categoriesContainer}
+          />
+        </View>
+
+        {/* Provider Selection Chips (if category has multiple providers) */}
+        {categoryProviders.length > 1 ? (
+          <View style={styles.providersBar}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.providersScroll}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={[styles.providerPrefix, { color: theme.faint }]}>
+                ENGINE:
+              </Text>
+              {categoryProviders.map((p) => {
+                const isSelected = activeProvider?.id === p.id;
+                return (
+                  <PressableScale
+                    key={p.id}
+                    onPress={() => {
+                      haptic.select();
+                      selectCategoryProvider(category, p.id);
+                    }}
+                    scaleTo={0.95}
+                    style={[
+                      styles.providerChip,
+                      {
+                        backgroundColor: isSelected
+                          ? theme.mode === 'dark'
+                            ? 'rgba(255, 90, 43, 0.18)'
+                            : 'rgba(255, 90, 43, 0.12)'
+                          : theme.surface,
+                        borderColor: isSelected ? theme.accent : theme.line,
+                      },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={`Search with ${p.name}`}
+                  >
+                    {isSelected ? (
+                      <View
+                        style={[
+                          styles.providerActiveDot,
+                          { backgroundColor: theme.accent },
+                        ]}
+                      />
+                    ) : null}
+                    <Text
+                      style={[
+                        styles.providerChipLabel,
+                        {
+                          color: isSelected ? theme.accent : theme.inkSoft,
+                          fontFamily: isSelected ? fonts.semibold : fonts.sans,
+                        },
+                      ]}
+                    >
+                      {p.name}
+                    </Text>
+                  </PressableScale>
+                );
+              })}
+            </ScrollView>
+          </View>
+        ) : null}
+
+        {/* Disabled category warning banner */}
+        {!isCategoryEnabled ? (
+          <View style={[styles.disabledBanner, { backgroundColor: theme.chip }]}>
+            <Icon name="shield" size={13} color={theme.accent} />
+            <Text style={[styles.disabledBannerText, { color: theme.inkSoft }]}>
+              {category.toUpperCase()} is disabled in settings. Queries will route to standard web search.
+            </Text>
+          </View>
+        ) : null}
+
         <ScrollView
           style={styles.scroll}
           contentContainerStyle={[
@@ -272,7 +398,13 @@ export function AddressOverlay({
         >
           {trimmed && direct ? (
             <Pressable
-              onPress={() => submit(direct.url)}
+              onPress={() => {
+                if (direct.kind === 'url') {
+                  submit(direct.url);
+                } else {
+                  submit(trimmed, category, activeProvider?.id);
+                }
+              }}
               style={({ pressed }) => [
                 styles.primary,
                 {
@@ -286,7 +418,7 @@ export function AddressOverlay({
               accessibilityLabel={
                 direct.kind === 'url'
                   ? `Go to ${direct.host}`
-                  : `Search for ${trimmed}`
+                  : `Search for ${trimmed} with ${providerName}`
               }
             >
               <View
@@ -306,13 +438,13 @@ export function AddressOverlay({
                       ? 'mask'
                       : direct.kind === 'url'
                         ? 'globe'
-                        : 'search'
+                        : getCategoryIcon(category)
                   }
                   size={19}
                   color={
                     privateTab || direct.kind === 'url'
                       ? theme.accent
-                      : theme.inkSoft
+                      : theme.accent
                   }
                 />
               </View>
@@ -329,7 +461,7 @@ export function AddressOverlay({
                 >
                   {direct.kind === 'url'
                     ? direct.url
-                    : `${activeEngine.name} · Private search`}
+                    : `${category.toUpperCase()} · ${providerName}`}
                 </Text>
               </View>
               <Icon
@@ -367,18 +499,22 @@ export function AddressOverlay({
             <View style={styles.empty}>
               <View style={[styles.emptyOrb, { backgroundColor: theme.accentSoft }]}>
                 <Icon
-                  name={privateTab ? 'mask' : 'globe'}
+                  name={privateTab ? 'mask' : getCategoryIcon(category)}
                   size={24}
                   color={theme.accent}
                 />
               </View>
               <Text style={[styles.emptyTitle, { color: theme.ink }]}>
-                {privateTab ? 'A private start' : 'Where to?'}
+                {privateTab
+                  ? 'A private start'
+                  : category === 'ai'
+                    ? 'Nexus AI Search'
+                    : `Search ${category}`}
               </Text>
               <Text style={[styles.emptyBody, { color: theme.muted }]}>
                 {privateTab
                   ? 'Type a link, a domain, or a question. Nothing here enters history.'
-                  : 'Type a link, a domain, or a question. Nexus takes you straight there.'}
+                  : `Type a question, a link, or keywords. Queries search via ${providerName}.`}
               </Text>
             </View>
           ) : null}
@@ -394,7 +530,7 @@ export function AddressOverlay({
               <Text style={[styles.tip, { color: theme.faint }]}>
                 {privateTab
                   ? 'Private tab. History and trails stay untouched.'
-                  : `Searches go to ${activeEngine.name}. History stays on this device.`}
+                  : `Searches go to ${providerName} (${category.toUpperCase()}). History stays on this device.`}
               </Text>
             </View>
           ) : null}
@@ -489,6 +625,62 @@ const styles = StyleSheet.create({
     gap: 9,
     paddingHorizontal: 16,
   },
+  categoriesBar: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+  categoriesContainer: {
+    paddingVertical: 0,
+    marginBottom: 0,
+  },
+  providersBar: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 2,
+  },
+  providersScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  providerPrefix: {
+    fontFamily: fonts.semibold,
+    fontSize: 9.5,
+    letterSpacing: 1.2,
+    marginRight: 2,
+  },
+  providerChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  providerActiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  providerChipLabel: {
+    fontSize: 11.5,
+  },
+  disabledBanner: {
+    marginHorizontal: 16,
+    marginTop: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  disabledBannerText: {
+    fontFamily: fonts.sans,
+    fontSize: 11.5,
+    flex: 1,
+  },
   inputWrap: {
     flex: 1,
     height: 50,
@@ -523,7 +715,7 @@ const styles = StyleSheet.create({
     maxWidth: layout.maxContentWidth,
     alignSelf: 'center',
     paddingHorizontal: 16,
-    paddingTop: 22,
+    paddingTop: 16,
   },
   primary: {
     minHeight: 66,
@@ -589,7 +781,7 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
   },
   empty: {
-    marginTop: 56,
+    marginTop: 40,
     alignItems: 'center',
     paddingHorizontal: 28,
   },

@@ -35,11 +35,13 @@ type CatalogSource = 'bundled' | 'cache' | 'network';
 type SearchState = {
   activeEngineId: string | null;
   customEngines: SearchEngine[];
+  selectedCategoryProviders?: Partial<Record<SearchCategoryKey, string>>;
 };
 
 const EMPTY_SEARCH_STATE: SearchState = {
   activeEngineId: null,
   customEngines: [],
+  selectedCategoryProviders: {},
 };
 
 type CatalogContextValue = {
@@ -52,8 +54,11 @@ type CatalogContextValue = {
   ads: AdsConfig;
   categories: SearchCategoriesConfig;
   activeCategories: SearchCategoryKey[];
+  selectedCategoryProviders: Partial<Record<SearchCategoryKey, string>>;
   getCategoryDefaultProvider: (category: SearchCategoryKey) => SearchProvider | null;
+  getCategoryActiveProvider: (category: SearchCategoryKey) => SearchProvider | null;
   getCategoryProviders: (category: SearchCategoryKey) => SearchProvider[];
+  selectCategoryProvider: (category: SearchCategoryKey, providerId: string) => void;
   /** The cached catalog and saved search choice have been read. */
   hydrated: boolean;
   selectEngine: (id: string) => void;
@@ -77,9 +82,19 @@ function normalizeSearchState(value: unknown): SearchState {
   const record = value as Record<string, unknown>;
   const activeEngineId =
     typeof record.activeEngineId === 'string' ? record.activeEngineId : null;
+  const selectedCategoryProviders: Partial<Record<SearchCategoryKey, string>> = {};
+  if (record.selectedCategoryProviders && typeof record.selectedCategoryProviders === 'object' && !Array.isArray(record.selectedCategoryProviders)) {
+    const rawMap = record.selectedCategoryProviders as Record<string, unknown>;
+    for (const key of ['web', 'ai', 'images', 'news', 'videos'] as SearchCategoryKey[]) {
+      if (typeof rawMap[key] === 'string' && rawMap[key].trim()) {
+        selectedCategoryProviders[key] = rawMap[key].trim();
+      }
+    }
+  }
   return {
     activeEngineId,
     customEngines: normalizeCustomEngines(record.customEngines),
+    selectedCategoryProviders,
   };
 }
 
@@ -288,6 +303,46 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     return list.filter((key) => catalog.categories?.[key]?.enabled !== false);
   }, [catalog.categories]);
 
+  const selectedCategoryProviders = useMemo(
+    () => search.selectedCategoryProviders ?? {},
+    [search.selectedCategoryProviders],
+  );
+
+  const selectCategoryProvider = useCallback(
+    (category: SearchCategoryKey, providerId: string) => {
+      setSearch((prev) => ({
+        ...prev,
+        selectedCategoryProviders: {
+          ...(prev.selectedCategoryProviders ?? {}),
+          [category]: providerId,
+        },
+      }));
+    },
+    [setSearch],
+  );
+
+  const getCategoryActiveProvider = useCallback(
+    (category: SearchCategoryKey): SearchProvider | null => {
+      const cat = catalog.categories?.[category];
+      if (!cat) return null;
+      const providers = cat.providers.filter((p) => p.enabled);
+      if (providers.length === 0) return null;
+
+      const userChoice = search.selectedCategoryProviders?.[category];
+      if (userChoice) {
+        const found = providers.find((p) => p.id === userChoice);
+        if (found) return found;
+      }
+
+      return (
+        providers.find((p) => p.id === cat.defaultProvider) ??
+        providers[0] ??
+        null
+      );
+    },
+    [catalog.categories, search.selectedCategoryProviders],
+  );
+
   const getCategoryDefaultProvider = useCallback(
     (category: SearchCategoryKey): SearchProvider | null => {
       const cat = catalog.categories?.[category];
@@ -321,8 +376,11 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       ads: catalog.ads,
       categories: catalog.categories,
       activeCategories,
+      selectedCategoryProviders,
       getCategoryDefaultProvider,
+      getCategoryActiveProvider,
       getCategoryProviders,
+      selectCategoryProvider,
       hydrated: cacheHydrated && searchHydrated,
       selectEngine,
       addCustomEngine,
@@ -344,6 +402,7 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       catalog.pages,
       cacheHydrated,
       engines,
+      getCategoryActiveProvider,
       getCategoryDefaultProvider,
       getCategoryProviders,
       refreshCatalog,
@@ -352,7 +411,9 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
       removeCustomEngine,
       search.customEngines,
       searchHydrated,
+      selectCategoryProvider,
       selectEngine,
+      selectedCategoryProviders,
       source,
       updatedAt,
     ],
