@@ -6,7 +6,7 @@
   "ads": {
     "enabled": true,
     "testMode": false,
-    "layout": "inline",
+    "layout": "anchored",
     "androidUnitId": "ca-app-pub-3076513882745753/7545779992",
     "iosUnitId": ""
   },
