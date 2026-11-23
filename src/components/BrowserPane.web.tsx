@@ -128,6 +128,8 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
       load: navigate,
       setActive: () => {},
       extractArticle: () => {},
+      clearCache: () => {},
+      clearOriginStorage: () => {},
     }),
     [navigate],
   );

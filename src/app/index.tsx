@@ -49,7 +49,7 @@ import {
   shouldLookupCommunity,
   type CommunityLookup,
 } from '@/lib/community';
-import { CURATED_PAGES, curatedShortDate, getDailyPage } from '@/lib/curation';
+import { curatedShortDate, getDailyPage } from '@/lib/curation';
 import { resolveCategorizedSearch } from '@/lib/search-routing';
 import { haptic } from '@/lib/haptics';
 import {
@@ -228,7 +228,7 @@ export default function Nexus() {
   const [communityOpen, setCommunityOpen] = useState(false);
   const [readerOpen, setReaderOpen] = useState(false);
   const [aiSummaryOpen, setAiSummaryOpen] = useState(false);
-  const [today, setToday] = useState<CuratedPage>(() => getDailyPage());
+  const [today, setToday] = useState<CuratedPage | null>(null);
   const [communityLookup, setCommunityLookup] =
     useState<CommunityLookup | null>(null);
   const [communityLoading, setCommunityLoading] = useState(false);
@@ -551,8 +551,10 @@ export default function Nexus() {
 
   const openToday = useCallback(() => {
     haptic.tap();
-    openInNewTab(today.url, today.title);
-  }, [openInNewTab, today.title, today.url]);
+    if (today?.url) {
+      openInNewTab(today.url, today.title);
+    }
+  }, [openInNewTab, today]);
 
   const openTrails = useCallback(() => {
     haptic.tap();
@@ -1243,7 +1245,7 @@ export default function Nexus() {
   useEffect(() => {
     const timer = setInterval(() => {
       const next = getDailyPage(new Date(), todayPages);
-      setToday((previous) => (previous.id === next.id ? previous : next));
+      setToday((previous) => (previous?.id === next?.id ? previous : next));
     }, 60_000);
     return () => clearInterval(timer);
   }, [todayPages]);
@@ -1252,7 +1254,7 @@ export default function Nexus() {
   // card in step as soon as the new pages arrive.
   useEffect(() => {
     const next = getDailyPage(new Date(), todayPages);
-    setToday((previous) => (previous.id === next.id ? previous : next));
+    setToday((previous) => (previous?.id === next?.id ? previous : next));
   }, [todayPages]);
 
   // Discussion lookup is deliberately late and optional: wait until the page
@@ -1338,7 +1340,7 @@ export default function Nexus() {
           privateTabCount={privateTabCount}
           today={today}
           todayLabel={curatedShortDate()}
-          curatedPages={CURATED_PAGES}
+          curatedPages={todayPages}
           adsVisible={!browserActive}
           onOpenSearch={(category = 'web') => {
             setSearchCategory(category);
@@ -1705,12 +1707,18 @@ export default function Nexus() {
         activeUrl={snapshot.url}
         onClearHistory={() => setHistory([])}
         onClearCache={() => {
+          browserRefs.current.forEach((ref) => {
+            ref?.clearCache?.();
+          });
           if (activeTabId) {
             browserRefs.current.get(activeTabId)?.reload();
           }
         }}
         onClearCookies={() => {
-          toast.show('Site data and cookies reset');
+          browserRefs.current.forEach((ref) => {
+            ref?.clearOriginStorage?.();
+          });
+          toast.show('Active origin web storage cleared');
         }}
         onOpenPrivateTab={openPrivateTab}
       />

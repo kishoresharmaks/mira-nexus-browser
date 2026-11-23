@@ -19,6 +19,7 @@ import {
   validateCatalog,
   type AdsConfig,
   type Catalog,
+  type DiscoveryCategory,
   type Engine,
   type Issue,
   type Page,
@@ -33,6 +34,7 @@ import { EngineEditor } from './workbench/EngineEditor';
 import { EnginePanel } from './workbench/EnginePanel';
 import { PageEditor } from './workbench/PageEditor';
 import { PagePanel } from './workbench/PagePanel';
+import { DiscoveryCategoriesModal } from './workbench/DiscoveryCategoriesModal';
 import { SearchDashboardOverview } from './workbench/SearchDashboardOverview';
 import { SearchManagement } from './workbench/SearchManagement';
 import { TodayLedger } from './workbench/TodayLedger';
@@ -136,6 +138,7 @@ export function Workbench({
       null,
   );
   const [versionsOpen, setVersionsOpen] = useState(false);
+  const [categoriesModalOpen, setCategoriesModalOpen] = useState(false);
   const [engineId, setEngineId] = useState<string | null>(
     initialDraft.engines[0]?.id ?? null,
   );
@@ -238,6 +241,40 @@ export function Workbench({
       ...current,
       pages: current.pages.map((page) =>
         page.id === id ? { ...page, ...patch } : page,
+      ),
+    }));
+  };
+
+  const addDiscoveryCategory = (category: DiscoveryCategory) => {
+    beginEdit();
+    setDraft((current) => ({
+      ...current,
+      discoveryCategories: [
+        ...(current.discoveryCategories ?? []),
+        category,
+      ].sort((a, b) => a.order - b.order),
+    }));
+  };
+
+  const updateDiscoveryCategory = (
+    id: string,
+    patch: Partial<DiscoveryCategory>,
+  ) => {
+    beginEdit();
+    setDraft((current) => ({
+      ...current,
+      discoveryCategories: (current.discoveryCategories ?? [])
+        .map((cat) => (cat.id === id ? { ...cat, ...patch } : cat))
+        .sort((a, b) => a.order - b.order),
+    }));
+  };
+
+  const deleteDiscoveryCategory = (id: string) => {
+    beginEdit();
+    setDraft((current) => ({
+      ...current,
+      discoveryCategories: (current.discoveryCategories ?? []).filter(
+        (cat) => cat.id !== id,
       ),
     }));
   };
@@ -978,7 +1015,7 @@ export function Workbench({
             tabIndex={section === 'today' ? 0 : -1}
             onClick={() => switchSection('today')}
           >
-            Today&rsquo;s page
+            Discover Today
             <span className="tab-count">{draft.pages.length}</span>
           </button>
           <button
@@ -1070,6 +1107,7 @@ export function Workbench({
                 maxPages={MAX_PAGES}
                 onAdd={addPage}
                 onSelect={choosePage}
+                onOpenCategories={() => setCategoriesModalOpen(true)}
               />
               <div className="editor" ref={editorRef}>
                 {selectedPage ? (
@@ -1077,6 +1115,7 @@ export function Workbench({
                     key={selectedPage.id}
                     page={selectedPage}
                     busy={busy}
+                    categories={draft.discoveryCategories ?? []}
                     onUpdate={updatePage}
                     onDelete={deleteSelectedPage}
                   />
@@ -1090,6 +1129,15 @@ export function Workbench({
                 )}
               </div>
             </div>
+
+            <DiscoveryCategoriesModal
+              isOpen={categoriesModalOpen}
+              categories={draft.discoveryCategories ?? []}
+              onClose={() => setCategoriesModalOpen(false)}
+              onAddCategory={addDiscoveryCategory}
+              onUpdateCategory={updateDiscoveryCategory}
+              onDeleteCategory={deleteDiscoveryCategory}
+            />
 
             <TodayLedger
               pages={draft.pages}

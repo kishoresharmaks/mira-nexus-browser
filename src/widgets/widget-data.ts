@@ -5,7 +5,7 @@ import { DEFAULT_SHORTCUTS, normalizeShortcuts } from '@/lib/shortcuts';
 import { STORAGE_KEYS } from '@/lib/storage-keys';
 
 export type WidgetSnapshot = {
-  page: CuratedPage;
+  page: CuratedPage | null;
   dateLabel: string;
   shortcuts: Shortcut[];
 };

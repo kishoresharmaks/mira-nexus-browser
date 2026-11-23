@@ -386,10 +386,10 @@ export function PermissionsCard({ compact = false }: Props) {
             desc: 'Cross-site cookies used by ad-tracking networks are rejected by WebView cookie policy.',
           },
           {
-            title: 'Zero Browser Telemetry',
+            title: 'Chromium Metrics Opt-Out',
             status: 'Opted Out',
             icon: 'sparkle' as const,
-            desc: 'WebView usage metrics disabled via MetricsOptOut meta-data. Nexus does not track or profile browsing.',
+            desc: 'WebView usage metrics disabled via MetricsOptOut meta-data. Nexus runs without proprietary tracking servers.',
           },
         ].map((ctrl, index) => (
           <View
@@ -409,6 +409,60 @@ export function PermissionsCard({ compact = false }: Props) {
               </View>
             </View>
             <Text style={[styles.ctrlDesc, { color: theme.muted }]}>{ctrl.desc}</Text>
+          </View>
+        ))}
+      </View>
+
+      {/* SECTION D: Data Flows & Third-Party Services */}
+      <View style={[styles.sectionHeader, { marginTop: 18 }]}>
+        <Text style={[styles.sectionTitle, { color: theme.muted }]}>
+          D. DATA FLOWS & THIRD-PARTY SERVICES
+        </Text>
+      </View>
+
+      <View
+        style={[
+          styles.card,
+          { backgroundColor: theme.surface, borderColor: theme.line },
+          softShadow(theme.mode, 'card'),
+        ]}
+      >
+        {[
+          {
+            title: 'Search Queries & Selected Providers',
+            icon: 'search' as const,
+            desc: 'When submitting a search, query text is transmitted directly via encrypted HTTPS to your chosen search engine (e.g. DuckDuckGo, Brave, Google). Nexus never proxies, intercepts, or logs queries.',
+          },
+          {
+            title: 'Speech Recognition & Dictation',
+            icon: 'mic' as const,
+            desc: "Voice search uses your device's configured Android speech service with an offline preference requested (EXTRA_PREFER_OFFLINE). When offline models are installed, recognition may execute on-device; if unavailable or unsupported by the engine, speech is transcribed securely over network by the system speech service. Audio is never routed to or stored on Nexus servers.",
+          },
+          {
+            title: 'Google Mobile Ads SDK (AdMob)',
+            icon: 'shield' as const,
+            desc: 'Google Mobile Ads SDK (react-native-google-mobile-ads v17.4.0 / play-services-ads 25.5.0) transmits data encrypted in transit using the Transport Layer Security (TLS) protocol. Data transmitted includes Advertising ID (AD_ID), App Set ID, device/SDK instance IDs, IP-derived coarse location, ad interaction events, and diagnostic/performance information for ad delivery and fraud prevention per Play Store Data Safety policies.',
+          },
+          {
+            title: 'Private Browsing & Storage Isolation',
+            icon: 'mask' as const,
+            desc: 'Private tabs bypass browsing history and trails, and isolate disk cache. Because Android WebView shares underlying process cookies, localStorage, and IndexedDB across WebViews, web storage controls clear active origin storage and HTTP cache while preserving persistent logins in normal tabs. Complete storage erasure requires clearing data in Android OS Settings.',
+          },
+        ].map((item, index) => (
+          <View
+            key={item.title}
+            style={[
+              styles.ctrlItem,
+              index > 0 && { borderTopWidth: 1, borderTopColor: theme.line },
+            ]}
+          >
+            <View style={styles.ctrlHead}>
+              <View style={[styles.iconWrapSmall, { backgroundColor: theme.chip }]}>
+                <Icon name={item.icon} size={13} color={theme.accent} />
+              </View>
+              <Text style={[styles.ctrlTitle, { color: theme.ink }]}>{item.title}</Text>
+            </View>
+            <Text style={[styles.ctrlDesc, { color: theme.muted }]}>{item.desc}</Text>
           </View>
         ))}
       </View>

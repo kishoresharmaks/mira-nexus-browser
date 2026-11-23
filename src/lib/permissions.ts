@@ -64,7 +64,7 @@ export const STATIC_PERMISSION_REGISTRY: Omit<PermissionRegistryItem, 'status'>[
     runtimeConsent: true,
     installTime: false,
     isEssential: false,
-    explanation: 'Used exclusively when you tap the microphone button to dictate search queries. Audio is never recorded or streamed when inactive.',
+    explanation: "Used exclusively when you tap the microphone button to dictate search queries. An offline preference is requested (EXTRA_PREFER_OFFLINE), but whether recognition occurs locally or via network depends on your device's configured Android speech service and downloaded models. Audio is never routed to or stored on Nexus servers.",
   },
   {
     id: 'internet',
@@ -103,7 +103,7 @@ export const STATIC_PERMISSION_REGISTRY: Omit<PermissionRegistryItem, 'status'>[
     runtimeConsent: false,
     installTime: true,
     isEssential: false,
-    explanation: 'Used by Google Mobile Ads SDK for home screen banner measurement. Can be reset or deleted in Android OS Settings > Google > Ads.',
+    explanation: 'Used by Google Mobile Ads SDK (react-native-google-mobile-ads v17.4.0 / play-services-ads 25.5.0) for ad delivery, fraud prevention, and frequency capping. Data transmitted over the Transport Layer Security (TLS) protocol includes Advertising ID (AD_ID), App Set ID, device/SDK identifiers, IP-derived coarse location, ad interactions, and performance diagnostics per Google Play Data Safety policies. Can be reset or deleted in Android OS Settings > Google > Ads.',
   },
   {
     id: 'location',
@@ -116,7 +116,7 @@ export const STATIC_PERMISSION_REGISTRY: Omit<PermissionRegistryItem, 'status'>[
     runtimeConsent: true,
     installTime: false,
     isEssential: false,
-    explanation: 'Strictly stripped from Android manifest. Nexus Browser and visited websites have zero access to your physical coordinates.',
+    explanation: 'Explicitly stripped from Android manifest. Nexus Browser and visited websites cannot access your device GPS coordinates.',
   },
   {
     id: 'contacts',
@@ -129,7 +129,7 @@ export const STATIC_PERMISSION_REGISTRY: Omit<PermissionRegistryItem, 'status'>[
     runtimeConsent: true,
     installTime: false,
     isEssential: false,
-    explanation: 'Strictly stripped from Android manifest. The browser never inspects your address book or contact entries.',
+    explanation: 'Explicitly stripped from Android manifest. The browser never accesses your address book or contact entries.',
   },
   {
     id: 'storage',
@@ -142,7 +142,7 @@ export const STATIC_PERMISSION_REGISTRY: Omit<PermissionRegistryItem, 'status'>[
     runtimeConsent: true,
     installTime: false,
     isEssential: false,
-    explanation: 'Strictly stripped from Android manifest. Web pages have zero access to your photos, downloads, or external SD card.',
+    explanation: 'Explicitly stripped from Android manifest. Web pages cannot access your photos, downloads, or shared storage without user-mediated system file pickers.',
   },
   {
     id: 'notifications',

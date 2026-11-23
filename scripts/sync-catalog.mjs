@@ -22,8 +22,8 @@ const catalog = JSON.parse(raw);
 if (!Array.isArray(catalog.engines) || catalog.engines.length === 0) {
   throw new Error('catalog/defaults.json must contain at least one engine');
 }
-if (!Array.isArray(catalog.pages) || catalog.pages.length === 0) {
-  throw new Error('catalog/defaults.json must contain at least one page');
+if (!Array.isArray(catalog.pages)) {
+  throw new Error('catalog/defaults.json must contain a pages array');
 }
 
 const ids = new Set();

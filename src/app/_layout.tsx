@@ -23,6 +23,7 @@ import { LaunchScreen } from '@/components/LaunchScreen';
 import { ToastProvider } from '@/components/Toast';
 import { AdsProvider } from '@/lib/ads-provider';
 import { CatalogProvider, useCatalogConfig } from '@/lib/catalog-provider';
+import { DiscoveryProvider } from '@/lib/discovery/DiscoveryProvider';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -48,13 +49,15 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ThemeProvider>
         <CatalogProvider>
-          <AdsProvider>
-            <ToastProvider>
-              <Startup>
-                <Navigator />
-              </Startup>
-            </ToastProvider>
-          </AdsProvider>
+          <DiscoveryProvider>
+            <AdsProvider>
+              <ToastProvider>
+                <Startup>
+                  <Navigator />
+                </Startup>
+              </ToastProvider>
+            </AdsProvider>
+          </DiscoveryProvider>
         </CatalogProvider>
       </ThemeProvider>
     </SafeAreaProvider>

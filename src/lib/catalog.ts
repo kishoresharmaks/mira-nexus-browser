@@ -1,4 +1,9 @@
-import type { CuratedPage } from '@/types';
+import type {
+  DiscoveryCategory,
+  DiscoveryContentType,
+  DiscoveryDailySlot,
+  DiscoveryItem,
+} from '@/types';
 import bundledJson from './default-catalog.json';
 
 export type AdsLayout = 'inline' | 'anchored';
@@ -58,8 +63,9 @@ export type Catalog = {
   defaultEngineId: string;
   ads: AdsConfig;
   engines: SearchEngine[];
-  pages: CuratedPage[];
+  pages: DiscoveryItem[];
   categories: SearchCategoriesConfig;
+  discoveryCategories: DiscoveryCategory[];
 };
 
 export type SearchMatch = {
@@ -213,7 +219,80 @@ export function normalizeEngine(value: unknown): SearchEngine | null {
   };
 }
 
-export function normalizePage(value: unknown): CuratedPage | null {
+const VALID_CONTENT_TYPES = new Set<DiscoveryContentType>([
+  'WEBSITE',
+  'ARTICLE',
+  'DEVELOPER_TOOL',
+  'ESSAY',
+  'IDEA',
+  'CRAFT',
+  'READING',
+  'AI_TOOL',
+  'REFERENCE',
+  'NEWS',
+  'VIDEO',
+  'OTHER',
+]);
+
+const ALLOWLISTED_ICONS = new Set([
+  'compass',
+  'sparkle',
+  'book',
+  'code',
+  'fileText',
+  'archive',
+  'newspaper',
+  'video',
+  'image',
+  'globe',
+  'grid',
+  'bookmark',
+  'folder',
+  'download',
+  'shield',
+  'moon',
+  'sun',
+  'clock',
+  'trash',
+  'edit',
+  'message',
+]);
+
+export function normalizeDiscoveryCategory(
+  value: unknown,
+): DiscoveryCategory | null {
+  if (!isRecord(value)) return null;
+  const id = cleanId(value.id);
+  const name = cleanText(value.name, 48);
+  if (!id || !name) return null;
+
+  const rawIcon = cleanText(value.icon, 32).toLowerCase();
+  const icon = ALLOWLISTED_ICONS.has(rawIcon) ? rawIcon : 'compass';
+  const order = Number(value.order);
+
+  const contentTypes: DiscoveryContentType[] = [];
+  if (Array.isArray(value.contentTypes)) {
+    for (const ct of value.contentTypes) {
+      const upper = cleanText(ct, 24).toUpperCase() as DiscoveryContentType;
+      if (VALID_CONTENT_TYPES.has(upper) && !contentTypes.includes(upper)) {
+        contentTypes.push(upper);
+      }
+    }
+  }
+
+  return {
+    id,
+    name,
+    description: cleanText(value.description, 160),
+    icon,
+    order: Number.isFinite(order) ? Math.floor(order) : 0,
+    enabled: value.enabled !== false,
+    color: value.color ? cleanText(value.color, 16) : undefined,
+    contentTypes: contentTypes.length > 0 ? contentTypes : undefined,
+  };
+}
+
+export function normalizePage(value: unknown): DiscoveryItem | null {
   if (!isRecord(value)) return null;
   const id = cleanId(value.id);
   const title = cleanText(value.title, 100);
@@ -221,16 +300,70 @@ export function normalizePage(value: unknown): CuratedPage | null {
   if (!id || !title || !url) return null;
 
   const readMinutes = Number(value.readMinutes);
+  const rawContentType = cleanText(
+    value.contentType,
+    24,
+  ).toUpperCase() as DiscoveryContentType;
+  const contentType: DiscoveryContentType = VALID_CONTENT_TYPES.has(
+    rawContentType,
+  )
+    ? rawContentType
+    : 'OTHER';
+
+  const categoryId =
+    cleanId(value.categoryId) || cleanId(value.category) || 'general';
+  const category = cleanText(value.category, 24).toUpperCase() || contentType;
+
+  let imageUrl: string | undefined;
+  if (typeof value.imageUrl === 'string' && value.imageUrl.trim()) {
+    const parsedImg = parseHttpsUrl(value.imageUrl.trim(), {
+      allowTemplate: false,
+    });
+    if (parsedImg) imageUrl = parsedImg;
+  }
+
+  const tags: string[] = [];
+  if (Array.isArray(value.tags)) {
+    for (const tag of value.tags) {
+      if (typeof tag === 'string') {
+        const cleanedTag = cleanText(tag, 32).toLowerCase();
+        if (cleanedTag && !tags.includes(cleanedTag)) tags.push(cleanedTag);
+      }
+    }
+  }
+
+  const order = Number(value.order);
+  const rawSlot = cleanText(value.dailySlot, 32).toLowerCase();
+  const dailySlot: DiscoveryDailySlot | string | undefined = rawSlot
+    ? (rawSlot as DiscoveryDailySlot)
+    : undefined;
+
   return {
     id,
     title,
     url,
     host: hostOfUrl(url),
-    category: cleanText(value.category, 24).toUpperCase() || 'READING',
-    note: cleanText(value.note, 180),
+    category,
+    note: cleanText(value.note, 240),
     readMinutes: Number.isFinite(readMinutes)
       ? Math.min(120, Math.max(1, Math.round(readMinutes)))
-      : 8,
+      : 5,
+    imageUrl,
+    contentType,
+    categoryId,
+    tags,
+    author: value.author ? cleanText(value.author, 64) : undefined,
+    publishedAt: value.publishedAt
+      ? cleanText(value.publishedAt, 40)
+      : undefined,
+    expiresAt: value.expiresAt ? cleanText(value.expiresAt, 40) : undefined,
+    order: Number.isFinite(order) ? Math.floor(order) : 0,
+    enabled: value.enabled !== false,
+    featured: value.featured === true,
+    dailySlot,
+    language: value.language ? cleanText(value.language, 10) : undefined,
+    country: value.country ? cleanText(value.country, 10) : undefined,
+    metadata: isRecord(value.metadata) ? value.metadata : undefined,
   };
 }
 
@@ -635,16 +768,31 @@ export function normalizeCatalog(value: unknown): Catalog | null {
   }
   if (engines.length === 0) return null;
 
-  const seenPages = new Set<string>();
-  const pages: CuratedPage[] = [];
-  for (const item of value.pages.slice(0, MAX_PAGES)) {
-    if (isRecord(item) && item.enabled === false) continue;
-    const page = normalizePage(item);
-    if (!page || seenPages.has(page.id)) continue;
-    seenPages.add(page.id);
-    pages.push(page);
+  const seenCats = new Set<string>();
+  const discoveryCategories: DiscoveryCategory[] = [];
+  if (Array.isArray(value.discoveryCategories)) {
+    for (const item of value.discoveryCategories) {
+      if (isRecord(item) && item.enabled === false) continue;
+      const cat = normalizeDiscoveryCategory(item);
+      if (!cat || seenCats.has(cat.id)) continue;
+      seenCats.add(cat.id);
+      discoveryCategories.push(cat);
+    }
+    discoveryCategories.sort((a, b) => a.order - b.order);
   }
-  if (pages.length === 0) return null;
+
+  const seenPages = new Set<string>();
+  const pages: DiscoveryItem[] = [];
+  if (Array.isArray(value.pages)) {
+    for (const item of value.pages.slice(0, MAX_PAGES)) {
+      if (isRecord(item) && item.enabled === false) continue;
+      const page = normalizePage(item);
+      if (!page || seenPages.has(page.id)) continue;
+      seenPages.add(page.id);
+      pages.push(page);
+    }
+    pages.sort((a, b) => a.order - b.order);
+  }
 
   const revision = Number(value.revision);
   const defaultEngineId = cleanId(value.defaultEngineId);
@@ -659,6 +807,7 @@ export function normalizeCatalog(value: unknown): Catalog | null {
     engines,
     pages,
     categories: normalizeCategories(value.categories, engines, defaultEngineId),
+    discoveryCategories,
   };
 }
 

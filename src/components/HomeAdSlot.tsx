@@ -26,11 +26,13 @@ export function HomeAdSlot({ layout, visible, onHeightChange }: Props) {
   const [width, setWidth] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [useTestFallback, setUseTestFallback] = useState(false);
   const lastHeight = useRef(0);
 
   useEffect(() => {
     setLoaded(false);
     setFailed(false);
+    setUseTestFallback(false);
   }, [unitId, testMode]);
 
   useEffect(() => {
@@ -57,12 +59,16 @@ export function HomeAdSlot({ layout, visible, onHeightChange }: Props) {
       ? module.BannerAdSize.LARGE_ANCHORED_ADAPTIVE_BANNER
       : module.BannerAdSize.INLINE_ADAPTIVE_BANNER;
   const anchored = layout === 'anchored';
+  const activeUnitId =
+    useTestFallback && module.TestIds
+      ? module.TestIds.ADAPTIVE_BANNER
+      : unitId;
 
   return (
     <View
       onLayout={(event) => {
         const next = Math.round(event.nativeEvent.layout.width);
-        if (next !== width) setWidth(next);
+        if (next > 0 && next !== width) setWidth(next);
         if (anchored) {
           const height = loaded ? Math.round(event.nativeEvent.layout.height) : 0;
           if (height !== lastHeight.current) {
@@ -97,12 +103,19 @@ export function HomeAdSlot({ layout, visible, onHeightChange }: Props) {
       >
         {width > 0 ? (
           <BannerAd
-            key={`${layout}-${unitId}-${testMode ? 'test' : 'live'}`}
-            unitId={unitId}
+            key={`${layout}-${activeUnitId}-${testMode || useTestFallback ? 'test' : 'live'}`}
+            unitId={activeUnitId}
             size={size}
             width={width}
             onAdLoaded={() => setLoaded(true)}
-            onAdFailedToLoad={() => setFailed(true)}
+            onAdFailedToLoad={(error) => {
+              console.warn(`[HomeAdSlot] ${layout} ad failed to load:`, error);
+              if (!useTestFallback && !testMode && module?.TestIds) {
+                setUseTestFallback(true);
+                return;
+              }
+              setFailed(true);
+            }}
           />
         ) : null}
       </View>
@@ -140,7 +153,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   pending: {
-    height: 0,
+    minHeight: 50,
+    opacity: 0,
     overflow: 'hidden',
   },
 });

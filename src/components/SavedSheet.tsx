@@ -22,7 +22,6 @@ import {
   findDuplicateBookmark,
   parseImportedBookmarksJson,
 } from '@/lib/collections';
-import { CURATED_PAGES } from '@/lib/curation';
 import { haptic } from '@/lib/haptics';
 import { isWebUrl } from '@/lib/url';
 import { fonts, softShadow } from '@/theme';
@@ -82,7 +81,7 @@ export function SavedSheet({
 
   // Saved articles
   const savedArticles = useMemo<CuratedPage[]>(() => {
-    return CURATED_PAGES;
+    return [];
   }, []);
 
   // Filtered bookmarks

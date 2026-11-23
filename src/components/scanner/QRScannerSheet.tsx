@@ -239,7 +239,7 @@ export function QRScannerSheet({
               </View>
               <Text style={styles.permissionTitle}>Camera Permission Required</Text>
               <Text style={styles.permissionText}>
-                Nexus needs camera access to scan QR codes and open links. Your camera stream is analyzed entirely on-device and never recorded or uploaded.
+                Nexus needs camera access to scan QR codes and open links. Your camera stream is analyzed on-device to detect QR codes and is never recorded or uploaded by Nexus.
               </Text>
               <PressableScale
                 onPress={handleOpenSettings}

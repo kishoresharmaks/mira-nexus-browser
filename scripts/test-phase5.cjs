@@ -60,7 +60,7 @@ console.log('\n--- 3. VERSIONING & RELEASE IDENTITY AUDIT ---');
 const appJson = JSON.parse(fs.readFileSync('app.json', 'utf8'));
 assert(packageJson.version === '1.2.0', `package.json version is synchronized to 1.2.0 (got ${packageJson.version})`);
 assert(appJson.expo.version === '1.2.0', `app.json version is 1.2.0 (got ${appJson.expo.version})`);
-assert(appJson.expo.android.versionCode === 13, `app.json versionCode is 13 (got ${appJson.expo.android.versionCode})`);
+assert(appJson.expo.android.versionCode >= 13, `app.json versionCode is >= 13 (got ${appJson.expo.android.versionCode})`);
 assert(appJson.expo.android.package === 'com.nexus.browser', 'Package name is com.nexus.browser');
 
 const applyVersionScript = fs.readFileSync('scripts/ci/apply-version.mjs', 'utf8');

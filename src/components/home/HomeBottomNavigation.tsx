@@ -18,11 +18,13 @@ type Props = {
   onPressBookmarks?: () => void;
   onPressExplore?: () => void;
   onPressApps?: () => void;
+  bottomOffset?: number;
 };
 
 export function HomeBottomNavigation({
   activeTab = 'home',
   tabCount,
+  bottomOffset = 0,
   onPressHome,
   onPressTabs,
   onPressAi,
@@ -57,7 +59,10 @@ export function HomeBottomNavigation({
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.wrapper, { bottom: Math.max(12, insets.bottom + 6) }]}
+      style={[
+        styles.wrapper,
+        { bottom: Math.max(12, insets.bottom + 6) + bottomOffset },
+      ]}
     >
       <View
         style={[

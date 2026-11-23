@@ -45,7 +45,7 @@ type Props = {
   tabs: BrowserTab[];
   activeTabId: string | null;
   privateTabCount: number;
-  today: CuratedPage;
+  today?: CuratedPage | null;
   todayLabel: string;
   curatedPages?: CuratedPage[];
   adsVisible: boolean;
@@ -124,10 +124,7 @@ export function HomeScreen({
   const { ads, showRewardedAd } = useAds();
   const insets = useSafeAreaInsets();
   const [activeBottomNav, setActiveBottomNav] = useState<NavItem>('home');
-
-  const discoveryPages = curatedPages && curatedPages.length > 0
-    ? curatedPages
-    : [today];
+  const [anchoredAdHeight, setAnchoredAdHeight] = useState(0);
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
@@ -139,7 +136,7 @@ export function HomeScreen({
           styles.scroll,
           {
             paddingTop: insets.top + 8,
-            paddingBottom: insets.bottom + 90, // Leave room for floating bottom nav
+            paddingBottom: insets.bottom + 90 + (anchoredAdHeight > 0 ? anchoredAdHeight : 0),
           },
         ]}
       >
@@ -196,14 +193,11 @@ export function HomeScreen({
           {/* Section 5: Discover Today */}
           <Reveal delay={200}>
             <DiscoverySection
-              pages={discoveryPages}
               todayLabel={todayLabel}
               history={history}
               onOpenPage={onOpenUrl}
               onSavePage={onSavePage}
               onOpenArchive={onOpenTodayArchive}
-              onOpenTrails={onOpenTrails}
-              onOpenCollections={onOpenCollections}
             />
           </Reveal>
 
@@ -367,6 +361,7 @@ export function HomeScreen({
       <HomeBottomNavigation
         activeTab={activeBottomNav}
         tabCount={tabs.length}
+        bottomOffset={anchoredAdHeight > 0 ? anchoredAdHeight : 0}
         onPressHome={() => {
           setActiveBottomNav('home');
         }}
@@ -392,6 +387,12 @@ export function HomeScreen({
             onOpenDownloads();
           }
         }}
+      />
+
+      <HomeAdSlot
+        layout="anchored"
+        visible={adsVisible}
+        onHeightChange={setAnchoredAdHeight}
       />
     </View>
   );

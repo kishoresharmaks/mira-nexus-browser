@@ -36,7 +36,9 @@ export function TodaySheet({ visible, onClose, onOpen }: Props) {
   const { todayPages } = useCatalogConfig();
   const now = new Date();
   const today = getDailyPage(now, todayPages);
-  const archive = getCuratedArchive(11, now, todayPages).slice(1);
+  const archive = getCuratedArchive(11, now, todayPages)
+    .slice(1)
+    .filter((day): day is typeof day & { page: NonNullable<typeof day.page> } => day.page !== null);
 
   return (
     <BottomSheet visible={visible} onClose={onClose}>
@@ -65,12 +67,29 @@ export function TodaySheet({ visible, onClose, onOpen }: Props) {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <TodayCard
-          page={today}
-          dateLabel="TODAY"
-          roomy
-          onPress={() => onOpen(today.url)}
-        />
+        {today ? (
+          <TodayCard
+            page={today}
+            dateLabel="TODAY"
+            roomy
+            onPress={() => onOpen(today.url)}
+          />
+        ) : (
+          <View
+            style={[
+              styles.emptyCard,
+              { backgroundColor: theme.surface, borderColor: theme.line },
+            ]}
+          >
+            <Icon name="compass" size={24} color={theme.faint} />
+            <Text style={[styles.emptyTitle, { color: theme.ink }]}>
+              No Daily Story Available
+            </Text>
+            <Text style={[styles.emptySubtitle, { color: theme.muted }]}>
+              Stories rotate daily and will appear here when connected to the network.
+            </Text>
+          </View>
+        )}
 
         <View style={styles.archiveHead}>
           <Text style={[styles.archiveLabel, { color: theme.muted }]}>
@@ -79,61 +98,74 @@ export function TodaySheet({ visible, onClose, onOpen }: Props) {
           <Icon name="archive" size={14} color={theme.faint} strokeWidth={1.8} />
         </View>
 
-        <View
-          style={[
-            styles.archiveCard,
-            { backgroundColor: theme.surface, borderColor: theme.line },
-          ]}
-        >
-          {archive.map((day, index) => (
-            <Pressable
-              key={`${day.page.id}-${day.offset}`}
-              onPress={() => {
-                haptic.tap();
-                onOpen(day.page.url);
-              }}
-              style={({ pressed }) => [
-                styles.row,
-                index > 0
-                  ? {
-                      borderTopWidth: StyleSheet.hairlineWidth,
-                      borderTopColor: theme.line,
-                    }
-                  : null,
-                pressed ? { opacity: 0.65 } : null,
-              ]}
-              accessibilityRole="link"
-              accessibilityLabel={`Open ${day.page.title} from ${day.label}`}
-            >
-              <Text style={[styles.rowDate, { color: theme.faint }]}>
-                {day.label}
-              </Text>
-              <View style={styles.rowCopy}>
-                <Text style={[styles.rowCategory, { color: theme.accent }]}>
-                  {day.page.category}
+        {archive.length > 0 ? (
+          <View
+            style={[
+              styles.archiveCard,
+              { backgroundColor: theme.surface, borderColor: theme.line },
+            ]}
+          >
+            {archive.map((day, index) => (
+              <Pressable
+                key={`${day.page.id}-${day.offset}`}
+                onPress={() => {
+                  haptic.tap();
+                  onOpen(day.page.url);
+                }}
+                style={({ pressed }) => [
+                  styles.row,
+                  index > 0
+                    ? {
+                        borderTopWidth: StyleSheet.hairlineWidth,
+                        borderTopColor: theme.line,
+                      }
+                    : null,
+                  pressed ? { opacity: 0.65 } : null,
+                ]}
+                accessibilityRole="link"
+                accessibilityLabel={`Open ${day.page.title} from ${day.label}`}
+              >
+                <Text style={[styles.rowDate, { color: theme.faint }]}>
+                  {day.label}
                 </Text>
-                <Text
-                  numberOfLines={2}
-                  style={[styles.rowTitle, { color: theme.ink }]}
-                >
-                  {day.page.title}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.rowHost, { color: theme.muted }]}
-                >
-                  {day.page.host} · {day.page.readMinutes} min
-                </Text>
-              </View>
-              <Icon
-                name="arrowUpRight"
-                size={14}
-                color={theme.faint}
-                strokeWidth={1.9}
-              />
-            </Pressable>
-          ))}
-        </View>
+                <View style={styles.rowCopy}>
+                  <Text style={[styles.rowCategory, { color: theme.accent }]}>
+                    {day.page.category}
+                  </Text>
+                  <Text
+                    numberOfLines={2}
+                    style={[styles.rowTitle, { color: theme.ink }]}
+                  >
+                    {day.page.title}
+                  </Text>
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.rowHost, { color: theme.muted }]}
+                  >
+                    {day.page.host} · {day.page.readMinutes} min
+                  </Text>
+                </View>
+                <Icon
+                  name="arrowUpRight"
+                  size={14}
+                  color={theme.faint}
+                  strokeWidth={1.9}
+                />
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <View
+            style={[
+              styles.emptyArchive,
+              { backgroundColor: theme.surface, borderColor: theme.line },
+            ]}
+          >
+            <Text style={[styles.emptyArchiveText, { color: theme.muted }]}>
+              Archive history will populate as daily stories rotate.
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       <Text style={[styles.footer, { color: theme.faint }]}>
@@ -229,5 +261,36 @@ const styles = StyleSheet.create({
     fontSize: 10,
     paddingTop: 10,
     paddingBottom: 2,
+  },
+  emptyCard: {
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  emptyTitle: {
+    fontFamily: fonts.medium,
+    fontSize: 14,
+    marginTop: 4,
+  },
+  emptySubtitle: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  emptyArchive: {
+    borderRadius: 20,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyArchiveText: {
+    fontFamily: fonts.sans,
+    fontSize: 11,
+    textAlign: 'center',
   },
 });

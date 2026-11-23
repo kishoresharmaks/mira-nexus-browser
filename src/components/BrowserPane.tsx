@@ -411,6 +411,21 @@ export const BrowserPane = forwardRef<BrowserHandle, Props>(function BrowserPane
         if (!next) pauseMedia();
       },
       extractArticle,
+      clearCache: () => {
+        webRef.current?.clearCache(true);
+      },
+      clearOriginStorage: () => {
+        webRef.current?.injectJavaScript(`
+          (function() {
+            try {
+              if (window.localStorage) window.localStorage.clear();
+              if (window.sessionStorage) window.sessionStorage.clear();
+            } catch(e) {}
+            return true;
+          })();
+          true;
+        `);
+      },
     }),
     [extractArticle, navigate, pauseMedia],
   );

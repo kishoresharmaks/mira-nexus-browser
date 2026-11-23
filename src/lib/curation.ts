@@ -1,23 +1,16 @@
-import { BUNDLED_CATALOG } from './catalog';
 import type { CuratedPage } from '@/types';
 
 const DAY_MS = 86_400_000;
 export const TODAY_ARCHIVE_DAYS = 10;
 
-/**
- * The bundled copy of the editorial list. A published admin catalog can replace
- * it at runtime, but the app always has this shelf when the network is absent.
- */
-export const CURATED_PAGES: CuratedPage[] = BUNDLED_CATALOG.pages;
-
 /** A stable serial for a local calendar date, independent of DST shifts. */
-function daySerial(date: Date): number {
+export function daySerial(date: Date): number {
   return Math.floor(
     Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / DAY_MS,
   );
 }
 
-function atOffset(from: Date, offset: number): Date {
+export function atOffset(from: Date, offset: number): Date {
   return new Date(
     from.getFullYear(),
     from.getMonth(),
@@ -26,20 +19,19 @@ function atOffset(from: Date, offset: number): Date {
   );
 }
 
-function usablePages(pages: CuratedPage[]): CuratedPage[] {
-  return pages.length > 0 ? pages : CURATED_PAGES;
-}
-
-function pageForSerial(serial: number, pages: CuratedPage[]): CuratedPage {
-  const shelf = usablePages(pages);
-  const index = ((serial % shelf.length) + shelf.length) % shelf.length;
-  return shelf[index];
+export function pageForSerial(
+  serial: number,
+  pages: CuratedPage[],
+): CuratedPage | null {
+  if (!pages || pages.length === 0) return null;
+  const index = ((serial % pages.length) + pages.length) % pages.length;
+  return pages[index] ?? null;
 }
 
 export function getDailyPage(
   date = new Date(),
-  pages: CuratedPage[] = CURATED_PAGES,
-): CuratedPage {
+  pages: CuratedPage[] = [],
+): CuratedPage | null {
   return pageForSerial(daySerial(date), pages);
 }
 
@@ -59,7 +51,7 @@ export function curatedShortDate(date = new Date()): string {
 }
 
 export type CuratedDay = {
-  page: CuratedPage;
+  page: CuratedPage | null;
   date: Date;
   label: string;
   offset: number;
@@ -68,8 +60,9 @@ export type CuratedDay = {
 export function getCuratedArchive(
   count = TODAY_ARCHIVE_DAYS,
   from = new Date(),
-  pages: CuratedPage[] = CURATED_PAGES,
+  pages: CuratedPage[] = [],
 ): CuratedDay[] {
+  if (!pages || pages.length === 0) return [];
   return Array.from({ length: count }, (_, offset) => {
     const date = atOffset(from, offset);
     return {

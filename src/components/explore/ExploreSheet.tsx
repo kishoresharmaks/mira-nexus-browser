@@ -331,7 +331,7 @@ export function ExploreSheet({
       {
         id: 'private',
         title: 'Private Browsing',
-        description: 'Launch an ephemeral private tab that writes zero local trace.',
+        description: 'Launch a private tab that does not record history or trails.',
         category: 'privacy',
         icon: 'mask',
         badge: 'Ghost',

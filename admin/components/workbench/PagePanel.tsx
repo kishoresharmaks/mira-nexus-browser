@@ -10,6 +10,7 @@ type Props = {
   maxPages: number;
   onAdd: () => void;
   onSelect: (id: string) => void;
+  onOpenCategories?: () => void;
 };
 
 export function PagePanel({
@@ -20,6 +21,7 @@ export function PagePanel({
   maxPages,
   onAdd,
   onSelect,
+  onOpenCategories,
 }: Props) {
   const atLimit = pages.length >= maxPages;
 
@@ -27,49 +29,69 @@ export function PagePanel({
     <div className="panel">
       <div className="panel-head">
         <div>
-          <h2 className="panel-title">Today&rsquo;s page</h2>
+          <h2 className="panel-title">Discover Today</h2>
           <p className="panel-sub">
-            {liveCount} live of {pages.length}. The daily rotation only uses
-            live pages, in this shelf order.
+            {liveCount} live of {pages.length} items. Content is dynamically synchronized to Nexus mobile app.
           </p>
         </div>
-        <div className="panel-actions">
+        <div className="panel-actions" style={{ display: 'flex', gap: '0.5rem' }}>
+          {onOpenCategories ? (
+            <button
+              type="button"
+              className="btn btn-quiet btn-small"
+              onClick={onOpenCategories}
+              disabled={busy}
+            >
+              Categories
+            </button>
+          ) : null}
           <button
             type="button"
-            className="btn btn-quiet btn-small"
+            className="btn btn-primary btn-small"
             onClick={onAdd}
             disabled={busy || atLimit}
           >
-            Add page
+            Add item
           </button>
         </div>
       </div>
 
       {pages.length === 0 ? (
         <div className="empty">
-          <p className="empty-title">The shelf is empty.</p>
+          <p className="empty-title">The discovery shelf is empty.</p>
           <p className="empty-copy">
-            Nexus cannot publish a Today rotation with no pages. Add one to
-            begin.
+            Add discovery items and editorial categories to publish content to Nexus Browser.
           </p>
-          <button
-            type="button"
-            className="btn btn-primary btn-small"
-            onClick={onAdd}
-            disabled={busy}
-          >
-            Add the first page
-          </button>
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1rem' }}>
+            <button
+              type="button"
+              className="btn btn-primary btn-small"
+              onClick={onAdd}
+              disabled={busy}
+            >
+              Add First Item
+            </button>
+            {onOpenCategories ? (
+              <button
+                type="button"
+                className="btn btn-quiet btn-small"
+                onClick={onOpenCategories}
+                disabled={busy}
+              >
+                Manage Categories
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : (
         <div className="table-wrap">
           <table className="data-table">
-            <caption className="sr-only">Today pages in the draft</caption>
+            <caption className="sr-only">Discovery items in the draft</caption>
             <thead>
               <tr>
-                <th scope="col">Page</th>
+                <th scope="col">Title & Host</th>
                 <th scope="col">Category</th>
-                <th scope="col">Read</th>
+                <th scope="col">Slot</th>
                 <th scope="col">Status</th>
               </tr>
             </thead>
@@ -88,21 +110,42 @@ export function PagePanel({
                         onClick={() => onSelect(page.id)}
                         aria-current={selected ? 'true' : undefined}
                       >
-                        {page.title || 'Untitled page'}
+                        {page.title || 'Untitled item'}
                       </button>
                       <span className="row-sub">
-                        {hostOf(page.url) || 'No page URL yet'}
+                        {hostOf(page.url) || 'No URL yet'}
+                        {page.contentType ? ` · ${page.contentType}` : ''}
                       </span>
                     </td>
                     <td>
                       <span className="status status--hidden">
-                        {page.category || 'Reading'}
+                        {page.category || 'GENERAL'}
                       </span>
                     </td>
-                    <td className="cell-figure">
-                      {page.readMinutes > 0
-                        ? `${page.readMinutes} min`
-                        : 'None'}
+                    <td>
+                      {page.dailySlot ? (
+                        <span
+                          style={{
+                            fontSize: '0.75rem',
+                            padding: '0.15rem 0.35rem',
+                            borderRadius: '3px',
+                            backgroundColor: 'var(--color-rule, #E5E5E5)',
+                            fontFamily: 'monospace',
+                          }}
+                        >
+                          {page.dailySlot === 'website_of_day'
+                            ? 'Website'
+                            : page.dailySlot === 'article_of_day'
+                              ? 'Article'
+                              : page.dailySlot === 'developer_discovery'
+                                ? 'Developer'
+                                : page.dailySlot}
+                        </span>
+                      ) : (
+                        <span style={{ color: 'var(--color-muted)', fontSize: '0.8rem' }}>
+                          —
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span

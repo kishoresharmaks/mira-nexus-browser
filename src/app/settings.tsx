@@ -160,16 +160,16 @@ export default function SettingsScreen() {
 
   const handleClearCookies = () => {
     Alert.alert(
-      'Clear Site Cookies & Storage?',
-      'This will clear local site storage and log you out of active web sessions.',
+      'Clear Web Cache & Local Storage?',
+      'This clears temporary web cache files and session storage. To protect your active logins in normal tabs, persistent HTTP cookies are not globally wiped. For complete cookie and database erasure, use Android System Settings > Apps > Nexus Browser > Clear Data.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Clear Data',
+          text: 'Clear Storage',
           style: 'destructive',
           onPress: () => {
             haptic.warn();
-            toast.show('Site data and cookies reset');
+            toast.show('Web cache and origin storage cleared');
           },
         },
       ],
@@ -694,7 +694,7 @@ export default function SettingsScreen() {
                     { color: theme.ink, fontSize: 32 },
                   ]}
                 >
-                  Zero telemetry.{'\n'}Strict{' '}
+                  Privacy by design.{'\n'}Strict{' '}
                   <Text
                     style={[
                       styles.headlineItalic,
@@ -706,7 +706,7 @@ export default function SettingsScreen() {
                   <Text style={{ color: theme.accent }}>.</Text>
                 </Text>
                 <Text style={[styles.lede, { color: theme.muted }]}>
-                  Permissions and security boundaries are enforced at the Android OS and WebView engine levels. Visited websites cannot access camera, microphone, coordinates, or device files.
+                  Permissions and security boundaries are enforced at the Android OS and WebView engine levels. Visited websites cannot access camera, microphone, coordinates, or device files. Nexus operates without proprietary analytics or profiling servers.
                 </Text>
 
                 {/* Central Shared PermissionsCard */}
@@ -753,10 +753,10 @@ export default function SettingsScreen() {
                     >
                       <View style={styles.dataActionCopy}>
                         <Text style={[styles.dataActionTitle, { color: theme.ink }]}>
-                          Clear Cookies & Web Storage
+                          Clear Web Cache & Local Storage
                         </Text>
                         <Text style={[styles.dataActionSub, { color: theme.muted }]}>
-                          Removes first-party cookies and resets active website sessions
+                          Clears temporary cache and active storage; preserves persistent logins
                         </Text>
                       </View>
                       <Icon name="trash" size={15} color={theme.inkSoft} />
@@ -804,7 +804,7 @@ export default function SettingsScreen() {
                   <Text style={{ color: theme.accent }}>.</Text>
                 </Text>
                 <Text style={[styles.lede, { color: theme.muted }]}>
-                  Nexus Browser is built on modern React Native, Expo SDK 58, and Hermes. Transparent, verifiable, and free of background telemetry.
+                  Nexus Browser is built on modern React Native, Expo SDK 58, and Hermes. Transparent, verifiable, and designed for privacy without background analytics.
                 </Text>
 
                 {/* Real Native Version & Build Metadata Card */}

@@ -64,8 +64,8 @@ export function PrivacySheet({
 
   const handleClearCookies = () => {
     Alert.alert(
-      'Clear Site Data & Cookies?',
-      'This will log you out of active websites and remove cached web storage.',
+      'Clear Active Origin Storage?',
+      'This clears active origin localStorage and sessionStorage for loaded tabs. To protect your active sessions in normal tabs, persistent HTTP cookies are preserved. For complete erasure of cookies and offline databases, use Android Settings > Clear Data.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -74,7 +74,7 @@ export function PrivacySheet({
           onPress: () => {
             haptic.warn();
             if (onClearCookies) onClearCookies();
-            toast.show('Site cookies and session storage cleared');
+            toast.show('Active origin web storage cleared');
           },
         },
       ],
@@ -187,10 +187,10 @@ export function PrivacySheet({
             >
               <View style={styles.actionCopy}>
                 <Text style={[styles.actionTitle, { color: theme.ink }]}>
-                  Clear Cookies & Site Data
+                  Clear Active Web Storage
                 </Text>
                 <Text style={[styles.actionSub, { color: theme.muted }]}>
-                  Resets first-party cookies and clears local web storage
+                  Clears origin localStorage and sessionStorage; preserves persistent logins
                 </Text>
               </View>
               <Icon name="trash" size={15} color={theme.inkSoft} />
@@ -231,7 +231,7 @@ export function PrivacySheet({
                   Open Private Tab
                 </Text>
                 <Text style={[styles.actionSub, { color: theme.muted }]}>
-                  Bypasses history, disables trails, and leaves zero trace on this device
+                  Bypasses history and trails; isolates cache. Note: Android WebView shares cookie storage.
                 </Text>
               </View>
               <Icon name="mask" size={16} color={theme.accent} />

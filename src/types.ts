@@ -92,6 +92,8 @@ export type BrowserHandle = {
   load: (url: string) => void;
   setActive: (active: boolean) => void;
   extractArticle: () => void;
+  clearCache?: () => void;
+  clearOriginStorage?: () => void;
 };
 
 export type TrailPage = {
@@ -132,7 +134,38 @@ export type BrowserTab = {
   snapshot: PageSnapshot;
 };
 
-export type CuratedPage = {
+export type DiscoveryContentType =
+  | 'WEBSITE'
+  | 'ARTICLE'
+  | 'DEVELOPER_TOOL'
+  | 'ESSAY'
+  | 'IDEA'
+  | 'CRAFT'
+  | 'READING'
+  | 'AI_TOOL'
+  | 'REFERENCE'
+  | 'NEWS'
+  | 'VIDEO'
+  | 'OTHER';
+
+export type DiscoveryDailySlot =
+  | 'website_of_day'
+  | 'article_of_day'
+  | 'developer_discovery'
+  | null;
+
+export type DiscoveryCategory = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  order: number;
+  enabled: boolean;
+  color?: string;
+  contentTypes?: DiscoveryContentType[];
+};
+
+export type DiscoveryItem = {
   id: string;
   title: string;
   url: string;
@@ -140,7 +173,23 @@ export type CuratedPage = {
   category: string;
   note: string;
   readMinutes: number;
+  imageUrl?: string;
+  contentType: DiscoveryContentType;
+  categoryId: string;
+  tags: string[];
+  author?: string;
+  publishedAt?: string;
+  expiresAt?: string;
+  order: number;
+  enabled: boolean;
+  featured: boolean;
+  dailySlot?: DiscoveryDailySlot | string;
+  language?: string;
+  country?: string;
+  metadata?: Record<string, unknown>;
 };
+
+export type CuratedPage = DiscoveryItem;
 
 export type ToastAction = {
   label: string;

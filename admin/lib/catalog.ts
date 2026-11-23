@@ -50,6 +50,31 @@ export type Engine = {
   enabled: boolean;
 };
 
+export type DiscoveryContentType =
+  | 'WEBSITE'
+  | 'ARTICLE'
+  | 'DEVELOPER_TOOL'
+  | 'ESSAY'
+  | 'IDEA'
+  | 'CRAFT'
+  | 'READING'
+  | 'AI_TOOL'
+  | 'REFERENCE'
+  | 'NEWS'
+  | 'VIDEO'
+  | 'OTHER';
+
+export type DiscoveryCategory = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  order: number;
+  enabled: boolean;
+  color?: string;
+  contentTypes?: DiscoveryContentType[];
+};
+
 export type Page = {
   id: string;
   title: string;
@@ -58,6 +83,19 @@ export type Page = {
   note: string;
   readMinutes: number;
   enabled: boolean;
+  imageUrl?: string;
+  contentType?: DiscoveryContentType;
+  categoryId?: string;
+  tags?: string[];
+  author?: string;
+  publishedAt?: string;
+  expiresAt?: string;
+  order?: number;
+  featured?: boolean;
+  dailySlot?: 'website_of_day' | 'article_of_day' | 'developer_discovery' | string | null;
+  language?: string;
+  country?: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type Catalog = {
@@ -67,6 +105,7 @@ export type Catalog = {
   engines: Engine[];
   pages: Page[];
   categories: SearchCategoriesConfig;
+  discoveryCategories?: DiscoveryCategory[];
 };
 
 export type PublishedCatalog = Catalog & {
@@ -99,8 +138,22 @@ export type PublicCatalog = {
     category: string;
     note: string;
     readMinutes: number;
+    imageUrl?: string;
+    contentType?: DiscoveryContentType;
+    categoryId?: string;
+    tags?: string[];
+    author?: string;
+    publishedAt?: string;
+    expiresAt?: string;
+    order?: number;
+    featured?: boolean;
+    dailySlot?: string | null;
+    language?: string;
+    country?: string;
+    metadata?: Record<string, unknown>;
   }[];
   categories: SearchCategoriesConfig;
+  discoveryCategories: DiscoveryCategory[];
 };
 
 export type Issue = {
@@ -768,17 +821,70 @@ export function coerceCatalog(value: unknown): Catalog | null {
       : requestedId;
     pageIds.add(id);
     const rawMinutes = Number(item.readMinutes);
+    const contentType = item.contentType
+      ? (text(item.contentType, 24).toUpperCase() as DiscoveryContentType)
+      : 'OTHER';
+    const categoryId =
+      cleanId(item.categoryId) || cleanId(item.category) || 'general';
+    const tags = Array.isArray(item.tags)
+      ? item.tags.map((t) => text(t, 32).toLowerCase()).filter(Boolean)
+      : [];
+    const order = Number(item.order);
     pages.push({
       id,
       title,
       url: urlText(item.url),
       category: text(item.category, 24),
-      note: text(item.note, 180),
+      note: text(item.note, 240),
       readMinutes: Number.isFinite(rawMinutes)
         ? Math.min(120, Math.max(1, Math.round(rawMinutes)))
-        : 8,
+        : 5,
       enabled: item.enabled !== false,
+      imageUrl: item.imageUrl ? urlText(item.imageUrl) : undefined,
+      contentType,
+      categoryId,
+      tags,
+      author: item.author ? text(item.author, 64) : undefined,
+      publishedAt: item.publishedAt ? text(item.publishedAt, 40) : undefined,
+      expiresAt: item.expiresAt ? text(item.expiresAt, 40) : undefined,
+      order: Number.isFinite(order) ? Math.floor(order) : 0,
+      featured: item.featured === true,
+      dailySlot: item.dailySlot ? text(item.dailySlot, 32).toLowerCase() : null,
+      language: item.language ? text(item.language, 10) : undefined,
+      country: item.country ? text(item.country, 10) : undefined,
+      metadata: isRecord(item.metadata) ? item.metadata : undefined,
     });
+  }
+
+  const catIds = new Set<string>();
+  const discoveryCategories: DiscoveryCategory[] = [];
+  if (Array.isArray(value.discoveryCategories)) {
+    for (const item of value.discoveryCategories) {
+      if (!isRecord(item)) continue;
+      const name = text(item.name, 48);
+      const requestedId = cleanId(item.id) || slugify(name, 'cat');
+      const id = catIds.has(requestedId)
+        ? uniqueId(requestedId, catIds)
+        : requestedId;
+      catIds.add(id);
+      const rawIcon = text(item.icon, 32).toLowerCase();
+      const order = Number(item.order);
+      discoveryCategories.push({
+        id,
+        name,
+        description: text(item.description, 160),
+        icon: rawIcon || 'compass',
+        order: Number.isFinite(order) ? Math.floor(order) : 0,
+        enabled: item.enabled !== false,
+        color: item.color ? text(item.color, 16) : undefined,
+        contentTypes: Array.isArray(item.contentTypes)
+          ? item.contentTypes.map(
+              (ct) => text(ct, 24).toUpperCase() as DiscoveryContentType,
+            )
+          : undefined,
+      });
+    }
+    discoveryCategories.sort((a, b) => a.order - b.order);
   }
 
   const requestedDefault = cleanId(value.defaultEngineId);
@@ -809,8 +915,9 @@ export function coerceCatalog(value: unknown): Catalog | null {
     defaultEngineId: effectiveDefaultEngineId,
     ads: coerceAds(value.ads),
     engines: syncedEngines.length > 0 ? syncedEngines : engines,
-    pages,
+    pages: pages.sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     categories,
+    discoveryCategories,
   };
 }
 
@@ -825,10 +932,10 @@ export function validateCatalog(catalog: Catalog): Issue[] {
       message: 'At least one engine must be live.',
     });
   }
-  if (livePages.length === 0) {
+  if (catalog.pages.length > 0 && livePages.length === 0) {
     issues.push({
       at: "Today's page",
-      message: 'At least one page must be live.',
+      message: 'At least one page must be live when pages are configured.',
     });
   }
 
@@ -1029,18 +1136,47 @@ export function toPublicCatalog(
     .map(({ id, name, searchUrl, note }) => ({ id, name, searchUrl, note }));
   const pages = published.pages
     .filter((page) => page.enabled)
-    .map(({ id, title, url, category, note, readMinutes }) => ({
-      id,
-      title,
-      url,
-      host: hostOf(url),
-      category: category.trim().toUpperCase() || 'READING',
-      note,
-      readMinutes,
+    .map((page) => ({
+      id: page.id,
+      title: page.title,
+      url: page.url,
+      host: hostOf(page.url),
+      category: page.category.trim().toUpperCase() || 'READING',
+      note: page.note,
+      readMinutes: page.readMinutes,
+      imageUrl: page.imageUrl,
+      contentType: page.contentType || 'OTHER',
+      categoryId: page.categoryId || 'general',
+      tags: page.tags || [],
+      author: page.author,
+      publishedAt: page.publishedAt,
+      expiresAt: page.expiresAt,
+      order: page.order ?? 0,
+      featured: page.featured === true,
+      dailySlot: page.dailySlot ?? null,
+      language: page.language,
+      country: page.country,
+      metadata: page.metadata,
     }));
 
-  if (engines.length === 0 || pages.length === 0) return null;
+  if (engines.length === 0) return null;
   const liveIds = new Set(engines.map((engine) => engine.id));
+
+  const discoveryCategories: DiscoveryCategory[] = (
+    published.discoveryCategories ?? []
+  )
+    .filter((c) => c.enabled !== false)
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      icon: c.icon,
+      order: c.order,
+      enabled: c.enabled,
+      color: c.color,
+      contentTypes: c.contentTypes,
+    }))
+    .sort((a, b) => a.order - b.order);
 
   const publicCategories: SearchCategoriesConfig = {
     web: {
@@ -1084,6 +1220,7 @@ export function toPublicCatalog(
     engines,
     pages,
     categories: publicCategories,
+    discoveryCategories,
   };
 }
 

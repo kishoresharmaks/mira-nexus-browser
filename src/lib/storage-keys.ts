@@ -11,6 +11,8 @@ export const STORAGE_KEYS = {
   downloads: 'nexus.downloads.v1',
   notes: 'nexus.notes.v1',
   trailsEnabled: 'nexus.trails.enabled.v1',
+  discoverySnapshot: 'nexus.discovery.snapshot.v1',
+  discoveryETag: 'nexus.discovery.etag.v1',
 } as const;
 
 export const MAX_TABS = 5;

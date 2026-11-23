@@ -393,7 +393,7 @@ export function VoiceSearchSheet({
                   Microphone Permission Required
                 </Text>
                 <Text style={[styles.infoBody, { color: theme.muted }]}>
-                  Nexus processes your speech directly on-device. To use voice search, please grant microphone access in Android settings.
+                  Nexus requests microphone access to transcribe your voice search. Although offline preference is requested, on-device recognition depends on whether your device&apos;s configured speech service has offline models. Otherwise, speech is transcribed by your device&apos;s default Android speech service. Audio is never stored on Nexus servers.
                 </Text>
                 <PressableScale
                   onPress={handleOpenSettings}
@@ -481,8 +481,8 @@ export function VoiceSearchSheet({
                 <Icon name="shield" size={11} color={theme.faint} strokeWidth={1.8} />
                 <Text style={[styles.privacyNote, { color: theme.faint }]}>
                   {isOnDevice
-                    ? 'On-device recognition · Audio stays on device'
-                    : 'Speech service · No recordings stored or profiled'}
+                    ? 'On-device recognition active'
+                    : 'Android speech service · Network fallback may be used by system engine'}
                 </Text>
               </View>
             ) : null}

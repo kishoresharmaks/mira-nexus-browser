@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import {
+  Image,
   Pressable,
   ScrollView,
   Share,
@@ -10,93 +10,21 @@ import {
 import { Favicon } from '../Favicon';
 import { Icon, type IconName } from '../Icon';
 import { PressableScale } from '../PressableScale';
+import { useDiscovery } from '@/lib/discovery/DiscoveryProvider';
 import { haptic } from '@/lib/haptics';
 import { fonts, softShadow } from '@/theme';
 import { useTheme } from '@/theme/ThemeProvider';
-import type { CuratedPage, HistoryEntry } from '@/types';
-
-type DiscoveryFilter = 'all' | 'destinations' | 'essays' | 'recent';
-
-type DiscoveryDestination = {
-  id: string;
-  name: string;
-  category: 'ai' | 'media' | 'reference' | 'news';
-  url: string;
-  host: string;
-  note: string;
-  icon: IconName;
-};
-
-const USEFUL_DESTINATIONS: DiscoveryDestination[] = [
-  {
-    id: 'dest-perplexity',
-    name: 'Perplexity AI',
-    category: 'ai',
-    url: 'https://www.perplexity.ai',
-    host: 'perplexity.ai',
-    note: 'Conversational answer engine with source citations',
-    icon: 'sparkle',
-  },
-  {
-    id: 'dest-github',
-    name: 'GitHub Trending',
-    category: 'reference',
-    url: 'https://github.com/trending',
-    host: 'github.com',
-    note: 'Open source software and developer repositories',
-    icon: 'code',
-  },
-  {
-    id: 'dest-wiki',
-    name: 'Wikipedia',
-    category: 'reference',
-    url: 'https://en.wikipedia.org/wiki/Special:Random',
-    host: 'wikipedia.org',
-    note: 'The free encyclopedia of human knowledge',
-    icon: 'book',
-  },
-  {
-    id: 'dest-archive',
-    name: 'Internet Archive',
-    category: 'media',
-    url: 'https://archive.org',
-    host: 'archive.org',
-    note: 'Digital library of books, movies, music & websites',
-    icon: 'archive',
-  },
-  {
-    id: 'dest-hn',
-    name: 'Hacker News',
-    category: 'news',
-    url: 'https://news.ycombinator.com',
-    host: 'news.ycombinator.com',
-    note: 'Curated computer science & technology stories',
-    icon: 'newspaper',
-  },
-  {
-    id: 'dest-mdn',
-    name: 'MDN Web Docs',
-    category: 'reference',
-    url: 'https://developer.mozilla.org',
-    host: 'developer.mozilla.org',
-    note: 'Open web standards and JavaScript documentation',
-    icon: 'fileText',
-  },
-];
+import type { DiscoveryItem, HistoryEntry } from '@/types';
 
 type Props = {
-  pages: CuratedPage[];
   todayLabel: string;
   history?: HistoryEntry[];
   onOpenPage: (url: string) => void;
-  onSavePage?: (page: CuratedPage) => void;
+  onSavePage?: (item: DiscoveryItem) => void;
   onOpenArchive: () => void;
-  onOpenTrails?: () => void;
-  onOpenCollections?: () => void;
 };
 
 export function DiscoverySection({
-  pages,
   todayLabel,
   history = [],
   onOpenPage,
@@ -104,60 +32,77 @@ export function DiscoverySection({
   onOpenArchive,
 }: Props) {
   const { theme } = useTheme();
-  const [activeFilter, setActiveFilter] = useState<DiscoveryFilter>('all');
+  const {
+    items,
+    categories,
+    activeFilter,
+    setActiveFilter,
+    filteredItems,
+    dailySlots,
+    isOffline,
+    refreshing,
+    refresh,
+  } = useDiscovery();
 
-  const websiteOfDay = pages[0];
-  const articleOfDay = pages[1] || pages[0];
-  const devTool = pages[2] || pages[0];
-
-  const handleShare = async (page: CuratedPage | { title: string; url: string }) => {
+  const handleShare = async (item: DiscoveryItem) => {
     haptic.tap();
     try {
       await Share.share({
-        title: page.title,
-        message: `${page.title} — ${page.url}`,
-        url: page.url,
+        title: item.title,
+        message: `${item.title} — ${item.url}`,
+        url: item.url,
       });
     } catch {}
   };
 
+  // Recent history filtered for safety: exclude internal and private addresses
+  const recentHistory = history
+    .filter(
+      (h) =>
+        h.url &&
+        !h.url.startsWith('about:') &&
+        !h.url.startsWith('javascript:') &&
+        !h.url.startsWith('chrome:'),
+    )
+    .slice(0, 6);
+
+  // Daily editorial cards for the 'all' view
   const editorialCards = [
-    {
+    dailySlots.websiteOfDay && {
       badge: 'WEBSITE OF THE DAY',
-      page: websiteOfDay,
+      item: dailySlots.websiteOfDay,
       tag: todayLabel,
     },
-    {
+    dailySlots.articleOfDay && {
       badge: 'ARTICLE OF THE DAY',
-      page: articleOfDay,
-      tag: `${articleOfDay?.readMinutes || 3} min read`,
+      item: dailySlots.articleOfDay,
+      tag: `${dailySlots.articleOfDay.readMinutes || 5} min read`,
     },
-    {
+    dailySlots.developerDiscovery && {
       badge: 'DEVELOPER DISCOVERY',
-      page: devTool,
-      tag: devTool?.category || 'Tool',
+      item: dailySlots.developerDiscovery,
+      tag: dailySlots.developerDiscovery.contentType || 'Tool',
     },
-  ].filter((item) => Boolean(item.page));
-
-  const essayPages = pages.filter(
-    (p) =>
-      p.category === 'ESSAY' ||
-      p.category === 'IDEA' ||
-      p.category === 'CRAFT' ||
-      p.category === 'READING',
-  );
-
-  const recentHistory = history
-    .filter((h) => h.url && !h.url.startsWith('about:'))
-    .slice(0, 6);
+  ].filter((c): c is { badge: string; item: DiscoveryItem; tag: string } => Boolean(c));
 
   return (
     <View style={styles.section}>
       {/* Header */}
       <View style={styles.sectionHeader}>
-        <Text style={[styles.sectionLabel, { color: theme.muted }]}>
-          DISCOVER TODAY
-        </Text>
+        <View style={styles.headerTitleRow}>
+          <Text style={[styles.sectionLabel, { color: theme.muted }]}>
+            DISCOVER TODAY
+          </Text>
+          {isOffline && items.length > 0 ? (
+            <View style={[styles.offlineBadge, { backgroundColor: theme.chip }]}>
+              <Icon name="wifiOff" size={10} color={theme.faint} />
+              <Text style={[styles.offlineText, { color: theme.faint }]}>
+                Cached
+              </Text>
+            </View>
+          ) : null}
+        </View>
+
         <Pressable
           onPress={() => {
             haptic.tap();
@@ -173,12 +118,13 @@ export function DiscoverySection({
         </Pressable>
       </View>
 
-      {/* Discovery Category Filters */}
+      {/* Dynamic Discovery Category Filters */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filterScroll}
       >
+        {/* All / Editorial Picks Pill */}
         <PressableScale
           onPress={() => {
             haptic.select();
@@ -192,6 +138,11 @@ export function DiscoverySection({
             },
           ]}
         >
+          <Icon
+            name="sparkle"
+            size={11}
+            color={activeFilter === 'all' ? theme.accent : theme.muted}
+          />
           <Text
             style={[
               styles.filterText,
@@ -205,70 +156,48 @@ export function DiscoverySection({
           </Text>
         </PressableScale>
 
-        <PressableScale
-          onPress={() => {
-            haptic.select();
-            setActiveFilter('destinations');
-          }}
-          style={[
-            styles.filterPill,
-            {
-              backgroundColor:
-                activeFilter === 'destinations' ? theme.surface : 'transparent',
-              borderColor: activeFilter === 'destinations' ? theme.accent : theme.line,
-            },
-          ]}
-        >
-          <Icon
-            name="compass"
-            size={11}
-            color={activeFilter === 'destinations' ? theme.accent : theme.muted}
-          />
-          <Text
-            style={[
-              styles.filterText,
-              {
-                color: activeFilter === 'destinations' ? theme.ink : theme.muted,
-                fontFamily:
-                  activeFilter === 'destinations' ? fonts.semibold : fonts.sans,
-              },
-            ]}
-          >
-            Web Destinations
-          </Text>
-        </PressableScale>
+        {/* Dynamic Categories from Backend */}
+        {categories
+          .filter((cat) => cat.enabled !== false)
+          .map((cat) => {
+            const isSelected = activeFilter === cat.id;
+            const iconName = (cat.icon || 'compass') as IconName;
+            return (
+              <PressableScale
+                key={cat.id}
+                onPress={() => {
+                  haptic.select();
+                  setActiveFilter(cat.id);
+                }}
+                style={[
+                  styles.filterPill,
+                  {
+                    backgroundColor: isSelected ? theme.surface : 'transparent',
+                    borderColor: isSelected ? theme.accent : theme.line,
+                  },
+                ]}
+              >
+                <Icon
+                  name={iconName}
+                  size={11}
+                  color={isSelected ? theme.accent : theme.muted}
+                />
+                <Text
+                  style={[
+                    styles.filterText,
+                    {
+                      color: isSelected ? theme.ink : theme.muted,
+                      fontFamily: isSelected ? fonts.semibold : fonts.sans,
+                    },
+                  ]}
+                >
+                  {cat.name}
+                </Text>
+              </PressableScale>
+            );
+          })}
 
-        <PressableScale
-          onPress={() => {
-            haptic.select();
-            setActiveFilter('essays');
-          }}
-          style={[
-            styles.filterPill,
-            {
-              backgroundColor: activeFilter === 'essays' ? theme.surface : 'transparent',
-              borderColor: activeFilter === 'essays' ? theme.accent : theme.line,
-            },
-          ]}
-        >
-          <Icon
-            name="book"
-            size={11}
-            color={activeFilter === 'essays' ? theme.accent : theme.muted}
-          />
-          <Text
-            style={[
-              styles.filterText,
-              {
-                color: activeFilter === 'essays' ? theme.ink : theme.muted,
-                fontFamily: activeFilter === 'essays' ? fonts.semibold : fonts.sans,
-              },
-            ]}
-          >
-            Essays & Ideas
-          </Text>
-        </PressableScale>
-
+        {/* Local Revisit Recent Pill */}
         {recentHistory.length > 0 ? (
           <PressableScale
             onPress={() => {
@@ -303,14 +232,88 @@ export function DiscoverySection({
         ) : null}
       </ScrollView>
 
-      {/* Content depending on Active Filter */}
-      {activeFilter === 'all' ? (
+      {/* Main Content Area */}
+      {items.length === 0 ? (
+        /* Empty / Offline State (No fake fallback recommendations) */
+        <View
+          style={[
+            styles.emptyCard,
+            { backgroundColor: theme.surface, borderColor: theme.line },
+            softShadow(theme.mode, 'card'),
+          ]}
+        >
+          <View style={[styles.emptyOrb, { backgroundColor: theme.chip }]}>
+            <Icon
+              name={isOffline ? 'wifiOff' : 'compass'}
+              size={22}
+              color={theme.accent}
+            />
+          </View>
+          <Text style={[styles.emptyTitle, { color: theme.ink }]}>
+            {isOffline
+              ? 'No Cached Discovery Content'
+              : 'Discovery Feed Updating'}
+          </Text>
+          <Text style={[styles.emptyNote, { color: theme.muted }]}>
+            {isOffline
+              ? 'Connect to the internet to fetch published editorial recommendations and daily articles.'
+              : 'Published editorial picks will appear here as soon as synchronized from the server.'}
+          </Text>
+          <PressableScale
+            onPress={() => {
+              haptic.tap();
+              void refresh();
+            }}
+            style={[styles.retryBtn, { backgroundColor: theme.accent }]}
+            disabled={refreshing}
+          >
+            <Text style={[styles.retryBtnText, { color: '#FFFFFF' }]}>
+              {refreshing ? 'Refreshing...' : 'Retry Connection'}
+            </Text>
+            <Icon name="refresh" size={12} color="#FFFFFF" />
+          </PressableScale>
+        </View>
+      ) : activeFilter === 'recent' ? (
+        /* Local Revisit Recent Grid */
+        <View style={styles.grid}>
+          {recentHistory.map((entry) => (
+            <PressableScale
+              key={entry.id}
+              onPress={() => {
+                haptic.tap();
+                onOpenPage(entry.url);
+              }}
+              scaleTo={0.97}
+              style={[
+                styles.recentCard,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: theme.line,
+                },
+                softShadow(theme.mode, 'card'),
+              ]}
+            >
+              <View style={styles.recentTopRow}>
+                <Favicon host={entry.host} title={entry.title} size={22} plain />
+                <Icon name="clock" size={11} color={theme.faint} />
+              </View>
+              <Text numberOfLines={1} style={[styles.recentTitle, { color: theme.ink }]}>
+                {entry.title || entry.host}
+              </Text>
+              <Text numberOfLines={1} style={[styles.recentHost, { color: theme.muted }]}>
+                {entry.host}
+              </Text>
+            </PressableScale>
+          ))}
+        </View>
+      ) : activeFilter === 'all' ? (
+        /* Editorial Picks / Daily Featured Cards */
         <View style={styles.cardList}>
-          {editorialCards.map((item, idx) => {
-            const { page } = item;
+          {editorialCards.map((card, idx) => {
+            const { item } = card;
             return (
               <View
-                key={page.id || idx}
+                key={item.id || idx}
                 style={[
                   styles.card,
                   {
@@ -323,43 +326,58 @@ export function DiscoverySection({
                 <PressableScale
                   onPress={() => {
                     haptic.tap();
-                    onOpenPage(page.url);
+                    onOpenPage(item.url);
                   }}
                   scaleTo={0.99}
                   style={styles.cardContent}
                 >
                   <View style={styles.cardHeader}>
                     <Text style={[styles.badgeText, { color: theme.accent }]}>
-                      {item.badge}
+                      {card.badge}
                     </Text>
                     <View style={[styles.tagPill, { backgroundColor: theme.chip }]}>
                       <Text style={[styles.tagText, { color: theme.muted }]}>
-                        {item.tag}
+                        {card.tag}
                       </Text>
                     </View>
                   </View>
 
+                  {item.imageUrl ? (
+                    <Image
+                      source={{ uri: item.imageUrl }}
+                      style={styles.coverImage}
+                      resizeMode="cover"
+                    />
+                  ) : null}
+
                   <View style={styles.titleRow}>
-                    <Favicon host={page.host} title={page.title} size={22} plain />
+                    <Favicon host={item.host} title={item.title} size={22} plain />
                     <Text numberOfLines={1} style={[styles.cardTitle, { color: theme.ink }]}>
-                      {page.title}
+                      {item.title}
                     </Text>
                   </View>
 
                   <Text numberOfLines={2} style={[styles.cardNote, { color: theme.muted }]}>
-                    {page.note}
+                    {item.note}
                   </Text>
 
-                  <Text style={[styles.cardHost, { color: theme.faint }]}>
-                    {page.host}
-                  </Text>
+                  <View style={styles.metaRow}>
+                    <Text style={[styles.cardHost, { color: theme.faint }]}>
+                      {item.host}
+                    </Text>
+                    {item.author ? (
+                      <Text style={[styles.cardAuthor, { color: theme.muted }]}>
+                        by {item.author}
+                      </Text>
+                    ) : null}
+                  </View>
                 </PressableScale>
 
                 <View style={[styles.cardActions, { borderTopColor: theme.line }]}>
                   <PressableScale
                     onPress={() => {
                       haptic.tap();
-                      onOpenPage(page.url);
+                      onOpenPage(item.url);
                     }}
                     style={[styles.primaryAction, { backgroundColor: theme.accent }]}
                   >
@@ -372,7 +390,7 @@ export function DiscoverySection({
                       <PressableScale
                         onPress={() => {
                           haptic.tap();
-                          onSavePage(page);
+                          onSavePage(item);
                         }}
                         style={[styles.iconButton, { borderColor: theme.line }]}
                         accessibilityLabel="Save page"
@@ -382,7 +400,7 @@ export function DiscoverySection({
                     ) : null}
 
                     <PressableScale
-                      onPress={() => handleShare(page)}
+                      onPress={() => handleShare(item)}
                       style={[styles.iconButton, { borderColor: theme.line }]}
                       accessibilityLabel="Share page"
                     >
@@ -394,121 +412,59 @@ export function DiscoverySection({
             );
           })}
         </View>
-      ) : activeFilter === 'destinations' ? (
-        <View style={styles.destinationsGrid}>
-          {USEFUL_DESTINATIONS.map((dest) => (
-            <PressableScale
-              key={dest.id}
-              onPress={() => {
-                haptic.tap();
-                onOpenPage(dest.url);
-              }}
-              scaleTo={0.97}
-              style={[
-                styles.destinationCard,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.line,
-                },
-                softShadow(theme.mode, 'card'),
-              ]}
-            >
-              <View style={styles.destTopRow}>
-                <View
-                  style={[
-                    styles.destIconOrb,
-                    { backgroundColor: theme.accentSoft },
-                  ]}
-                >
-                  <Icon name={dest.icon} size={15} color={theme.accent} strokeWidth={2} />
-                </View>
-                <View style={[styles.destBadge, { backgroundColor: theme.chip }]}>
-                  <Text style={[styles.destBadgeText, { color: theme.muted }]}>
-                    {dest.category.toUpperCase()}
-                  </Text>
-                </View>
-              </View>
-
-              <Text numberOfLines={1} style={[styles.destTitle, { color: theme.ink }]}>
-                {dest.name}
-              </Text>
-              <Text numberOfLines={2} style={[styles.destNote, { color: theme.muted }]}>
-                {dest.note}
-              </Text>
-              <Text style={[styles.destHost, { color: theme.faint }]}>
-                {dest.host}
-              </Text>
-            </PressableScale>
-          ))}
-        </View>
-      ) : activeFilter === 'essays' ? (
-        <View style={styles.cardList}>
-          {essayPages.slice(0, 4).map((page) => (
-            <PressableScale
-              key={page.id}
-              onPress={() => {
-                haptic.tap();
-                onOpenPage(page.url);
-              }}
-              scaleTo={0.985}
-              style={[
-                styles.essayCard,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.line,
-                },
-                softShadow(theme.mode, 'card'),
-              ]}
-            >
-              <View style={styles.essayTop}>
-                <View style={[styles.tagPill, { backgroundColor: theme.chip }]}>
-                  <Text style={[styles.tagText, { color: theme.muted }]}>
-                    {page.category} · {page.readMinutes}m
-                  </Text>
-                </View>
-              </View>
-              <Text numberOfLines={1} style={[styles.cardTitle, { color: theme.ink, marginTop: 4 }]}>
-                {page.title}
-              </Text>
-              <Text numberOfLines={2} style={[styles.cardNote, { color: theme.muted }]}>
-                {page.note}
-              </Text>
-              <Text style={[styles.cardHost, { color: theme.faint }]}>{page.host}</Text>
-            </PressableScale>
-          ))}
-        </View>
       ) : (
-        /* Recent History Shelf */
-        <View style={styles.destinationsGrid}>
-          {recentHistory.map((entry) => (
-            <PressableScale
-              key={entry.id}
-              onPress={() => {
-                haptic.tap();
-                onOpenPage(entry.url);
-              }}
-              scaleTo={0.97}
-              style={[
-                styles.destinationCard,
-                {
-                  backgroundColor: theme.surface,
-                  borderColor: theme.line,
-                },
-                softShadow(theme.mode, 'card'),
-              ]}
-            >
-              <View style={styles.destTopRow}>
-                <Favicon host={entry.host} title={entry.title} size={24} plain />
-                <Icon name="clock" size={12} color={theme.faint} />
-              </View>
-              <Text numberOfLines={1} style={[styles.destTitle, { color: theme.ink }]}>
-                {entry.title || entry.host}
+        /* Categorized Items List */
+        <View style={styles.cardList}>
+          {filteredItems.length === 0 ? (
+            <View style={[styles.emptyCategory, { borderColor: theme.line }]}>
+              <Text style={[styles.emptyCategoryText, { color: theme.muted }]}>
+                No items published under this category yet.
               </Text>
-              <Text numberOfLines={1} style={[styles.destHost, { color: theme.muted }]}>
-                {entry.host}
-              </Text>
-            </PressableScale>
-          ))}
+            </View>
+          ) : (
+            filteredItems.map((item) => (
+              <PressableScale
+                key={item.id}
+                onPress={() => {
+                  haptic.tap();
+                  onOpenPage(item.url);
+                }}
+                scaleTo={0.985}
+                style={[
+                  styles.categoryCard,
+                  {
+                    backgroundColor: theme.surface,
+                    borderColor: theme.line,
+                  },
+                  softShadow(theme.mode, 'card'),
+                ]}
+              >
+                <View style={styles.categoryCardTop}>
+                  <View style={[styles.tagPill, { backgroundColor: theme.chip }]}>
+                    <Text style={[styles.tagText, { color: theme.muted }]}>
+                      {item.category} {item.readMinutes ? `· ${item.readMinutes}m` : ''}
+                    </Text>
+                  </View>
+                  <Icon name="arrowUpRight" size={12} color={theme.faint} />
+                </View>
+
+                <View style={styles.titleRow}>
+                  <Favicon host={item.host} title={item.title} size={18} plain />
+                  <Text numberOfLines={1} style={[styles.cardTitle, { color: theme.ink }]}>
+                    {item.title}
+                  </Text>
+                </View>
+
+                <Text numberOfLines={2} style={[styles.cardNote, { color: theme.muted }]}>
+                  {item.note}
+                </Text>
+
+                <Text style={[styles.cardHost, { color: theme.faint }]}>
+                  {item.host}
+                </Text>
+              </PressableScale>
+            ))
+          )}
         </View>
       )}
     </View>
@@ -526,10 +482,27 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 2,
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   sectionLabel: {
     fontFamily: fonts.medium,
     fontSize: 11,
     letterSpacing: 1.2,
+  },
+  offlineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  offlineText: {
+    fontFamily: fonts.sans,
+    fontSize: 9.5,
   },
   seeAll: {
     flexDirection: 'row',
@@ -550,24 +523,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    paddingHorizontal: 11,
-    paddingVertical: 5,
-    borderRadius: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 99,
     borderWidth: 1,
   },
   filterText: {
     fontSize: 11.5,
   },
   cardList: {
+    flexDirection: 'column',
     gap: 12,
   },
   card: {
-    borderRadius: 20,
+    borderRadius: 14,
     borderWidth: 1,
     overflow: 'hidden',
   },
   cardContent: {
-    padding: 16,
+    padding: 14,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -576,18 +550,24 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   badgeText: {
-    fontFamily: fonts.medium,
-    fontSize: 9.5,
-    letterSpacing: 1,
+    fontFamily: fonts.semibold,
+    fontSize: 10,
+    letterSpacing: 0.8,
+  },
+  coverImage: {
+    width: '100%',
+    height: 120,
+    borderRadius: 8,
+    marginBottom: 10,
   },
   tagPill: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 7,
     paddingVertical: 3,
-    borderRadius: 8,
+    borderRadius: 99,
   },
   tagText: {
-    fontFamily: fonts.sans,
-    fontSize: 10.5,
+    fontFamily: fonts.medium,
+    fontSize: 9.5,
   },
   titleRow: {
     flexDirection: 'row',
@@ -597,39 +577,47 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     flex: 1,
-    fontFamily: fonts.serif,
-    fontSize: 18,
-    letterSpacing: -0.2,
+    fontFamily: fonts.semibold,
+    fontSize: 14.5,
   },
   cardNote: {
     fontFamily: fonts.sans,
-    fontSize: 13,
-    lineHeight: 18.5,
+    fontSize: 12,
+    lineHeight: 17,
     marginBottom: 8,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   cardHost: {
     fontFamily: fonts.sans,
-    fontSize: 11,
+    fontSize: 10.5,
+  },
+  cardAuthor: {
+    fontFamily: fonts.sans,
+    fontSize: 10.5,
   },
   cardActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: 14,
     paddingVertical: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 1,
   },
   primaryAction: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 14,
+    gap: 4,
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 7,
   },
   primaryActionText: {
-    fontFamily: fonts.medium,
-    fontSize: 12,
+    fontFamily: fonts.semibold,
+    fontSize: 11.5,
     color: '#FFFFFF',
   },
   secondaryActions: {
@@ -640,68 +628,100 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 32,
     height: 32,
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  destinationsGrid: {
+  grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
   },
-  destinationCard: {
+  recentCard: {
     width: '48%',
-    borderRadius: 18,
+    padding: 12,
+    borderRadius: 12,
     borderWidth: 1,
-    padding: 14,
-    gap: 5,
   },
-  destTopRow: {
+  recentTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  destIconOrb: {
-    width: 28,
-    height: 28,
+  recentTitle: {
+    fontFamily: fonts.medium,
+    fontSize: 12.5,
+    marginBottom: 2,
+  },
+  recentHost: {
+    fontFamily: fonts.sans,
+    fontSize: 10,
+  },
+  categoryCard: {
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  categoryCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  emptyCard: {
+    padding: 24,
     borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center',
+  },
+  emptyOrb: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    fontFamily: fonts.semibold,
+    fontSize: 15,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  emptyNote: {
+    fontFamily: fonts.sans,
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: 'center',
+    marginBottom: 16,
+    maxWidth: 280,
+  },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 8,
+  },
+  retryBtnText: {
+    fontFamily: fonts.semibold,
+    fontSize: 12,
+  },
+  emptyCategory: {
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  destBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  destBadgeText: {
+  emptyCategoryText: {
     fontFamily: fonts.sans,
-    fontSize: 9,
-    letterSpacing: 0.5,
-  },
-  destTitle: {
-    fontFamily: fonts.medium,
-    fontSize: 14,
-  },
-  destNote: {
-    fontFamily: fonts.sans,
-    fontSize: 11.5,
-    lineHeight: 15.5,
-  },
-  destHost: {
-    fontFamily: fonts.sans,
-    fontSize: 10.5,
-    marginTop: 2,
-  },
-  essayCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 14,
-  },
-  essayTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    fontSize: 12,
   },
 });

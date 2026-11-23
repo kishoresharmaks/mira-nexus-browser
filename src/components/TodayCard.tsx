@@ -15,12 +15,13 @@ export function TodayCard({
   onPress,
   roomy = false,
 }: {
-  page: CuratedPage;
+  page?: CuratedPage | null;
   dateLabel: string;
   onPress: () => void;
   roomy?: boolean;
 }) {
   const { theme } = useTheme();
+  if (!page) return null;
   const muted =
     theme.mode === 'dark'
       ? 'rgba(22, 19, 14, 0.62)'

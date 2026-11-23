@@ -2,7 +2,7 @@ import { FlexWidget, TextWidget } from 'react-native-android-widget';
 import type { CuratedPage, Shortcut } from '@/types';
 
 type Props = {
-  page: CuratedPage;
+  page?: CuratedPage | null;
   dateLabel: string;
   shortcuts: Shortcut[];
   theme: 'light' | 'dark';
@@ -52,10 +52,15 @@ export function NexusWidget({ page, dateLabel, shortcuts, theme, height }: Props
   const pad = compact ? 13 : 17;
   const date = dateLabel.toUpperCase();
 
+  const title = page ? page.title : 'Nexus Browser';
+  const subtitle = page ? `${page.host}  ·  ${page.readMinutes} min read` : 'Search & Discover';
+  const actionUri = page ? openLink(page.url, page.title) : 'nexus://';
+  const accessibility = page ? `Nexus. Today's page: ${page.title} on ${page.host}` : 'Nexus Browser';
+
   return (
     <FlexWidget
       clickAction="OPEN_APP"
-      accessibilityLabel={`Nexus. Today's page: ${page.title} on ${page.host}`}
+      accessibilityLabel={accessibility}
       style={{
         height: 'match_parent',
         width: 'match_parent',
@@ -96,8 +101,8 @@ export function NexusWidget({ page, dateLabel, shortcuts, theme, height }: Props
 
       <FlexWidget
         clickAction="OPEN_URI"
-        clickActionData={{ uri: openLink(page.url, page.title) }}
-        accessibilityLabel={`Open ${page.title}`}
+        clickActionData={{ uri: actionUri }}
+        accessibilityLabel={page ? `Open ${page.title}` : 'Open Nexus'}
         style={{
           width: 'match_parent',
           marginTop: compact ? 6 : 9,
@@ -105,7 +110,7 @@ export function NexusWidget({ page, dateLabel, shortcuts, theme, height }: Props
         }}
       >
         <TextWidget
-          text={page.title}
+          text={title}
           maxLines={compact ? 1 : 2}
           truncate="END"
           style={{
@@ -116,7 +121,7 @@ export function NexusWidget({ page, dateLabel, shortcuts, theme, height }: Props
           }}
         />
         <TextWidget
-          text={`${page.host}  ·  ${page.readMinutes} min read`}
+          text={subtitle}
           maxLines={1}
           truncate="END"
           style={{
