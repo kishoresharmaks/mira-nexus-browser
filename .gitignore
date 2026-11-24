@@ -55,3 +55,16 @@ admin/.next/
 admin/.data/
 .next/
 
+# Temporary / debug scripts (not committed)
+scripts/*-debug.cjs
+scripts/*-test.cjs
+scripts/*-setup.cjs
+scripts/*-update.cjs
+scripts/*.tmp
+
+# Internal planning docs (not part of the product)
+*PLAN*.md
+*IMPLEMENTATION*.md
+*ROADMAP*.md
+docs/PLAN-*.md
+
