@@ -68,3 +68,13 @@ scripts/*.tmp
 *ROADMAP*.md
 docs/PLAN-*.md
 
+# Product docs & guides (kept offline, not in repo)
+docs/
+.claude/
+scripts/
+AGENTS.md
+admin/AGENTS.md
+PLAY_STORE_PUBLISHING.md
+VPS_DEPLOYMENT.md
+PRIVACY.md
+

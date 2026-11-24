@@ -24,8 +24,6 @@ Expo SDK 58, React Native 0.88, React 19, TypeScript, Expo Router. Native module
 src/          App source (Expo Router, components, lib, widgets, theme)
 admin/        Next.js catalog desk (search presets, Today pages, ad settings)
 catalog/      Canonical defaults for search engines, Today pages, and ads
-docs/         Privacy policy, Play Store artwork, release runbooks
-scripts/      CI/build helpers (apply-version, configure-signing, sync-catalog)
 ```
 
 ## Requirements
@@ -64,11 +62,11 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-The `.aab` attaches to the GitHub Release for Play Console upload. Setup, signing, and Play Store listing walkthroughs are in `docs/PLAY_STORE_PUBLISHING.md`.
+The `.aab` attaches to the GitHub Release for Play Console upload. Setup, signing, and Play Store listing walkthroughs are kept offline.
 
 ## Privacy
 
-No account, no feed, no analytics. History, trails, shortcuts, search choice, and theme are stored only on the device. The optional discussion lookup sends only the current page address to Hacker News (Algolia) and Lobsters, and can be disabled. Full policy: [PRIVACY.md](PRIVACY.md).
+No account, no feed, no analytics. History, trails, shortcuts, search choice, and theme are stored only on the device. The optional discussion lookup sends only the current page address to Hacker News (Algolia) and Lobsters, and can be disabled.
 
 ## License
 
