@@ -54,6 +54,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
+    "test": "node --import ./tests/loader.mjs --test tests/*.test.mjs",
+    "admin:typecheck": "npm --prefix admin run typecheck",
     "catalog:sync": "node scripts/sync-catalog.mjs"
   },
   "private": true

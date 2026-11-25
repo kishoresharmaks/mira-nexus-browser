@@ -703,6 +703,10 @@ export default function Nexus() {
         onPress: () => speechService.stop(),
       });
     } else {
+      if (Platform.OS === 'web') {
+        toast.show('Web preview only — article audio requires the native app');
+        return;
+      }
       if (activeTabId) {
         browserRefs.current.get(activeTabId)?.extractArticle();
       }

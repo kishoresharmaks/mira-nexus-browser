@@ -101,6 +101,22 @@ export function estimateReadingTime(wordCount: number): number {
   return Math.max(1, Math.ceil(wordCount / 210));
 }
 
+/**
+ * Strips executable tags, inline event handlers, and scriptable URI schemes
+ * from HTML extracted across the WebView bridge before storing or rendering it.
+ */
+export function sanitizeExtractedHtml(rawHtml: string): string {
+  if (!rawHtml) return '';
+  return rawHtml
+    .replace(/<(script|style|iframe|object|embed|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<(script|style|iframe|object|embed|noscript)\b[^>]*\/?>/gi, '')
+    .replace(/\s+on[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(
+      /\b(href|src|action|formaction)\s*=\s*(['"]?)\s*(?:javascript|vbscript|data:text\/html):[^'"\s>]*/gi,
+      '$1=$2#',
+    );
+}
+
 export function parseExtractedArticle(
   data: {
     title?: string;
@@ -123,7 +139,7 @@ export function parseExtractedArticle(
     title: (data.title || '').trim(),
     author: (data.author || '').trim(),
     text,
-    html: data.html || '',
+    html: sanitizeExtractedHtml(data.html || ''),
     url,
     host: hostOf(url),
     wordCount,

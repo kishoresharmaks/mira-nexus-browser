@@ -104,7 +104,7 @@ export const DEFAULT_ADS: AdsConfig = {
   enabled: false,
   bannerEnabled: false,
   rewardedEnabled: false,
-  testMode: true,
+  testMode: false,
   layout: 'inline',
   androidUnitId: '',
   iosUnitId: '',

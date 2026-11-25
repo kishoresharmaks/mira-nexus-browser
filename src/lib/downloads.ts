@@ -1,11 +1,17 @@
-import * as FileSystem from 'expo-file-system/legacy';
+import { Directory, DownloadTask, File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import type { DownloadItem } from '@/types';
 import { createId, isWebUrl } from './url';
 
-const DOWNLOAD_DIR = `${FileSystem.documentDirectory ?? ''}downloads/`;
+/**
+ * Downloads live in the app's own sandboxed `downloads/` directory, so no
+ * broad Android storage permission is ever needed.
+ */
+const activeDownloadTasks = new Map<string, DownloadTask>();
 
-const activeDownloadTasks = new Map<string, FileSystem.DownloadResumable>();
+function downloadFile(filename: string): File {
+  return new File(new Directory(Paths.document, 'downloads'), filename);
+}
 
 export function normalizeDownloads(value: unknown): DownloadItem[] {
   if (!Array.isArray(value)) return [];
@@ -78,12 +84,11 @@ export function formatBytes(bytes: number): string {
   return `${size.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
-export async function ensureDownloadDirectory(): Promise<string> {
-  const dirInfo = await FileSystem.getInfoAsync(DOWNLOAD_DIR);
-  if (!dirInfo.exists) {
-    await FileSystem.makeDirectoryAsync(DOWNLOAD_DIR, { intermediates: true });
+function ensureDownloadDirectory(): void {
+  const dir = new Directory(Paths.document, 'downloads');
+  if (!dir.exists) {
+    dir.create();
   }
-  return DOWNLOAD_DIR;
 }
 
 export type DownloadProgressHandler = (id: string, progress: number, bytesWritten: number, totalBytes: number) => void;
@@ -105,8 +110,9 @@ export async function startFileDownload(
 ): Promise<DownloadItem> {
   const id = `dl-${createId()}`;
   const filename = getFilenameFromUrl(url, suggestedName);
-  await ensureDownloadDirectory();
-  const fileUri = `${DOWNLOAD_DIR}${filename}`;
+  ensureDownloadDirectory();
+  const file = downloadFile(filename);
+  const fileUri = file.uri;
 
   const downloadItem: DownloadItem = {
     id,
@@ -119,39 +125,42 @@ export async function startFileDownload(
     startedAt: Date.now(),
   };
 
-  const progressCallback = (data: FileSystem.DownloadProgressData) => {
-    const total = data.totalBytesExpectedToWrite;
-    const written = data.totalBytesWritten;
+  const progressCallback = (data: { bytesWritten: number; totalBytes: number }) => {
+    // A server that sends no Content-Length reports -1; fake forward
+    // progress rather than a bar frozen at zero.
+    const total = data.totalBytes > 0 ? data.totalBytes : 0;
+    const written = data.bytesWritten;
     const progress = total > 0 ? Math.min(1, Math.max(0, written / total)) : 0.5;
     callbacks.onProgress(id, progress, written, total);
   };
 
-  const task = FileSystem.createDownloadResumable(url, fileUri, {}, progressCallback);
+  const task = File.createDownloadTask(url, file, { onProgress: progressCallback });
   activeDownloadTasks.set(id, task);
 
   task
     .downloadAsync()
-    .then((result) => {
+    .then((downloaded) => {
       activeDownloadTasks.delete(id);
-      if (result && result.status >= 200 && result.status < 300) {
-        // Fetch file size
-        FileSystem.getInfoAsync(fileUri).then((info) => {
-          const finalItem: DownloadItem = {
-            ...downloadItem,
-            fileSize: info.exists && 'size' in info ? (info.size ?? 0) : 0,
-            progress: 1,
-            status: 'completed',
-            mimeType: result.mimeType ?? undefined,
-            completedAt: Date.now(),
-          };
-          callbacks.onComplete(finalItem);
-        });
-      } else {
-        callbacks.onError(id, `Download failed with HTTP ${result?.status ?? 'unknown'}`);
-      }
+      // A null result means the task was paused, not finished; the caller
+      // decides what to do with it and it stays registered for resume.
+      if (!downloaded) return;
+      const finalItem: DownloadItem = {
+        ...downloadItem,
+        fileSize: file.size,
+        progress: 1,
+        status: 'completed',
+        mimeType: file.type || undefined,
+        completedAt: Date.now(),
+      };
+      callbacks.onComplete(finalItem);
     })
     .catch((err: unknown) => {
       activeDownloadTasks.delete(id);
+      // Aborting leaves no file behind worth reporting.
+      if (err instanceof Error && err.name === 'AbortError') {
+        callbacks.onError(id, 'Download cancelled.');
+        return;
+      }
       const msg = err instanceof Error ? err.message : 'Network error during download';
       callbacks.onError(id, msg);
     });
@@ -175,8 +184,8 @@ export async function cancelFileDownload(id: string): Promise<boolean> {
 
 export async function openDownloadedFile(item: DownloadItem): Promise<boolean> {
   try {
-    const exists = await FileSystem.getInfoAsync(item.fileUri);
-    if (!exists.exists) return false;
+    const file = new File(item.fileUri);
+    if (!file.exists) return false;
 
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(item.fileUri, {
@@ -194,7 +203,10 @@ export async function openDownloadedFile(item: DownloadItem): Promise<boolean> {
 export async function deleteDownloadedFile(item: DownloadItem): Promise<boolean> {
   try {
     await cancelFileDownload(item.id);
-    await FileSystem.deleteAsync(item.fileUri, { idempotent: true });
+    const file = new File(item.fileUri);
+    if (file.exists) {
+      file.delete();
+    }
     return true;
   } catch {
     return false;

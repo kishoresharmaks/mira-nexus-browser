@@ -159,7 +159,10 @@ class SpeechService {
       this.chunkIndex -= 1;
       this.speakCurrent();
     } else {
-      this.speakCurrent();
+      // At the first chunk there is nothing earlier to return to; stopping
+      // matches `next()` at the last chunk, instead of re-speaking from the
+      // start of a chunk the reader is already into.
+      this.stop();
     }
   }
 }

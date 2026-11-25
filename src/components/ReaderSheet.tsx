@@ -3,6 +3,7 @@ import {
   Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -114,7 +115,9 @@ export function ReaderSheet({
               textAlign: 'center',
             }}
           >
-            Extracting clean reader view...
+            {Platform.OS === 'web'
+              ? 'Web preview only'
+              : 'Extracting clean reader view...'}
           </Text>
           <Text
             style={{
@@ -126,7 +129,9 @@ export function ReaderSheet({
               maxWidth: 280,
             }}
           >
-            Looking for article body text on this page.
+            {Platform.OS === 'web'
+              ? 'Reader view extracts article content in the native mobile WebView and is not available in the web preview.'
+              : 'Looking for article body text on this page.'}
           </Text>
           <View style={{ marginTop: 24 }}>
             <IconButton

@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { generateLocalSummary } from '@/lib/summarizer';
 import { speechService } from '@/lib/speech';
@@ -42,7 +42,9 @@ export function AiSummarySheet({
               marginTop: 14,
             }}
           >
-            Analyzing page content...
+            {Platform.OS === 'web'
+              ? 'Web preview only'
+              : 'Analyzing page content...'}
           </Text>
           <Text
             style={{
@@ -53,7 +55,9 @@ export function AiSummarySheet({
               textAlign: 'center',
             }}
           >
-            Extracting key points and core takeaways
+            {Platform.OS === 'web'
+              ? 'AI summary requires the native mobile WebView to extract article text.'
+              : 'Extracting key points and core takeaways'}
           </Text>
         </View>
       </BottomSheet>
